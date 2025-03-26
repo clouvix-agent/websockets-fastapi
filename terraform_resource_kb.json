@@ -1,0 +1,310 @@
+{
+    "aws_instance": {
+      "description": "An EC2 instance is a virtual machine running in AWS cloud.",
+      
+      "required": {
+        "ami": {
+          "description": "Amazon Machine Image (AMI) ID. This defines the OS and pre-installed software.",
+          "source": "User must provide a valid AMI ID based on their selected AWS region."
+        },
+        "instance_type": {
+          "description": "Determines the compute power of the EC2 instance (CPU, RAM, networking).",
+          "source": "User selects based on workload requirements. Defaults to 't3.micro' for general-purpose workloads."
+        }
+      },
+  
+      "optional": {
+        "security_groups": {
+          "description": "A list of security group names that control inbound and outbound traffic.",
+          "source": "User defines security groups to allow necessary ports (e.g., SSH, HTTP)."
+        },
+        "subnet_id": {
+          "description": "The ID of the subnet where the instance will be deployed.",
+          "source": "User must provide a valid Subnet ID within a VPC."
+        },
+        "iam_instance_profile": {
+          "description": "The IAM Instance Profile that allows EC2 to assume an IAM Role.",
+          "source": "Must reference a valid 'aws_iam_instance_profile' resource."
+        },
+        "user_data": {
+          "description": "A script that runs at instance launch, used for initial software setup.",
+          "source": "User-defined shell script for setting up applications and configurations."
+        },
+        "ebs_optimized": {
+          "description": "Enables EBS optimization for higher storage throughput.",
+          "source": "Defaults to 'false'. Recommended for high I/O workloads."
+        },
+        "monitoring": {
+          "description": "Enables detailed CloudWatch monitoring for instance metrics.",
+          "source": "Defaults to 'false'. Recommended for production environments."
+        },
+        "tags": {
+          "description": "Key-value pairs for resource organization and tracking.",
+          "source": "User-defined. Helps with cost allocation and management."
+        }
+      },
+  
+      "default_values": {
+        "instance_type": "t3.micro",
+        "ebs_optimized": false,
+        "monitoring": false,
+        "ami": "ami-053a45fff0a704a47"
+      },
+  
+      "best_practices": [
+        "Use IAM roles instead of hardcoded credentials.",
+        "Restrict SSH access using security groups.",
+        "Enable detailed CloudWatch monitoring for production instances.",
+        "Store application logs in CloudWatch Logs for debugging.",
+        "Use Auto Scaling Group for high availability instead of a single EC2 instance."
+      ]
+    },
+
+    "aws_s3_bucket": {
+    "description": "An Amazon S3 bucket used for object storage, logging, or hosting static content.",
+    
+    "required": {
+      "bucket": {
+        "description": "The name of the S3 bucket.",
+        "source": "Generate globally unique name across AWS."
+      }
+    },
+
+    "optional": {
+      "acl": {
+        "description": "Defines the access control list for the bucket (e.g., 'private', 'public-read').",
+        "source": "Defaults to 'private'. User can specify access level."
+      },
+      "versioning": {
+        "description": "Enable or disable versioning to retain object versions.",
+        "source": "User can enable to keep multiple versions of the same object."
+      },
+      "logging": {
+        "description": "Enable logging to track access requests.",
+        "source": "Requires specifying a target bucket for logs."
+      },
+      "encryption": {
+        "description": "Enable server-side encryption for data security.",
+        "source": "User can enable SSE-S3, SSE-KMS, or SSE-C."
+      },
+      "tags": {
+        "description": "Key-value pairs for resource organization and cost tracking.",
+        "source": "User-defined."
+      }
+    },
+
+    "default_values": {
+      "acl": "private"
+    },
+
+    "best_practices": [
+      "Enable server-side encryption (SSE) for security.",
+      "Use bucket policies to restrict access instead of ACLs.",
+      "Enable versioning to protect against accidental deletions.",
+      "Use lifecycle rules to optimize storage costs by archiving old objects.",
+      "Block public access unless explicitly required."
+    ]
+  },
+  "aws_ecs_cluster": {
+    "description": "An ECS cluster that manages containerized applications.",
+    
+    "required": {
+      "name": {
+        "description": "The name of the ECS cluster.",
+        "source": "User-defined, must be unique within the AWS account."
+      }
+    },
+
+    "optional": {
+      "tags": {
+        "description": "Key-value pairs for resource organization and cost tracking.",
+        "source": "User-defined."
+      }
+    },
+
+    "best_practices": [
+      "Use Fargate for serverless container management to reduce infrastructure overhead.",
+      "Ensure proper IAM roles are attached to ECS tasks for security.",
+      "Enable CloudWatch logging for ECS tasks to track application performance."
+    ]
+  },
+
+  "aws_ecs_task_definition": {
+    "description": "Defines the settings for containers running in ECS.",
+    
+    "required": {
+      "family": {
+        "description": "The family name for the task definition.",
+        "source": "User-defined, used to group multiple versions of a task."
+      },
+      "container_definitions": {
+        "description": "JSON describing the containers that make up the task.",
+        "source": "Generated based on container configurations such as CPU, memory, environment variables, and logging."
+      }
+    },
+
+    "optional": {
+      "execution_role_arn": {
+        "description": "IAM role used by ECS tasks to pull images and manage logs.",
+        "source": "Reference 'aws_iam_role.ecs_task_execution_role.arn'."
+      },
+      "network_mode": {
+        "description": "The networking mode for the ECS task (e.g., 'bridge', 'awsvpc').",
+        "source": "Defaults to 'awsvpc' if 'subnet_id' is provided."
+      },
+      "requires_compatibilities": {
+        "description": "Specifies whether the task runs on EC2 or Fargate.",
+        "source": "Determined based on launch configuration (if 'subnet_id' is set, default to ['FARGATE'])."
+      }
+    },
+
+    "best_practices": [
+      "Use 'awsvpc' networking mode for better security and isolation.",
+      "Store environment variables securely using AWS Secrets Manager.",
+      "Define CPU and memory limits to optimize resource allocation."
+    ]
+  },
+
+  "aws_ecs_service": {
+    "description": "Manages the deployment and scaling of tasks in an ECS cluster.",
+    
+    "required": {
+      "name": {
+        "description": "The name of the ECS service.",
+        "source": "User-defined, must be unique within the cluster."
+      },
+      "cluster": {
+        "description": "The ECS cluster where the service will run.",
+        "source": "Reference 'aws_ecs_cluster.my_cluster.id'."
+      },
+      "task_definition": {
+        "description": "The task definition to use for the service.",
+        "source": "Reference 'aws_ecs_task_definition.my_task_definition.arn'."
+      }
+    },
+
+    "optional": {
+      "desired_count": {
+        "description": "The number of tasks to run in the service.",
+        "source": "Defaults to 1, but can be adjusted for scaling."
+      },
+      "launch_type": {
+        "description": "Specifies whether the service runs on EC2 or Fargate.",
+        "source": "Defaults to 'FARGATE' if 'requires_compatibilities' is set to ['FARGATE']."
+      },
+      "load_balancer": {
+        "description": "Associates the ECS service with an Application Load Balancer (ALB) or Network Load Balancer (NLB).",
+        "source": "Reference 'aws_lb_target_group.ecs_target_group.arn'."
+      }
+    },
+
+    "best_practices": [
+      "Use Fargate for serverless container management.",
+      "Enable auto-scaling for high availability and cost efficiency.",
+      "Attach an IAM role to the ECS service for secure API calls."
+    ]
+  },
+  "aws_ecr_repository": {
+    "description": "An Amazon Elastic Container Registry (ECR) repository for storing and managing container images.",
+
+    "required": {
+      "name": {
+        "description": "The name of the ECR repository.",
+        "source": "User-defined, must be unique within the AWS account."
+      }
+    },
+
+    "optional": {
+      "image_scanning_configuration": {
+        "description": "Enables automated scanning for security vulnerabilities.",
+        "source": "Defaults to 'false', but recommended for security."
+      },
+      "image_tag_mutability": {
+        "description": "Defines whether image tags can be overwritten ('MUTABLE') or not ('IMMUTABLE').",
+        "source": "Defaults to 'MUTABLE'."
+      },
+      "encryption_configuration": {
+        "description": "Specifies encryption settings for stored images.",
+        "source": "Uses AWS-managed encryption by default."
+      },
+      "tags": {
+        "description": "Key-value pairs for resource organization and cost tracking.",
+        "source": "User-defined."
+      }
+    },
+
+    "best_practices": [
+      "Enable image scanning to detect vulnerabilities early.",
+      "Use immutable tags to prevent accidental overwrites of images.",
+      "Restrict repository access using IAM policies.",
+      "Implement lifecycle policies to remove unused images and optimize storage costs.",
+      "Use AWS PrivateLink (VPC endpoint) for secure private access to ECR."
+    ]
+  },
+  "aws_lambda_function": {
+    "description": "An AWS Lambda function that runs code without provisioning or managing servers.",
+    
+    "required": {
+      "function_name": {
+        "description": "The name of the Lambda function.",
+        "source": "User-defined."
+      },
+      "role": {
+        "description": "IAM role ARN granting Lambda permissions.",
+        "source": "Refer aws_iam_role."
+      },
+      "handler": {
+        "description": "The function entry point in the code.",
+        "source": "Depends on runtime; e.g., 'index.handler' for Node.js."
+      },
+      "runtime": {
+        "description": "The runtime environment for the function.",
+        "source": "Valid options: nodejs14.x, python3.8, java11, etc."
+      }
+    },
+
+    "optional": {
+      "filename": {
+        "description": "Path to the function deployment package (ZIP).",
+        "source": "User-defined or built using Terraform package."
+      },
+      "memory_size": {
+        "description": "Memory allocation for the function (MB).",
+        "source": "Default is 128 MB."
+      },
+      "timeout": {
+        "description": "Function execution timeout in seconds.",
+        "source": "Default is 3 seconds, max is 900."
+      },
+      "environment": {
+        "description": "Environment variables key-value pairs.",
+        "source": "User-defined."
+      },
+      "vpc_config": {
+        "description": "VPC settings if Lambda runs in a private network.",
+        "source": "Refer aws_vpc."
+      },
+      "layers": {
+        "description": "List of Lambda layers to include.",
+        "source": "User-defined."
+      },
+      "tags": {
+        "description": "A map of tags to assign to the Lambda function.",
+        "source": "User-defined."
+      }
+    },
+
+    "default_values": {
+      "memory_size": 128,
+      "timeout": 3
+    },
+
+    "best_practices": [
+      "Use environment variables for configuration instead of hardcoding.",
+      "Enable detailed CloudWatch Logs monitoring.",
+      "Ensure IAM role has only necessary permissions.",
+      "Use provisioned concurrency for predictable performance."
+    ]
+  }
+  }
+  

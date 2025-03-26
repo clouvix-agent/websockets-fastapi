@@ -1,0 +1,224 @@
+ec2:
+  description: "EC2 instance deployment with required and optional dependencies."
+
+  mandatory_resources:
+    compute_execution:
+      ec2_instance:
+        description: "Core EC2 compute resource."
+        configuration:
+          required:
+            - "ami"
+            - "instance_type"
+
+    networking_accessibility:
+      vpc:
+        description: "EC2 must be inside a VPC for networking."
+
+      subnets:
+        description: "Public and private subnets for EC2."
+
+      security_groups:
+        description: "Security group for EC2 instance."
+
+      internet_gateway:
+        description: "Required for public EC2 to access the internet."
+
+      route_table:
+        description: "Routing rules for VPC networking."
+
+    storage_configuration:
+      ebs:
+        description: "EBS volume for EC2 storage."
+
+      iam_role:
+        description: "IAM Role for EC2 to access AWS services."
+
+      user_data_script:
+        description: "Automates software installation (e.g., Java, Docker, web server)."
+
+    security_iam:
+      key_pair:
+        description: "Required for SSH access to EC2."
+
+    monitoring_logging:
+      cloudwatch_logs:
+        description: "Log EC2 activity to CloudWatch."
+
+      cloudwatch_metrics:
+        description: "Enable CloudWatch monitoring."
+
+  optional_resources:
+    load_balancing_scaling:
+      alb:
+        description: "Application Load Balancer for HTTP/HTTPS traffic."
+
+      nlb:
+        description: "Network Load Balancer for TCP/UDP-based workloads."
+
+      auto_scaling_group:
+        description: "Automatically scales EC2 instances."
+
+    storage_databases:
+      s3:
+        description: "S3 bucket for storing application assets, logs, or backups."
+
+      efs:
+        description: "Elastic File System for persistent shared storage."
+
+      rds:
+        description: "Relational Database Service (MySQL, PostgreSQL)."
+
+      dynamodb:
+        description: "NoSQL database for scalable applications."
+
+      elasticache:
+        description: "Redis/Memcached caching for performance improvement."
+
+    security_iam:
+      secrets_manager:
+        description: "Stores API keys & credentials securely."
+
+      waf:
+        description: "Web Application Firewall for filtering threats."
+
+      aws_shield:
+        description: "AWS Shield for DDoS protection."
+
+    monitoring_performance:
+      cloudwatch_alarms:
+        description: "Triggers alerts for CPU, memory, and disk usage."
+
+      xray:
+        description: "AWS X-Ray for distributed tracing."
+
+    devops_cicd:
+      codedeploy:
+        description: "Automates deployments to EC2."
+
+      codepipeline:
+        description: "CI/CD pipeline for automated deployments."
+
+      ssm_agent:
+        description: "AWS Systems Manager Agent for remote access & automation."
+s3:
+  description: "An S3 bucket for storing objects such as static assets, backups, or logs."
+
+  mandatory_resources:
+    storage:
+      s3_bucket:
+        description: "The core S3 storage bucket for storing objects."
+
+  optional_resources:
+    security:
+      bucket_policy:
+        description: "A bucket policy to define fine-grained access control."
+
+      iam_role:
+        description: "IAM Role with S3 access permissions."
+
+    versioning:
+      s3_versioning:
+        description: "Enable versioning to keep multiple versions of an object."
+
+    logging:
+      s3_logging:
+        description: "Enable logging for access tracking."
+
+    encryption:
+      s3_encryption:
+        description: "Enable server-side encryption (SSE) for securing stored data."
+
+    public_access:
+      block_public_access:
+        description: "Block public access to prevent unintended exposure."
+
+    lifecycle:
+      lifecycle_rules:
+        description: "Define lifecycle rules to automatically transition or delete objects."
+ecs:
+  description: "Amazon Elastic Container Service (ECS) for running containerized applications."
+
+  mandatory_resources:
+    compute:
+      ecs_cluster:
+        description: "The core ECS cluster where services run."
+      ecs_service:
+        description: "ECS service that manages and runs the task definitions."
+      ecs_task_definition:
+        description: "Defines how containers run, including CPU, memory, and IAM roles."
+    networking:
+      vpc:
+        description: "ECS services must be deployed inside a VPC."
+      subnets:
+        description: "Public or private subnets where ECS tasks will run."
+      security_groups:
+        description: "Control inbound and outbound access to ECS tasks."
+    iam:
+      ecs_task_execution_role:
+        description: "IAM role that allows ECS tasks to interact with AWS services (e.g., pulling images from ECR)."
+
+  optional_resources:
+    storage:
+      efs:
+        description: "EFS storage for persistent container data."
+      s3:
+        description: "S3 bucket for storing logs, backups, or application data."
+    autoscaling:
+      ecs_autoscaling:
+        description: "Automatically scales ECS services based on metrics."
+    load_balancer:
+      alb:
+        description: "Application Load Balancer for exposing ECS services to the internet."
+      nlb:
+        description: "Network Load Balancer for high-performance ECS networking."
+    logging:
+      cloudwatch_logs:
+        description: "Enable CloudWatch logs for monitoring ECS tasks."
+    monitoring:
+      cloudwatch_alarms:
+        description: "Monitor CPU, memory, and application performance."
+    networking:
+      private_link:
+        description: "AWS PrivateLink for securely accessing ECS services."
+    deployment:
+      codepipeline:
+        description: "CI/CD pipeline for automating deployments."
+      codedeploy:
+        description: "AWS CodeDeploy for blue-green deployments."
+ecr:
+  description: "Amazon Elastic Container Registry (ECR) for storing, managing, and deploying container images."
+
+  mandatory_resources:
+    compute:
+      ecr_repository:
+        description: "ECR repository where container images are stored."
+    iam:
+      ecr_access_policy:
+        description: "IAM policy to allow ECS, Lambda, or EC2 instances to pull images from ECR."
+  
+  optional_resources:
+    security:
+      ecr_lifecycle_policy:
+        description: "Defines rules for automatic cleanup of unused images."
+    logging:
+      cloudwatch_logs:
+        description: "Enable CloudWatch logs for monitoring ECR events."
+    networking:
+      vpc_endpoint:
+        description: "AWS PrivateLink for securely accessing ECR without using the public internet."
+    deployment:
+      codepipeline:
+        description: "CI/CD pipeline for automated container image builds and deployments."
+      codedeploy:
+        description: "AWS CodeDeploy for automated deployments."
+lambda:
+  mandatory_resources:
+    iam_role: "Required IAM role to execute the Lambda function."
+  optional_resources:
+    vpc: "If the Lambda function needs access to private resources."
+    s3: "For storing Lambda function deployment packages."
+    dynamodb: "If Lambda needs to interact with a database."
+    api_gateway: "For exposing Lambda as an HTTP API."
+    sqs: "For event-driven architectures using queues."
+    sns: "For event-driven architectures using notifications."
+    cloudwatch_logs: "For monitoring and logging execution results."
