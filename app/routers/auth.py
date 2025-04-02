@@ -108,7 +108,9 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
             detail="Email not verified"
         )
     
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(data={    "sub": user.username,
+    "id": user.id,
+    "email": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login/otp", response_model=MessageResponse)

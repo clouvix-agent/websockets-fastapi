@@ -54,6 +54,7 @@ log/
 .env.development.local
 .env.test.local
 .env.production.local
+.venv
 
 # Project specific
 .pytest_cache/

@@ -16,6 +16,10 @@ from app.core.architecture_builder import architecture_builder_tool, check_archi
 from app.core.tf_generator import TerraformRequest
 from langchain.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langgraph.prebuilt import InjectedState
+from langchain_core.tools import Tool
+from langgraph.prebuilt import InjectedState
+from langchain_core.runnables import RunnableLambda
 
 
 memory = MemorySaver()
@@ -32,6 +36,7 @@ class State(TypedDict):
     architecture_json: TerraformRequest
     terraform_git_url: str
     app_git_url: str
+    user_id: int
 
 
 graph_builder = StateGraph(State)
@@ -96,7 +101,7 @@ graph = graph_builder.compile(checkpointer=memory)
 
 config = {"configurable": {"thread_id": "1"}}
 
-async def process_query(query: str) -> str:
+async def process_query(query: str, user_id: int = None) -> str:
     messages = [
         {
             "role": "user",
@@ -109,7 +114,8 @@ async def process_query(query: str) -> str:
         "messages": messages,
         "architecture_json": "",
         "terraform_git_url": "",
-        "app_git_url": ""
+        "app_git_url": "",
+        "user_id": user_id
     }
     
     print("State: ", state)

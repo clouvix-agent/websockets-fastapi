@@ -8,10 +8,20 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 from langgraph.prebuilt import InjectedState
 from langchain.tools import tool
+from app.database import get_db
+from app.models.user import User
+from app.models.workspace import Workspace
+from app.schemas.workspace import WorkspaceCreate
+from app.db.workspace import create_workspace
+from app.auth.deps import get_current_active_user
+from app.auth.utils import SECRET_KEY, ALGORITHM
+from jose import JWTError, jwt
 
 # Load environment variables
 load_dotenv()
