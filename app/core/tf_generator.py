@@ -22,6 +22,7 @@ from app.db.workspace import create_workspace
 from app.auth.deps import get_current_active_user
 from app.auth.utils import SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
+from langchain_core.runnables import RunnableConfig
 
 # Load environment variables
 load_dotenv()
@@ -459,7 +460,7 @@ def validate_and_fix_terraform(terraform_code, services, connections):
     print("🔴 Terraform Validation Failed after 5 attempts")
     return terraform_code
 
-def extract_and_save_terraform(terraform_output, services, connections):
+def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
     """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
     if not terraform_output:
         print("Error: No Terraform code generated.")
@@ -473,13 +474,25 @@ def extract_and_save_terraform(terraform_output, services, connections):
         print(f"Created Terraform directory: {TERRAFORM_DIR}")
 
     # Validate and Fix Terraform Configuration
-    validated_code = validate_and_fix_terraform(terraform_output, services, connections)
+    # validated_code = validate_and_fix_terraform(terraform_output, services, connections)
 
     # Save the final validated Terraform file
     final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
     with open(final_tf_path, "w") as tf_file:
-        tf_file.write(validated_code)
+        tf_file.write(terraform_output)
 
+    print(request)
+    # Add an entry to workspace table
+    db: Session = next(get_db())
+    new_workspace = WorkspaceCreate(
+        userid=user_id,
+        wsname=project_name,
+        filetype="terraform",
+        filelocation=final_tf_path,
+        diagramjson=request,
+        githublocation=""
+    )
+    create_workspace(db=db, workspace=new_workspace)
     print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
 
 # def generate_terraform_tool(state: InjectedState):
@@ -507,12 +520,13 @@ def get_terraform_folder(project_name: str) -> str:
     return folder
 
 @tool
-def generate_terraform_tool() -> str:
+def generate_terraform_tool(config: RunnableConfig) -> str:
     """Main function to orchestrate Terraform generation and file extraction.
     Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
     
     print("Running generate_terraform_tool")
     
+    user_id = config['configurable'].get('user_id', 'unknown')
     # **Step 1: Check and create necessary directories**
     if not os.path.exists("architecture_json"):
         os.makedirs("architecture_json", exist_ok=True)
@@ -590,7 +604,7 @@ def generate_terraform_tool() -> str:
 
     # **Step 6: Extract and Save Terraform File**
     try:
-        extract_and_save_terraform(terraform_output, user_services, user_connections)
+        extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
         print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
     except Exception as e:
         error_msg = f"Error saving Terraform file: {str(e)}"

@@ -4,7 +4,7 @@ from app.database import Base
 class Workspace(Base):
     __tablename__ = "workspaces"
 
-    id = Column(Integer, primary_key=True, index=True)
+    wsid = Column(Integer, primary_key=True, index=True)
     userid = Column(Integer, ForeignKey("users.id"), nullable=False)
     wsname = Column(String, nullable=False)
     filetype = Column(String, nullable=False)

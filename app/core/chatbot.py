@@ -20,6 +20,7 @@ from langgraph.prebuilt import InjectedState
 from langchain_core.tools import Tool
 from langgraph.prebuilt import InjectedState
 from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableConfig
 
 
 memory = MemorySaver()
@@ -46,8 +47,18 @@ def add_two_numbers(a: int, b: int) -> int:
     """Add two numbers together"""
     return a + b
 
+@tool
+def get_user_id(config: RunnableConfig) -> int:
+    """Returns the current user's ID"""
+    return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
+
+
+# def print_user_idd(config: RunnableConfig):
+#     """Returns the current user's ID"""
+#     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
+
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
@@ -80,10 +91,6 @@ def chatbot(state: State):
     return {"messages": [response]}
 
 
-
-
-
-
 graph_builder.add_node("chatbot", chatbot)
 
 tool_node = ToolNode(tools)
@@ -99,7 +106,12 @@ graph_builder.add_edge("tools", "chatbot")
 graph_builder.set_entry_point("chatbot")
 graph = graph_builder.compile(checkpointer=memory)
 
-config = {"configurable": {"thread_id": "1"}}
+config = lambda user_id: {
+    "configurable": {
+        "thread_id": "1",
+        "user_id": user_id  # ✅ inject user_id into config
+    }
+}
 
 async def process_query(query: str, user_id: int = None) -> str:
     messages = [
@@ -119,7 +131,7 @@ async def process_query(query: str, user_id: int = None) -> str:
     }
     
     print("State: ", state)
-    result = await graph.ainvoke(state, config)
+    result = await graph.ainvoke(state, config(user_id))
     
     final_message = result["messages"][-1]
     return final_message.content
