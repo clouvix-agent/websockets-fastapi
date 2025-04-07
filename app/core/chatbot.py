@@ -71,9 +71,11 @@ def chatbot(state: State):
         tool_names = ", ".join([tool.name for tool in tools])
         system_message = SystemMessage(
             content=(
-                "You are an AI assistant that helps users create architecture and generate "
+                "You are an AI assistant that helps users manage cloud Infrastructure and optimise it "
                 "Terraform code. For architecture creation, use architecture_builder_tool. "
                 "When ready to generate Terraform, use generate_terraform_tool and return the content of the terraform file."
+                "To run terraform apply, use terraform_apply_tool and return outputs"
+                "To  understand the cloud asset Inventory, use query_inventory tool"
                 f"\nAvailable tools: {tool_names}"
             )
         )
