@@ -23,6 +23,7 @@ from app.auth.deps import get_current_active_user
 from app.auth.utils import SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from langchain_core.runnables import RunnableConfig
+from app.models.connection import Connection
 
 # Load environment variables
 load_dotenv()
@@ -474,12 +475,12 @@ def extract_and_save_terraform(terraform_output, services, connections, user_id,
         print(f"Created Terraform directory: {TERRAFORM_DIR}")
 
     # Validate and Fix Terraform Configuration
-    # validated_code = validate_and_fix_terraform(terraform_output, services, connections)
+    validated_code = validate_and_fix_terraform(terraform_output, services, connections)
 
     # Save the final validated Terraform file
     final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
     with open(final_tf_path, "w") as tf_file:
-        tf_file.write(terraform_output)
+        tf_file.write(validated_code)
 
     print(request)
     # Add an entry to workspace table
@@ -626,8 +627,84 @@ You can now proceed with applying this Terraform configuration."""
         print(error_msg)
         raise Exception(error_msg)
         
-    
+@tool    
+def terraform_apply_tool(terraform_file_path, config: RunnableConfig):
+    """Helps run terraform apply on terraform file"""
+    print("Using apply tool")
+    user_id = config['configurable'].get('user_id', 'unknown')
+    print("User id")
+    print(user_id)
+    try:
+        # Get the database session
+        db: Session = next(get_db())
+        print("Inside try")
 
+        # Query the connections table to get the connection_json for the given user_id
+        connections = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws"
+        ).all()
+        
+        print("Found connections:", connections)
+        if not connections:
+            print("Errored here")
+            raise ValueError(f"No AWS connection found for user_id: {user_id}")
+
+        # Get the first connection (assuming there's only one AWS connection per user)
+        connection = connections[0]
+        print("Using connection:", connection)
+
+        # Parse the connection_json to extract AWS_ACCESS_KEY and AWS_SECRET_KEY
+        print("Iam here")
+        connection_data = json.loads(connection.connection_json)
+        print("Connection data:", connection_data)
+        aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
+        aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
+
+        if not aws_access_key or not aws_secret_key:
+            raise ValueError("AWS credentials not found in the connection data")
+        
+        print("AWS Secret Key:", aws_secret_key)
+        print("AWS Access Key:", aws_access_key)
+        # Prepare the variables JSON
+        variables = {
+            "aws_access_key": aws_access_key,
+            "aws_secret_key": aws_secret_key
+        }
+
+        # Prepare the API request
+        url = "https://terraform.clouvix.com/execute"
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
+        }
+
+        # Open and prepare the terraform file
+        with open(terraform_file_path, 'rb') as tf_file:
+            files = {
+                'terraform_file': ('main.tf', tf_file, 'text/plain'),
+                'variables': (None, json.dumps(variables))
+            }
+
+            # Make the API request
+            response = requests.post(url, headers=headers, files=files)
+            response_data = response.json()
+
+            # Check if the response indicates success
+            # if response_data.get("success") is True:
+            #     return True, ""
+            # else:
+            #     # Extract error message from the response
+            #     error_message = response_data.get("error", "")
+            #     print(f"Error message: {error_message}")
+            #     if not error_message and "details" in response_data:
+            #         error_message = response_data["details"].get("message", "Unknown error occurred")
+            #     return False, error_message
+            print(response_data)
+        return response_data
+
+    except Exception as e:
+        return False, str(e)
 
 # def main():
 #     """
@@ -658,3 +735,43 @@ You can now proceed with applying this Terraform configuration."""
 #     extract_and_save_terraform(terraform_output, user_services, user_connections)
     # Rest of the existing implementation...
     # Return content of terraform file
+
+
+def load_inventory():
+    with open("aws_comprehensive_inventory.json", "r") as f:
+        return json.load(f)
+
+# Query the inventory using LangChain
+@tool
+def query_inventory(user_query: str) -> str:
+    """
+    Query the AWS inventory based on the user's query and return the result.
+    
+    Args:
+        user_query (str): The query to be answered based on the AWS inventory.
+    
+    Returns:
+        str: The response from the AWS inventory assistant.
+    """
+    print("Using Inventory Tool")
+    # Load inventory
+    inventory = load_inventory()
+
+    # Define the system message
+    system_message = SystemMessage(
+        content=(
+            "You are an AWS inventory assistant. The following is the current AWS inventory:"
+            f"\n{json.dumps(inventory, indent=2)}"
+            f"\nBased on this inventory, answer the following question: {user_query}"
+        )
+    )
+
+    # Create a human message with the user's query
+    human_message = HumanMessage(content=user_query)
+
+    # Run the query using the LLM
+    response = llm.invoke([system_message, human_message])
+
+    # Print the response
+    print("Query Result:", response.content)
+    return response.content

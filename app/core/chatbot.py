@@ -11,7 +11,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from app.core.tf_generator import generate_terraform_tool
+from app.core.tf_generator import generate_terraform_tool, terraform_apply_tool, query_inventory
 from app.core.architecture_builder import architecture_builder_tool, check_architecture_file
 from app.core.tf_generator import TerraformRequest
 from langchain.tools import tool
@@ -58,7 +58,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, terraform_apply_tool, query_inventory]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
