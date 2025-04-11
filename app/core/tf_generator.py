@@ -23,7 +23,10 @@ from app.auth.deps import get_current_active_user
 from app.auth.utils import SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from langchain_core.runnables import RunnableConfig
-from app.models.connection import Connection
+# from app.models.connection import Connection
+from app.db.connection import get_user_connections_by_type
+from minio import Minio
+
 
 # Load environment variables
 load_dotenv()
@@ -392,7 +395,7 @@ def validate_terraform_api(terraform_file_path):
         }
 
         # Prepare the API request
-        url = "https://terraform.clouvix.com/validate"
+        url = "http://localhost:8001/validate"
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
@@ -428,38 +431,39 @@ def validate_and_fix_terraform(terraform_code, services, connections):
     
     print("🔎 Running OpenAI validation for completeness...")
     terraform_code = validate_terraform_with_openai(terraform_code, services, connections)
-
-    attempt = 0
-    while attempt < 5:
-        attempt += 1
-        print(f"\n🔄 Terraform Validation Attempt {attempt}")
-
-        # Ensure terraform directory exists
-        if not os.path.exists(TERRAFORM_DIR):
-            os.makedirs(TERRAFORM_DIR, exist_ok=True)
-            print(f"Created Terraform directory: {TERRAFORM_DIR}")
-
-        # Save the Terraform configuration
-        terraform_file_path = os.path.join(TERRAFORM_DIR, "main.tf")
-        with open(terraform_file_path, "w") as tf_file:
-            tf_file.write(terraform_code)
-
-        # Validate using API
-        success, error_message = validate_terraform_api(terraform_file_path)
-        if success:
-            print("🎉 Terraform Validation Successful!")
-            return terraform_code
-
-        # Fix errors if validation failed
-        print(f"🛠️ Fixing Terraform validation errors... (Attempt {attempt})")
-        terraform_code = fix_terraform_with_openai(terraform_code, error_message)
-        
-        # Save the updated Terraform configuration
-        with open(terraform_file_path, "w") as tf_file:
-            tf_file.write(terraform_code)
-
-    print("🔴 Terraform Validation Failed after 5 attempts")
     return terraform_code
+    # attempt = 0
+    # while True:
+    #     attempt += 1
+    #     print(f"\n🔄 Terraform Validation Attempt {attempt}")
+
+    #     # Ensure terraform directory exists
+    #     if not os.path.exists(TERRAFORM_DIR):
+    #         os.makedirs(TERRAFORM_DIR, exist_ok=True)
+    #         print(f"Created Terraform directory: {TERRAFORM_DIR}")
+
+    #     # Save the Terraform configuration
+    #     terraform_file_path = os.path.join(TERRAFORM_DIR, "main.tf")
+    #     with open(terraform_file_path, "w") as tf_file:
+    #         tf_file.write(terraform_code)
+
+    #     # Validate using API
+    #     success, error_message = validate_terraform_api(terraform_file_path)
+    #     if success:
+    #         print("🎉 Terraform Validation Successful!")
+    #         return terraform_code
+    #     else:
+    #     # Fix errors if validation failed
+    #         print(f"🛠️ Fixing Terraform validation errors... (Attempt {attempt})")
+    #         terraform_code = fix_terraform_with_openai(terraform_code, error_message)
+            
+    #         # Save the updated Terraform configuration
+    #         with open(terraform_file_path, "w") as tf_file:
+    #             tf_file.write(terraform_code)
+    #         continue
+
+    # print("🔴 Terraform Validation Failed after 5 attempts")
+    # return terraform_code
 
 def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
     """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
@@ -490,7 +494,7 @@ def extract_and_save_terraform(terraform_output, services, connections, user_id,
         wsname=project_name,
         filetype="terraform",
         filelocation=final_tf_path,
-        diagramjson=request,
+        diagramjson={},
         githublocation=""
     )
     create_workspace(db=db, workspace=new_workspace)
@@ -627,84 +631,84 @@ You can now proceed with applying this Terraform configuration."""
         print(error_msg)
         raise Exception(error_msg)
         
-@tool    
-def terraform_apply_tool(terraform_file_path, config: RunnableConfig):
-    """Helps run terraform apply on terraform file"""
-    print("Using apply tool")
-    user_id = config['configurable'].get('user_id', 'unknown')
-    print("User id")
-    print(user_id)
-    try:
-        # Get the database session
-        db: Session = next(get_db())
-        print("Inside try")
+# @tool    
+# def terraform_apply_tool(terraform_file_path, config: RunnableConfig):
+#     """Helps run terraform apply on terraform file"""
+#     print("Using apply tool")
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     print("User id")
+#     print(user_id)
+#     try:
+#         # Get the database session
+#         db: Session = next(get_db())
+#         print("Inside try")
 
-        # Query the connections table to get the connection_json for the given user_id
-        connections = db.query(Connection).filter(
-            Connection.userid == user_id,
-            Connection.type == "aws"
-        ).all()
+#         # Query the connections table to get the connection_json for the given user_id
+#         connections = db.query(Connection).filter(
+#             Connection.userid == user_id,
+#             Connection.type == "aws"
+#         ).all()
         
-        print("Found connections:", connections)
-        if not connections:
-            print("Errored here")
-            raise ValueError(f"No AWS connection found for user_id: {user_id}")
+#         print("Found connections:", connections)
+#         if not connections:
+#             print("Errored here")
+#             raise ValueError(f"No AWS connection found for user_id: {user_id}")
 
-        # Get the first connection (assuming there's only one AWS connection per user)
-        connection = connections[0]
-        print("Using connection:", connection)
+#         # Get the first connection (assuming there's only one AWS connection per user)
+#         connection = connections[0]
+#         print("Using connection:", connection)
 
-        # Parse the connection_json to extract AWS_ACCESS_KEY and AWS_SECRET_KEY
-        print("Iam here")
-        connection_data = json.loads(connection.connection_json)
-        print("Connection data:", connection_data)
-        aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
-        aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
+#         # Parse the connection_json to extract AWS_ACCESS_KEY and AWS_SECRET_KEY
+#         print("Iam here")
+#         connection_data = json.loads(connection.connection_json)
+#         print("Connection data:", connection_data)
+#         aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
+#         aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
 
-        if not aws_access_key or not aws_secret_key:
-            raise ValueError("AWS credentials not found in the connection data")
+#         if not aws_access_key or not aws_secret_key:
+#             raise ValueError("AWS credentials not found in the connection data")
         
-        print("AWS Secret Key:", aws_secret_key)
-        print("AWS Access Key:", aws_access_key)
-        # Prepare the variables JSON
-        variables = {
-            "aws_access_key": aws_access_key,
-            "aws_secret_key": aws_secret_key
-        }
+#         print("AWS Secret Key:", aws_secret_key)
+#         print("AWS Access Key:", aws_access_key)
+#         # Prepare the variables JSON
+#         variables = {
+#             "aws_access_key": aws_access_key,
+#             "aws_secret_key": aws_secret_key
+#         }
 
-        # Prepare the API request
-        url = "https://terraform.clouvix.com/execute"
-        headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
-        }
+#         # Prepare the API request
+#         url = "http://localhost:8001/execute"
+#         headers = {
+#             "accept": "application/json",
+#             "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
+#         }
 
-        # Open and prepare the terraform file
-        with open(terraform_file_path, 'rb') as tf_file:
-            files = {
-                'terraform_file': ('main.tf', tf_file, 'text/plain'),
-                'variables': (None, json.dumps(variables))
-            }
+#         # Open and prepare the terraform file
+#         with open(terraform_file_path, 'rb') as tf_file:
+#             files = {
+#                 'terraform_file': ('main.tf', tf_file, 'text/plain'),
+#                 'variables': (None, json.dumps(variables))
+#             }
 
-            # Make the API request
-            response = requests.post(url, headers=headers, files=files)
-            response_data = response.json()
+#             # Make the API request
+#             response = requests.post(url, headers=headers, files=files)
+#             response_data = response.json()
 
-            # Check if the response indicates success
-            # if response_data.get("success") is True:
-            #     return True, ""
-            # else:
-            #     # Extract error message from the response
-            #     error_message = response_data.get("error", "")
-            #     print(f"Error message: {error_message}")
-            #     if not error_message and "details" in response_data:
-            #         error_message = response_data["details"].get("message", "Unknown error occurred")
-            #     return False, error_message
-            print(response_data)
-        return response_data
+#             # Check if the response indicates success
+#             # if response_data.get("success") is True:
+#             #     return True, ""
+#             # else:
+#             #     # Extract error message from the response
+#             #     error_message = response_data.get("error", "")
+#             #     print(f"Error message: {error_message}")
+#             #     if not error_message and "details" in response_data:
+#             #         error_message = response_data["details"].get("message", "Unknown error occurred")
+#             #     return False, error_message
+#             print(response_data)
+#         return response_data
 
-    except Exception as e:
-        return False, str(e)
+#     except Exception as e:
+#         return False, str(e)
 
 # def main():
 #     """
@@ -775,3 +779,218 @@ def query_inventory(user_query: str) -> str:
     # Print the response
     print("Query Result:", response.content)
     return response.content
+
+
+@tool
+def update_terraform_file(user_update_prompt: str, config: RunnableConfig) -> str:
+    """
+    Tool to update the existing Terraform configuration based on user instructions.
+
+    Args:
+        user_update_prompt (str): Description of the changes user wants to make in the Terraform config.
+
+    Returns:
+        str: Updated Terraform code or error message.
+    """
+    print("🔧 Running update_terraform_file tool")
+
+    # Get user ID from config if available
+    user_id = config['configurable'].get('user_id', 'unknown')
+    print(f"User ID: {user_id}")
+
+    # Path to the Terraform file
+    terraform_file_path = os.path.join(TERRAFORM_DIR, "main.tf")
+    
+    if not os.path.exists(terraform_file_path):
+        error_msg = f"❌ Terraform file not found at {terraform_file_path}"
+        print(error_msg)
+        raise FileNotFoundError(error_msg)
+
+    # Read existing Terraform code
+    with open(terraform_file_path, "r") as file:
+        existing_code = file.read()
+
+    # Backup existing file
+    backup_path = os.path.join(TERRAFORM_DIR, "main_backup.tf")
+    with open(backup_path, "w") as backup_file:
+        backup_file.write(existing_code)
+    print(f"📦 Backup saved at {backup_path}")
+
+    # Compose OpenAI messages
+    messages = [
+        SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
+        HumanMessage(content=f"""Here is the current Terraform configuration:
+                ```hcl
+                {existing_code}
+                ```
+                The user wants the following changes: 
+                ```
+                {user_update_prompt}
+                ```
+                Please update the configuration accordingly and return the entire updated Terraform code, using best practices.
+
+                Important:
+
+                Only include valid Terraform HCL, no explanation.
+
+                Do NOT remove unrelated infrastructure unless specified.
+
+                Do NOT include deployment or function code.""" ) ]
+    
+    try:
+        response = llm.invoke(messages)
+        updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+    except Exception as e:
+        error_msg = f"❌ OpenAI error during update: {e}"
+        print(error_msg)
+        raise Exception(error_msg)
+
+    # Save updated Terraform configuration
+    try:
+        with open(terraform_file_path, "w") as tf_file:
+            tf_file.write(updated_code)
+        print(f"✅ Terraform file updated at {terraform_file_path}")
+    except Exception as e:
+        error_msg = f"❌ Failed to save updated Terraform file: {e}"
+        print(error_msg)
+        raise Exception(error_msg)
+
+    # Optional: Show diff summary
+    # diff = "\n".join(difflib.unified_diff(
+    #     existing_code.splitlines(),
+    #     updated_code.splitlines(),
+    #     fromfile="before.tf",
+    #     tofile="after.tf",
+    #     lineterm=""
+    # ))
+
+    # print("📝 Terraform diff:\n", diff)
+
+    # Return the result
+    return f"""
+    ✅ Terraform file updated based on your input.
+
+    📁 Location: `{terraform_file_path}`  
+    📦 Backup: `{backup_path}`
+
+    Here is the updated code:
+
+    ```hcl
+    {updated_code}
+    ```
+    """
+
+
+@tool
+def apply_terraform_tool_local(config: RunnableConfig) -> str:
+    """
+    Injects user-specific AWS provider block into main.tf and runs terraform apply.
+    Helps run terraform apply on terraform file
+    Returns the exact run status
+    """
+    print("🚀 Running apply_terraform_tool_local with provider injection")
+
+    # Get user ID from config
+    user_id = config['configurable'].get('user_id', 'unknown')
+    print(f"👤 User ID: {user_id}")
+
+    terraform_file_path = os.path.join(TERRAFORM_DIR, "main.tf")
+    if not os.path.exists(terraform_file_path):
+        raise FileNotFoundError(f"❌ Terraform file not found at {terraform_file_path}")
+    
+    
+
+    # try:
+        # Fetch credentials from DB using helper
+    db: Session = next(get_db())
+    connections = get_user_connections_by_type(db, user_id, "aws")
+
+    if not connections:
+        raise ValueError("❌ No AWS connection found for user")
+
+    connection = connections[0]  # You can enhance logic to select by label or ID if 
+    connection_data = json.loads(connection.connection_json)
+    print(connection_data)
+    aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
+    aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
+
+    if not aws_access_key or not aws_secret_key:
+        raise ValueError("❌ AWS credentials are incomplete")
+    # Read the main.tf
+    with open(terraform_file_path, "r") as file:
+        tf_content = file.read()
+
+        # Inject provider block if not present
+    if 'provider "aws"' not in tf_content:
+        provider_block = f'''
+        provider "aws" {{
+        access_key = "{aws_access_key}"
+        secret_key = "{aws_secret_key}"
+        region     = "us-east-1"
+        }}
+        '''
+        tf_content = provider_block + "\n" + tf_content
+        with open(terraform_file_path, "w") as file:
+            file.write(tf_content)
+        print("🔧 Injected AWS provider block")
+
+        # Run terraform init
+    print("🔨 Running terraform init")
+    subprocess.run(["terraform", "init"], cwd=TERRAFORM_DIR, check=True)
+
+        # Run terraform apply
+    print("🚀 Running terraform apply")
+    result = subprocess.run(
+        ["terraform", "apply", "-auto-approve"],
+        cwd=TERRAFORM_DIR,
+        capture_output=True,
+        text=True
+    )
+
+    print(result)
+    
+    # try:
+    #     print("📤 Uploading Terraform directory to MinIO...")
+
+    #     minio_client = Minio(
+    #         "storage.clouvix.com",
+    #         access_key="clouvix@gmail.com",
+    #         secret_key="Clouvix@bangalore2025",
+    #         secure=True
+    #     )
+
+    #     print(minio_client)
+
+    #     bucket_name = f"{user_id}_terraform_workspaces"
+
+    #     # Create bucket if it doesn't exist
+    #     if not minio_client.bucket_exists(bucket_name):
+    #         print("Inside Make bucket")
+    #         minio_client.make_bucket(bucket_name)
+    #         print(f"🪣 Created bucket: {bucket_name}")
+    #     else:
+    #         minio_client("Inisde bucket exists")
+    #         print(f"📦 Bucket exists: {bucket_name}")
+
+    #     folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
+
+    #     # Upload each file with folder_name prefix
+    #     for root, _, files in os.walk(TERRAFORM_DIR):
+    #         for file in files:
+    #             file_path = os.path.join(root, file)
+    #             relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+    #             object_key = f"{folder_name}/{relative_path}"
+    #             print(f"⬆️ Uploading: {file_path} -> {object_key}")
+    #             minio_client.fput_object(bucket_name, object_key, file_path)
+
+    #     print("✅ Terraform directory uploaded to MinIO!")
+
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"MinIO Upload Failed: {str(e)}")
+
+    return result
+
+    # except subprocess.CalledProcessError as e:
+    #     return f"❌ Terraform CLI Error:\n```\n{e.stderr}\n```"
+    # except Exception as e:
+    #     return f"❌ Unexpected Error:\n```\n{str(e)}\n```"
