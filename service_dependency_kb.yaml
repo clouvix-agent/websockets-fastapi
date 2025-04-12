@@ -222,3 +222,58 @@ lambda:
     sqs: "For event-driven architectures using queues."
     sns: "For event-driven architectures using notifications."
     cloudwatch_logs: "For monitoring and logging execution results."
+apprunner:
+  description: "AWS App Runner for running web applications and APIs directly from source code or containers."
+
+  mandatory_resources:
+    compute:
+      apprunner_service:
+        description: "The App Runner service that deploys and manages the application."
+    networking:
+      vpc_connector:
+        description: "Optional but recommended to connect App Runner to a VPC for private resources."
+
+  optional_resources:
+    logging:
+      cloudwatch_logs:
+        description: "Enable CloudWatch logging for App Runner service."
+    iam:
+      service_role:
+        description: "IAM role that allows App Runner to pull from ECR or GitHub."
+route53:
+  description: "Amazon Route 53 for managing DNS records and routing traffic."
+
+  mandatory_resources:
+    dns:
+      hosted_zone:
+        description: "A public or private hosted zone for managing domain records."
+
+  optional_resources:
+    routing:
+      record_set:
+        description: "DNS record sets (e.g., A, CNAME) to route traffic."
+rds:
+  description: "Amazon RDS for managed relational databases like PostgreSQL, MySQL."
+
+  mandatory_resources:
+    database:
+      rds_instance:
+        description: "The core RDS instance. Default should be PostgreSQL (Free Tier)."
+      subnet_group:
+        description: "Subnet group for deploying RDS in selected availability zones."
+      security_group:
+        description: "Security group to allow access (e.g., from ECS or Lambda)."
+
+  optional_resources:
+    monitoring:
+      enhanced_monitoring:
+        description: "Enables detailed CloudWatch monitoring for RDS."
+    backups:
+      backup_retention:
+        description: "Enable automated backups and snapshots."
+    performance:
+      performance_insights:
+        description: "Enable performance monitoring for tuning and analysis."
+    networking:
+      public_access:
+        description: "Make RDS publicly accessible if required for external access."

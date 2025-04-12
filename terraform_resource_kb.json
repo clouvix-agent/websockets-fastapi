@@ -305,6 +305,139 @@
       "Ensure IAM role has only necessary permissions.",
       "Use provisioned concurrency for predictable performance."
     ]
-  }
-  }
+  },
+  "aws_apprunner_service": {
+  "description": "Deploys and manages an AWS App Runner service.",
+
+  "required": {
+    "service_name": {
+      "description": "Unique name for the App Runner service.",
+      "source": "User-defined."
+    },
+    "source_configuration": {
+      "description": "Defines source (e.g., ECR or GitHub) and deployment settings.",
+      "source": "User provides GitHub/ECR access or configuration block."
+    }
+  },
+
+  "optional": {
+    "instance_configuration": {
+      "description": "CPU and memory allocation for the service.",
+      "source": "Defaults to 1024 CPU and 2 GB memory."
+    },
+    "auto_scaling_configuration_arn": {
+      "description": "ARN of the App Runner auto-scaling config.",
+      "source": "User-defined."
+    }
+  },
+
+  "best_practices": [
+    "Use ECR for container source with proper IAM permissions.",
+    "Enable auto-scaling and logging.",
+    "Connect to VPC via vpc_connector for secure backend access."
+  ]
+},
+"aws_route53_record": {
+  "description": "Creates DNS records inside a hosted zone.",
+
+  "required": {
+    "zone_id": {
+      "description": "The ID of the hosted zone.",
+      "source": "User-defined or fetched dynamically."
+    },
+    "name": {
+      "description": "The name of the record (e.g., dev.example.com).",
+      "source": "User-defined."
+    },
+    "type": {
+      "description": "Record type (e.g., A, CNAME).",
+      "source": "User-defined."
+    },
+    "records": {
+      "description": "List of IP addresses or endpoints.",
+      "source": "User-defined."
+    },
+    "ttl": {
+      "description": "Time-to-live (TTL) for the record.",
+      "source": "Defaults to 300."
+    }
+  },
+
+  "optional": {
+    "alias": {
+      "description": "Used for routing to AWS resources like CloudFront or ALB.",
+      "source": "User-defined."
+    }
+  },
+
+  "best_practices": [
+    "Use A records for IP mapping, CNAME for domain aliases.",
+    "Always use `alias` for routing to AWS resources.",
+    "Set TTL based on DNS change frequency."
+  ]
+},
+"aws_db_instance": {
+  "description": "Provides a managed RDS database instance.",
+
+  "required": {
+    "identifier": {
+      "description": "Unique name for the DB instance.",
+      "source": "User-defined."
+    },
+    "engine": {
+      "description": "Type of database engine (e.g., postgres, mysql).",
+      "source": "Defaults to postgres."
+    },
+    "instance_class": {
+      "description": "Instance size. Free tier = db.t3.micro.",
+      "source": "Defaults to db.t3.micro."
+    },
+    "username": {
+      "description": "Master username.",
+      "source": "User-defined."
+    },
+    "password": {
+      "description": "Master password.",
+      "source": "User-defined (use secrets manager ideally)."
+    },
+    "allocated_storage": {
+      "description": "Size in GB.",
+      "source": "Defaults to 20 GB."
+    }
+  },
+
+  "optional": {
+    "vpc_security_group_ids": {
+      "description": "List of security groups for RDS access.",
+      "source": "User-defined or auto-generated."
+    },
+    "db_subnet_group_name": {
+      "description": "Subnet group name for RDS networking.",
+      "source": "User-defined or created via `aws_db_subnet_group`."
+    },
+    "publicly_accessible": {
+      "description": "Whether DB is public. Defaults to true for POC.",
+      "source": "true"
+    },
+    "backup_retention_period": {
+      "description": "Days to retain automated backups.",
+      "source": "Defaults to 7."
+    }
+  },
+
+  "default_values": {
+    "engine": "postgres",
+    "instance_class": "db.t3.micro",
+    "allocated_storage": 20,
+    "publicly_accessible": true
+  },
+
+  "best_practices": [
+    "Use parameter groups for fine tuning.",
+    "Restrict security groups for production.",
+    "Enable encryption and backups for data safety.",
+    "Prefer Secrets Manager for storing DB passwords."
+  ]
+}
+}
   
