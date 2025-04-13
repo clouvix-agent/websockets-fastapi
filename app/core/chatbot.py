@@ -11,7 +11,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket
+from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, validate_and_fix_terraform_tool
 from app.core.architecture_builder import architecture_builder_tool, check_architecture_file
 from app.core.tf_generator import TerraformRequest
 from langchain.tools import tool
@@ -58,7 +58,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, validate_and_fix_terraform_tool]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
@@ -77,6 +77,7 @@ def chatbot(state: State):
                 "When reading Terraform files, use read_terraform_files_from_bucket and return the content of the terraform files."
                 "To run terraform apply, use apply_terraform_tool_local and return outputs"
                 "To  understand the cloud asset Inventory, use query_inventory tool"
+                "Use validate_and_fix_terraform_tool tool to validate terraform file"
                 f"\nAvailable tools: {tool_names}"
             )
         )
