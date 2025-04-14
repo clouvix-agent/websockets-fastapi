@@ -48,17 +48,31 @@ async def hello():
     return {"message": "Hello"}
 
 @router.get("/api/workspaces")
-async def get_workspaces(db: Session = Depends(get_db)):
-    workspaces = db.query(Workspace).all()
+async def get_workspaces(
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        # Decode the JWT token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+    # Fetch workspaces belonging to the authenticated user
+    workspaces = db.query(Workspace).filter(Workspace.userid == user_id).all()
+    
     response = []
     for workspace in workspaces:
         response.append({
             "id": workspace.wsid,
             "projectName": workspace.wsname,
-            "terraformStatus": "unknown",  # Placeholder, replace with actual status if available
-            "lastRun": "unknown",  # Placeholder, replace with actual last run time if available
+            "terraformStatus": "unknown",  # Placeholder
+            "lastRun": "unknown",  # Placeholder
             "terraformFileLocation": workspace.filelocation,
-            "terraformStateFileLocation": "unknown"  # Placeholder, replace with actual state file location if available
+            "terraformStateFileLocation": "unknown"  # Placeholder
         })
     return response
 

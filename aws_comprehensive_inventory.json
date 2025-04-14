@@ -156,29 +156,7 @@
                     "GroupId": "sg-04fd103efe06bd87f"
                 }
             ],
-            "CPUUtilization": 3.611140202702108
-        },
-        {
-            "InstanceId": "i-0c5742799c0746f6a",
-            "State": "terminated",
-            "PublicIP": null,
-            "PrivateIP": null,
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-04-13 12:47:38",
-            "Tags": [],
-            "SecurityGroups": [],
-            "CPUUtilization": 0.0005013861603389
-        },
-        {
-            "InstanceId": "i-03b607772189d4f69",
-            "State": "terminated",
-            "PublicIP": null,
-            "PrivateIP": null,
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-04-13 12:51:29",
-            "Tags": [],
-            "SecurityGroups": [],
-            "CPUUtilization": 11.194188294671546
+            "CPUUtilization": 3.6336592305280346
         }
     ],
     "DynamoDB": [],
