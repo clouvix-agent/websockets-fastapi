@@ -21,7 +21,7 @@ from langchain_core.tools import Tool
 from langgraph.prebuilt import InjectedState
 from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables import RunnableConfig
-
+from app.core.github import create_pr
 
 memory = MemorySaver()
 
@@ -58,7 +58,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket,create_pr]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
@@ -77,14 +77,22 @@ def chatbot(state: State):
                 "When reading Terraform files, use read_terraform_files_from_bucket and return the content of the terraform files."
                 "To run terraform apply, use apply_terraform_tool_local and return outputs"
                 "To  understand the cloud asset Inventory, use query_inventory tool"
+                "To create pr with the generated terraform file, use create_pr tool"
                 f"\nAvailable tools: {tool_names}"
             )
         )
         messages = [system_message] + messages
+        
+    # Check if the last message is a ToolMessage from generate_terraform_tool or read_terraform_files_from_bucket
+    if messages and isinstance(messages[-1], ToolMessage) and messages[-1].name in ["generate_terraform_tool", "read_terraform_files_from_bucket"]:
+        # Return the tool's output directly without further LLM processing
+        return {"messages": [AIMessage(content=messages[-1].content)]}
 
     # Get LLM response
     response = llm_with_tools.invoke(messages)
     
+    if isinstance(response, ToolMessage):
+        return {"messages": [response]}
     
     # If it's a regular message or tool result, wrap it properly
     if isinstance(response, str):

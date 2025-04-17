@@ -161,6 +161,8 @@ def build_openai_prompt(project_name, service_details, user_connections):
 
     system_message = SystemMessage(
         content="You are a Terraform file generator. Your task is to generate precise Terraform infrastructure "
+                "configuration in valid HCL format for AWS. Output ONLY the Terraform HCL code itself, with no summaries, "
+                "explanations, descriptions, or additional text. Do not wrap the code in markdown, code blocks, or any other formatting. "
                 "configuration in accordance with user requirements. Consider connections between services, "
                 "IAM roles, security groups, and dependencies."
                 "You just have to prepare infrasturcutre for the user, don't include any code or deployment related configuration."
@@ -197,20 +199,34 @@ def build_openai_prompt(project_name, service_details, user_connections):
         user_prompt += f"- {connection.from_} connects to {connection.to}\n"  # ✅ Use `.from_` instead of dictionary access
 
     user_prompt += """
-    Generate the Terraform code following AWS best practices:
-    - Ensure all required dependencies are properly referenced.
-    - Use correct IAM roles and networking configurations.
-    - Follow infrastructure-as-code best practices.
+    Output ONLY valid Terraform HCL code for AWS, following these rules:
+    - Include provider configuration for AWS with region us-east-1.
+    - Include all required dependencies and connections (IAM roles, policies, security groups, networking).
+    - Use the specified resource name prefixes.
+    - Follow AWS and Terraform best practices.
     - Ensure syntax correctness and proper indentation.
-    - The output should only contain valid Terraform HCL code, without explanations. Region should be us-east-1.
+    - Do NOT include any summaries, explanations, descriptions, or non-HCL text.
+    - Do NOT wrap the code in markdown, code blocks, or any other formatting.
+    - Exclude function code, Docker image URLs, or deployment configurations.
     """
 
     return [system_message, HumanMessage(content=user_prompt)]
 
 
+# def generate_terraform(messages):
+#     """
+#     Calls OpenAI via LangChain with structured messages.
+#     """
+#     try:
+#         response = llm.invoke(messages)
+#         return response.content.strip()
+#     except Exception as e:
+#         print(f"Error calling OpenAI: {e}")
+#         return ""
 def generate_terraform(messages):
     """
-    Calls OpenAI via LangChain with structured messages.
+    Calls OpenAI via LangChain with structured messages to generate Terraform code.
+    Ensures only valid HCL code is returned, stripping any summaries or explanations.
     """
     try:
         response = llm.invoke(messages)
@@ -467,13 +483,113 @@ def validate_and_fix_terraform(terraform_code, services, connections):
 
     # print("🔴 Terraform Validation Failed after 5 attempts")
     # return terraform_code
+    
+def split_terraform_code(validated_code: str, terraform_dir: str) -> bool:
+    """
+    Splits validated Terraform code into main.tf, variables.tf, and outputs.tf using LLM,
+    ensuring explicit and inferred variables are stored in variables.tf.
 
+    Args:
+        validated_code (str): The final validated Terraform code.
+        terraform_dir (str): The directory where the files will be saved.
+
+    Returns:
+        bool: True if successful, False if an error occurs.
+    """
+    try:
+        # Initialize LLM
+        llm = ChatOpenAI(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini")
+
+        # Construct LLM prompt to split the Terraform code
+        system_message = SystemMessage(
+            content="You are an expert Terraform engineer. Your task is to split a Terraform configuration into three files: "
+                    "main.tf (resources, providers, data sources, modules), variables.tf (variable definitions), and outputs.tf (output definitions). "
+                    "Extract all existing variable blocks and infer additional variables from hard-coded values to enhance configurability. "
+                    "Ensure the split is logical, follows Terraform best practices, and maintains functionality."
+        )
+
+        human_message = HumanMessage(
+            content=f"""
+            Here is a Terraform configuration:
+
+            ```hcl
+            {validated_code}
+            ```
+
+            Please perform the following:
+            1. **Split the configuration into three parts**:
+               - **main.tf**: Contains all provider configurations, resources, data sources, and modules. Update to reference variables defined in variables.tf.
+               - **variables.tf**: Contains all existing `variable` blocks from the input. Additionally, infer meaningful variables from hard-coded values (e.g., region, CIDR blocks, AMI IDs, bucket names, instance types, etc.) with sensible defaults, descriptions, and types. Ensure no duplication of variables.
+               - **outputs.tf**: Contains all existing `output` blocks. If no outputs exist, infer useful outputs (e.g., resource IDs, ARNs, names) based on the resources.
+
+            2. **Ensure**:
+               - The code remains valid and functional after splitting.
+               - Variables have meaningful names, descriptions, types, and defaults where appropriate.
+               - References to variables (existing and inferred) are correctly updated in main.tf.
+               - Existing variable blocks are preserved exactly as in the input, unless they conflict with inferred variables (in which case, prioritize existing ones).
+               - Do not add explanations, only provide the JSON with the split code.
+               - If a file would be empty (e.g., no outputs), return an empty string for that file unless outputs are inferred.
+
+            Return the result as a JSON object with three keys: `main_tf`, `variables_tf`, and `outputs_tf`, each containing the respective HCL code as a string.
+            """
+        )
+
+        # Call LLM to split the code
+        response = llm.invoke([system_message, human_message])
+        response_content = response.content.strip()
+
+        # Clean up response (remove code block markers if present)
+        response_content = re.sub(r"```json|```", "", response_content).strip()
+
+        # Parse JSON response
+        try:
+            split_code = json.loads(response_content)
+        except json.JSONDecodeError as e:
+            print(f"Error: Failed to parse LLM response as JSON: {e}")
+            return False
+
+        # Validate expected keys
+        expected_keys = {"main_tf", "variables_tf", "outputs_tf"}
+        if not all(key in split_code for key in expected_keys):
+            print("Error: LLM response missing required keys")
+            return False
+
+        # Ensure terraform_dir exists
+        os.makedirs(terraform_dir, exist_ok=True)
+        print(f"Ensured directory exists: {terraform_dir}")
+
+        # Save main.tf
+        main_tf_path = os.path.join(terraform_dir, "main.tf")
+        with open(main_tf_path, "w") as f:
+            f.write(split_code["main_tf"].strip() or "")
+        print(f"Saved main.tf at: {main_tf_path}")
+
+        # Save variables.tf
+        variables_tf_path = os.path.join(terraform_dir, "variables.tf")
+        with open(variables_tf_path, "w") as f:
+            f.write(split_code["variables_tf"].strip() or "")
+        print(f"Saved variables.tf at: {variables_tf_path}")
+
+        # Save outputs.tf
+        outputs_tf_path = os.path.join(terraform_dir, "outputs.tf")
+        with open(outputs_tf_path, "w") as f:
+            f.write(split_code["outputs_tf"].strip() or "")
+        print(f"Saved outputs.tf at: {outputs_tf_path}")
+
+        return True
+
+    except Exception as e:
+        print(f"Error splitting Terraform code: {e}")
+        return False
+    
 def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
-    """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
+    """Extracts Terraform configurations, validates, fixes errors, and splits into multiple files."""
     if not terraform_output:
         print("Error: No Terraform code generated.")
         return
 
+    # print("===== INPUT TERRAFORM OUTPUT =====\n", terraform_output)
+     
     terraform_output = re.sub(r"```hcl|```", "", terraform_output).strip()
 
     # Create terraform directory if it doesn't exist
@@ -484,24 +600,59 @@ def extract_and_save_terraform(terraform_output, services, connections, user_id,
     # Validate and Fix Terraform Configuration
     validated_code = validate_and_fix_terraform(terraform_output, services, connections)
 
-    # Save the final validated Terraform file
-    final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
-    with open(final_tf_path, "w") as tf_file:
-        tf_file.write(validated_code)
+    # Split the validated code into main.tf, variables.tf, and outputs.tf
+    success = split_terraform_code(validated_code, TERRAFORM_DIR)
+    if not success:
+        print("Error: Failed to split Terraform code into separate files.")
+        return
 
-    print(request)
     # Add an entry to workspace table
     db: Session = next(get_db())
     new_workspace = WorkspaceCreate(
         userid=user_id,
         wsname=project_name,
         filetype="terraform",
-        filelocation=final_tf_path,
+        filelocation=TERRAFORM_DIR,  # Directory containing all Terraform files
         diagramjson={},
         githublocation=""
     )
     create_workspace(db=db, workspace=new_workspace)
-    print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
+    print(f"\n✅ Terraform files saved in: {TERRAFORM_DIR}")
+
+# def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
+#     """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
+#     if not terraform_output:
+#         print("Error: No Terraform code generated.")
+#         return
+
+#     terraform_output = re.sub(r"```hcl|```", "", terraform_output).strip()
+
+#     # Create terraform directory if it doesn't exist
+#     if not os.path.exists(TERRAFORM_DIR):
+#         os.makedirs(TERRAFORM_DIR, exist_ok=True)
+#         print(f"Created Terraform directory: {TERRAFORM_DIR}")
+
+#     # Validate and Fix Terraform Configuration
+#     validated_code = validate_and_fix_terraform(terraform_output, services, connections)
+
+#     # Save the final validated Terraform file
+#     final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
+#     with open(final_tf_path, "w") as tf_file:
+#         tf_file.write(validated_code)
+
+#     print(request)
+#     # Add an entry to workspace table
+#     db: Session = next(get_db())
+#     new_workspace = WorkspaceCreate(
+#         userid=user_id,
+#         wsname=project_name,
+#         filetype="terraform",
+#         filelocation=final_tf_path,
+#         diagramjson={},
+#         githublocation=""
+#     )
+#     create_workspace(db=db, workspace=new_workspace)
+#     print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
 
 # def generate_terraform_tool(state: InjectedState):
 #     """
@@ -527,10 +678,166 @@ def get_terraform_folder(project_name: str) -> str:
     os.makedirs(folder, exist_ok=True)
     return folder
 
-@tool
+# @tool
+# def generate_terraform_tool(config: RunnableConfig) -> str:
+#     """Main function to orchestrate Terraform generation and file extraction.
+#     Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
+    
+#     print("Running generate_terraform_tool")
+    
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     # **Step 1: Check and create necessary directories**
+#     if not os.path.exists("architecture_json"):
+#         os.makedirs("architecture_json", exist_ok=True)
+#         print("Created architecture_json directory")
+    
+#     # **Step 2: Extract User Requirements**
+#     request = None
+#     architecture_file = "architecture_json/request.json"
+    
+#     if not os.path.exists(architecture_file):
+#         error_msg = f"Error: Architecture file not found at {architecture_file}"
+#         print(error_msg)
+#         raise FileNotFoundError(error_msg)
+    
+#     try:
+#         with open(architecture_file, "r") as f:
+#             request_data = json.loads(f.read())
+#             print(f"Successfully read architecture file: {request_data}")
+#             request = TerraformRequest(**request_data)
+#     except json.JSONDecodeError as e:
+#         error_msg = f"Error: Invalid JSON format in architecture file: {str(e)}"
+#         print(error_msg)
+#         raise ValueError(error_msg)
+#     except Exception as e:
+#         error_msg = f"Error reading or parsing architecture file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+    
+#     print(f"Received request: {request}")
+    
+#     # Create numbered terraform folder
+#     terraform_dir = get_terraform_folder(request.project_name)
+    
+#     # Update global TERRAFORM_DIR for other functions
+#     global TERRAFORM_DIR
+#     TERRAFORM_DIR = terraform_dir
+    
+#     os.makedirs(TERRAFORM_DIR, exist_ok=True)
+#     print(f"Created Terraform directory: {TERRAFORM_DIR}")
+    
+#     project_name = request.project_name
+#     user_services = request.services
+#     user_connections = request.connections
+    
+#     # **Step 3: Query Knowledge Base**
+#     try:
+#         service_details = query_knowledge_base(user_services)
+#         print("Successfully queried knowledge base")
+#     except Exception as e:
+#         error_msg = f"Error querying knowledge base: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+
+#     # **Step 4: Build OpenAI Messages**
+#     try:
+#         openai_messages = build_openai_prompt(project_name, service_details, user_connections)
+#         print("Successfully built OpenAI messages")
+#     except Exception as e:
+#         error_msg = f"Error building OpenAI messages: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+
+#     # **Step 5: Call OpenAI API**
+#     try:
+#         terraform_output = generate_terraform(openai_messages)
+#         if not terraform_output:
+#             error_msg = "Error: No Terraform code was generated"
+#             print(error_msg)
+#             raise ValueError(error_msg)
+#         print("Successfully generated Terraform code")
+#     except Exception as e:
+#         error_msg = f"Error generating Terraform code: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+
+#     # **Step 6: Extract and Save Terraform File**
+#     try:
+#         extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
+#         print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
+#     except Exception as e:
+#         error_msg = f"Error saving Terraform file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+    
+#     # Read the generated Terraform file and return its contents with a success message
+#     try:
+#         with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
+#             terraform_content = f.read()
+# #             return f"""
+# # ```hcl
+# # {terraform_content}
+# # ```
+
+# # You can now proceed with applying this Terraform configuration."""
+#     except Exception as e:
+#         error_msg = f"Error reading generated Terraform file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
+    
+
+#     print("📤 Uploading Terraform directory to MinIO...")
+
+#     minio_client = Minio(
+#         "storage.clouvix.com",
+#         access_key="clouvix@gmail.com",
+#         secret_key="Clouvix@bangalore2025",
+#         secure=True
+#     )
+
+#     print(minio_client)
+
+#     bucket_name = f"terraform-workspaces-user-{user_id}"
+
+#     print(minio_client.bucket_exists(bucket_name))
+#         # Create bucket if it doesn't exist
+#     if not minio_client.bucket_exists(bucket_name):
+#         print("Inside Make bucket")
+#         minio_client.make_bucket(bucket_name)
+#         print(f"🪣 Created bucket: {bucket_name}")
+#     else:
+#         print(f"📦 Bucket exists: {bucket_name}")
+
+#     folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
+
+#         # Upload each file with folder_name prefix
+#     for root, _, files in os.walk(TERRAFORM_DIR):
+#         for file in files:
+#             file_path = os.path.join(root, file)
+#             relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+#             object_key = f"{folder_name}/{relative_path}"
+#             print(f"⬆️ Uploading: {file_path} -> {object_key}")
+#             minio_client.fput_object(bucket_name, object_key, file_path)
+
+#     print("✅ Terraform directory uploaded to MinIO!")
+
+#     # try:
+#     #     #shutil.rmtree(TERRAFORM_DIR)
+#     #     #print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
+#     # except Exception as e:
+#     #     print(f"⚠️ Failed to delete local Terraform directory: {e}")  shreyas
+
+
+#     return f"""
+#         ```hcl
+#         {terraform_content}
+#         ```
+#         You can now proceed with adding user inputs required this Terraform configuration and then proceed with applying."""
+
+@tool(return_direct=True)
 def generate_terraform_tool(config: RunnableConfig) -> str:
     """Main function to orchestrate Terraform generation and file extraction.
-    Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
+    Reads the architecture JSON file, runs the terraform code generation, and returns the contents of all terraform files."""
     
     print("Running generate_terraform_tool")
     
@@ -604,87 +911,92 @@ def generate_terraform_tool(config: RunnableConfig) -> str:
             error_msg = "Error: No Terraform code was generated"
             print(error_msg)
             raise ValueError(error_msg)
+        # print("===== GENERATED TERRAFORM OUTPUT =====\n", terraform_output)
         print("Successfully generated Terraform code")
     except Exception as e:
         error_msg = f"Error generating Terraform code: {str(e)}"
         print(error_msg)
         raise Exception(error_msg)
 
-    # **Step 6: Extract and Save Terraform File**
+    # **Step 6: Extract and Save Terraform Files**
     try:
         extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
-        print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
+        print(f"Successfully saved Terraform files to {TERRAFORM_DIR}")
     except Exception as e:
-        error_msg = f"Error saving Terraform file: {str(e)}"
+        error_msg = f"Error saving Terraform files: {str(e)}"
         print(error_msg)
         raise Exception(error_msg)
     
-    # Read the generated Terraform file and return its contents with a success message
+    # **Step 7: Read all Terraform files from TERRAFORM_DIR**
     try:
-        with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
-            terraform_content = f.read()
-#             return f"""
-# ```hcl
-# {terraform_content}
-# ```
+        output = f"# 📁 Terraform Workspace: `{project_name}_terraform`\n\n"
+        files_found = False
+        for root, _, files in os.walk(TERRAFORM_DIR):
+            for filename in files:
+                if filename.endswith(".tf"):  # Only include .tf files
+                    filepath = os.path.join(root, filename)
+                    relative_path = os.path.relpath(filepath, TERRAFORM_DIR)
+                    try:
+                        with open(filepath, "r") as f:
+                            content = f.read()
+                        output += f"## 📄 `{relative_path}`\n```hcl\n{content.strip()}\n```\n\n"
+                        files_found = True
+                    except Exception as e:
+                        output += f"## 📄 `{relative_path}`\n⚠️ Could not read file: {e}\n\n"
+        if not files_found:
+            error_msg = f"Error: No Terraform files found in {TERRAFORM_DIR}"
+            print(error_msg)
+            raise FileNotFoundError(error_msg)
+        
+        final_output = f"{output}You can now proceed with adding user inputs required for this Terraform configuration and then proceed with applying."
+        # final_output = f"""
+        #     # 📁 Terraform Workspace: `{project_name}_terraform`
 
-# You can now proceed with applying this Terraform configuration."""
+        #     {output}
+
+        #     You can now view and update this configuration or proceed to apply it.
+        #     """
+        # print("===== FINAL OUTPUT FROM GENERATE_TERRAFORM_TOOL =====\n", final_output)
     except Exception as e:
-        error_msg = f"Error reading generated Terraform file: {str(e)}"
+        error_msg = f"Error reading Terraform files: {str(e)}"
         print(error_msg)
         raise Exception(error_msg)
     
-
+    # **Step 8: Upload to MinIO**
     print("📤 Uploading Terraform directory to MinIO...")
-
-    minio_client = Minio(
-        "storage.clouvix.com",
-        access_key="clouvix@gmail.com",
-        secret_key="Clouvix@bangalore2025",
-        secure=True
-    )
-
-    print(minio_client)
-
-    bucket_name = f"terraform-workspaces-user-{user_id}"
-
-    print(minio_client.bucket_exists(bucket_name))
-        # Create bucket if it doesn't exist
-    if not minio_client.bucket_exists(bucket_name):
-        print("Inside Make bucket")
-        minio_client.make_bucket(bucket_name)
-        print(f"🪣 Created bucket: {bucket_name}")
-    else:
-        print(f"📦 Bucket exists: {bucket_name}")
-
-    folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
-
-        # Upload each file with folder_name prefix
-    for root, _, files in os.walk(TERRAFORM_DIR):
-        for file in files:
-            file_path = os.path.join(root, file)
-            relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
-            object_key = f"{folder_name}/{relative_path}"
-            print(f"⬆️ Uploading: {file_path} -> {object_key}")
-            minio_client.fput_object(bucket_name, object_key, file_path)
-
-    print("✅ Terraform directory uploaded to MinIO!")
-
     try:
-        shutil.rmtree(TERRAFORM_DIR)
-        print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
-    except Exception as e:
-        print(f"⚠️ Failed to delete local Terraform directory: {e}")
+        minio_client = Minio(
+            "storage.clouvix.com",
+            access_key="clouvix@gmail.com",
+            secret_key="Clouvix@bangalore2025",
+            secure=True
+        )
+        
+        bucket_name = f"terraform-workspaces-user-{user_id}"
+        if not minio_client.bucket_exists(bucket_name):
+            print("Inside Make bucket")
+            minio_client.make_bucket(bucket_name)
+            print(f"🪣 Created bucket: {bucket_name}")
+        else:
+            print(f"📦 Bucket exists: {bucket_name}")
 
+        folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
+        for root, _, files in os.walk(TERRAFORM_DIR):
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+                object_key = f"{folder_name}/{relative_path}"
+                print(f"⬆️ Uploading: {file_path} -> {object_key}")
+                minio_client.fput_object(bucket_name, object_key, file_path)
 
-    return f"""
-        ```hcl
-        {terraform_content}
-        ```
-        You can now proceed with adding user inputs required this Terraform configuration and then proceed with applying."""
+        print("✅ Terraform directory uploaded to MinIO!")
+    except S3Error as e:
+        error_msg = f"Error uploading to MinIO: {str(e)}"
+        print(error_msg)
+        raise Exception(error_msg)
 
-    
-    
+    # **Step 9: Return the formatted output**
+    return final_output
         
 # @tool    
 # def terraform_apply_tool(terraform_file_path, config: RunnableConfig):
@@ -1081,6 +1393,7 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
     user_id = config['configurable'].get('user_id', 'unknown')
     bucket_name = f"terraform-workspaces-user-{user_id}"
     folder_name = f"{project_name}_terraform"
+    prefix = f"{folder_name}/"
 
     # Temp directory to download files
     temp_dir = tempfile.mkdtemp()
@@ -1096,23 +1409,64 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
             secure=True
         )
 
-        # Download files from folder
-        print(f"📥 Downloading files from bucket: {bucket_name}, prefix: {folder_name}/")
+        # Verify bucket exists
+        print(f"🔍 Checking if bucket '{bucket_name}' exists...")
+        if not minio_client.bucket_exists(bucket_name):
+            error_msg = f"❌ Bucket '{bucket_name}' does not exist."
+            print(error_msg)
+            return error_msg
+        print(f"✅ Bucket '{bucket_name}' exists.")
+
+        # Test connectivity by listing buckets (optional, for debugging)
+        print("🔍 Testing MinIO connectivity by listing buckets...")
+        try:
+            buckets = minio_client.list_buckets()
+            print(f"✅ Successfully listed buckets: {[bucket.name for bucket in buckets]}")
+        except Exception as e:
+            error_msg = f"❌ Failed to list buckets (connectivity issue?): {str(e)}"
+            print(error_msg)
+            return error_msg
+
+        # List objects in the bucket with the specified prefix
+        print(f"📥 Listing files in bucket '{bucket_name}' with prefix '{prefix}'...")
+        objects = minio_client.list_objects(bucket_name, prefix=prefix, recursive=True)
+        object_list = list(objects)  # Convert to list for debugging
+        if not object_list:
+            error_msg = f"❌ No files found in '{prefix}' of bucket '{bucket_name}'. Ensure the files were uploaded correctly."
+            print(error_msg)
+            print("🔍 Debugging: Listing all objects in the bucket to confirm...")
+            all_objects = minio_client.list_objects(bucket_name, recursive=True)
+            all_object_list = list(all_objects)
+            if all_object_list:
+                print("📄 Found objects in bucket:")
+                for obj in all_object_list:
+                    print(f" - {obj.object_name}")
+            else:
+                print("❌ No objects found in the entire bucket.")
+            return error_msg
+
+        print(f"✅ Found {len(object_list)} objects in '{prefix}':")
+        for obj in object_list:
+            print(f" - {obj.object_name}")
+
+        # Download files
         files_found = False
-        for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
+        for obj in object_list:
             object_key = obj.object_name
-            relative_path = object_key[len(folder_name) + 1:]
+            relative_path = object_key[len(folder_name) + 1:]  # Remove prefix
             local_path = os.path.join(download_path, relative_path)
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            print(f"⬇️ Downloading: {object_key} -> {local_path}")
             minio_client.fget_object(bucket_name, object_key, local_path)
-            print(f"⬇️  {object_key} -> {local_path}")
             files_found = True
 
         if not files_found:
-            return f"❌ No files found in `{folder_name}/` of bucket `{bucket_name}`."
+            error_msg = f"❌ No files were downloaded from '{prefix}' in bucket '{bucket_name}'."
+            print(error_msg)
+            return error_msg
 
         # Read and format all files
-        output = f"# 📁 Contents of `{project_name}_terraform`:\n"
+        output = f"## 📁 Contents of `{project_name}_terraform`:\n"
         for root, _, files in os.walk(download_path):
             for filename in files:
                 filepath = os.path.join(root, filename)
@@ -1124,20 +1478,25 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
                     content = f"⚠️ Could not read file: {e}"
 
                 output += f"\n## 📄 `{relative_path}`\n```hcl\n{content.strip()}\n```\n"
+
         final_output = f"""
-            # 📁 Terraform Workspace: `{project_name}_terraform`
+## 📁 Terraform Workspace: `{project_name}_terraform`
 
-            {output}
+{output}
 
-            You can now view and update this configuration or proceed to apply it.
-            """
-        print(final_output)
+You can now view and update this configuration or proceed to apply it.
+"""
+        print("===== FINAL OUTPUT FROM read_terraform_files_from_bucket =====\n", final_output)
         return final_output
 
     except S3Error as e:
-        return f"❌ MinIO error: {str(e)}"
+        error_msg = f"❌ MinIO error: {str(e)}"
+        print(error_msg)
+        return error_msg
     except Exception as e:
-        return f"❌ Unexpected error: {str(e)}"
+        error_msg = f"❌ Unexpected error: {str(e)}"
+        print(error_msg)
+        return error_msg
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
         print(f"🧹 Deleted temp directory: {temp_dir}")
