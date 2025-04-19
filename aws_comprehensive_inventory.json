@@ -134,6 +134,21 @@
                     "Permission": "FULL_CONTROL"
                 }
             ]
+        },
+        {
+            "Name": "roadiestest-s3-bucket",
+            "CreationDate": "2025-04-19 04:17:32",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvix",
+                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
         }
     ],
     "EC2": [
@@ -156,7 +171,28 @@
                     "GroupId": "sg-04fd103efe06bd87f"
                 }
             ],
-            "CPUUtilization": 3.6336592305280346
+            "CPUUtilization": 4.653622316783244
+        },
+        {
+            "InstanceId": "i-0302c48397c8853fb",
+            "State": "running",
+            "PublicIP": "52.91.122.218",
+            "PrivateIP": "10.0.1.131",
+            "InstanceType": "t2.micro",
+            "LaunchTime": "2025-04-19 04:26:46",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "roadiestest_ec2_instance"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupName": "terraform-20250419041733806500000001",
+                    "GroupId": "sg-054ea786ea05f06e5"
+                }
+            ],
+            "CPUUtilization": 0.265064369732332
         }
     ],
     "DynamoDB": [],

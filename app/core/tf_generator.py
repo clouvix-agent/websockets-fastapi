@@ -18,6 +18,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.workspace import WorkspaceCreate
+from app.schemas.workspace_status import WorkspaceStatusCreate
 from app.db.workspace import create_workspace
 from app.auth.deps import get_current_active_user
 from app.auth.utils import SECRET_KEY, ALGORITHM
@@ -25,6 +26,7 @@ from jose import JWTError, jwt
 from langchain_core.runnables import RunnableConfig
 # from app.models.connection import Connection
 from app.db.connection import get_user_connections_by_type
+from app.db.workpsace_status import create_or_update_workspace_status
 from minio import Minio
 import shutil
 import tempfile 
@@ -837,12 +839,12 @@ def query_inventory(user_query: str) -> str:
 
 
 @tool
-def update_terraform_file(user_update_prompt: str, project_name: str, config: RunnableConfig) -> str:
+def update_terraform_file(instructions: str, project_name: str, config: RunnableConfig) -> str:
     """
-    Tool to update the existing Terraform configuration based on user instructions.
+    Tool to update the existing Terraform configuration based on instructions.
 
     Args:
-        user_update_prompt (str): Description of the changes user wants to make in the Terraform config.
+        instructions (str): Description of the changes user wants to make in the Terraform config.
 
     Returns:
         str: Updated Terraform code or error message.
@@ -900,7 +902,7 @@ def update_terraform_file(user_update_prompt: str, project_name: str, config: Ru
 
                 Copy
                 Edit
-                {user_update_prompt}
+                {instructions}
                 Please update the configuration accordingly and return the entire updated Terraform code, using best practices.
 
                 Important:
@@ -1058,6 +1060,30 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
                 object_key = f"{folder_name}/{relative_path}"
                 minio_client.fput_object(bucket_name, object_key, file_path)
                 print(f"⬆️  {file_path} -> {object_key}")
+        print(result)
+        # 🌟 Update status in DB
+        # apply_status = result
+
+
+        print("Updating status table")
+        # 🌟 Update workspace_status table
+
+        apply_status = result.stdout if result.returncode == 0 else result.stderr
+
+        status_payload = WorkspaceStatusCreate(
+            userid=user_id,
+            project_name=project_name,
+            status=apply_status
+        )
+
+        # create_or_update_workspace_status(db=db, status_data=status_payload)
+
+        print(status_payload)
+
+        assert create_or_update_workspace_status(db=db, status_data=status_payload)
+
+
+        print("✅ Workspace status updated")
 
         # Format and return result
         if result.returncode == 0:
@@ -1283,87 +1309,191 @@ def destroy_terraform_tool_local(project_name: str, config: RunnableConfig) -> s
     # except Exception as e:
     #     return f"❌ Unexpected Error:\n```\n{str(e)}\n```"
 
+# @tool
+# def validate_and_fix_terraform_tool(project_name: str, config: RunnableConfig) -> str:
+#     """
+#     Validates Terraform files
+#     Downloads Terraform project folder from MinIO, validates and fixes main.tf using OpenAI and API loop,
+#     uploads the updated folder back to MinIO, and returns the final validated main.tf.
+#     """
+#     print(f"🔍 Running validate_and_fix_terraform_tool for: {project_name}")
+
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     bucket_name = f"terraform-workspaces-user-{user_id}"
+#     folder_name = f"{project_name}_terraform"
+
+#     temp_dir = tempfile.mkdtemp()
+#     local_tf_dir = os.path.join(temp_dir, folder_name)
+#     os.makedirs(local_tf_dir, exist_ok=True)
+
+#     try:
+#         # Initialize MinIO
+#         minio_client = Minio(
+#             "storage.clouvix.com",
+#             access_key="clouvix@gmail.com",
+#             secret_key="Clouvix@bangalore2025",
+#             secure=True
+#         )
+
+#         print(f"📥 Downloading Terraform files from {bucket_name}/{folder_name}/")
+#         for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
+#             object_key = obj.object_name
+#             relative_path = object_key[len(folder_name) + 1:]
+#             local_path = os.path.join(local_tf_dir, relative_path)
+#             os.makedirs(os.path.dirname(local_path), exist_ok=True)
+#             minio_client.fget_object(bucket_name, object_key, local_path)
+#             print(f"⬇️  {object_key} -> {local_path}")
+
+#         terraform_file_path = os.path.join(local_tf_dir, "main.tf")
+#         if not os.path.exists(terraform_file_path):
+#             raise FileNotFoundError("❌ Terraform file not found.")
+
+#         with open(terraform_file_path, "r") as f:
+#             terraform_code = f.read()
+
+#         # Run validation + fix loop
+#         attempt = 0
+#         while True:
+#             attempt += 1
+#             print(f"🔄 Validation Attempt {attempt}")
+
+#             with open(terraform_file_path, "w") as tf_file:
+#                 tf_file.write(terraform_code)
+
+#             success, error_message = validate_terraform_api(terraform_file_path)
+#             if success:
+#                 print("✅ Terraform validation successful.")
+#                 break
+
+#             print(f"🛠️ Fixing error: {error_message}")
+#             terraform_code = fix_terraform_with_openai(terraform_code, error_message)
+
+#         # Upload updated folder to MinIO (skip `.terraform`)
+#         print("📤 Uploading updated folder to MinIO...")
+#         for root, _, files in os.walk(local_tf_dir):
+#             for file in files:
+#                 if ".terraform" in root:
+#                     continue
+#                 file_path = os.path.join(root, file)
+#                 relative_path = os.path.relpath(file_path, local_tf_dir)
+#                 object_key = f"{folder_name}/{relative_path}"
+#                 minio_client.fput_object(bucket_name, object_key, file_path)
+#                 print(f"⬆️  {file_path} -> {object_key}")
+
+#         # Return final validated main.tf
+#         return f"""
+#             ✅ Terraform file validated and updated for `{project_name}`
+
+#             ```hcl
+#             {terraform_code.strip()}
+#             ```
+#             """ 
+#     except Exception as e: raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+#     finally:
+#         shutil.rmtree(temp_dir, ignore_errors=True)
+#         print(f"🧹 Deleted temp directory: {temp_dir}")
+
+
 @tool
-def validate_and_fix_terraform_tool(project_name: str, config: RunnableConfig) -> str:
+def get_workspace_status_tool(project_name: str, config: RunnableConfig) -> str:
     """
-    Validates Terraform files
-    Downloads Terraform project folder from MinIO, validates and fixes main.tf using OpenAI and API loop,
-    uploads the updated folder back to MinIO, and returns the final validated main.tf.
+    Fetches the Terraform apply status for a given project from the workspace_status table.
+
+    Args:
+        project_name (str): The name of the Terraform project.
+        config (RunnableConfig): Contains user_id in config['configurable'].
+
+    Returns:
+        str: Status of the last Terraform apply operation.
     """
-    print(f"🔍 Running validate_and_fix_terraform_tool for: {project_name}")
-
-    user_id = config['configurable'].get('user_id', 'unknown')
-    bucket_name = f"terraform-workspaces-user-{user_id}"
-    folder_name = f"{project_name}_terraform"
-
-    temp_dir = tempfile.mkdtemp()
-    local_tf_dir = os.path.join(temp_dir, folder_name)
-    os.makedirs(local_tf_dir, exist_ok=True)
+    print(f"🔎 Fetching workspace status for project: {project_name}")
 
     try:
-        # Initialize MinIO
-        minio_client = Minio(
-            "storage.clouvix.com",
-            access_key="clouvix@gmail.com",
-            secret_key="Clouvix@bangalore2025",
-            secure=True
-        )
+        user_id = config['configurable'].get('user_id', 'unknown')
+        if user_id == "unknown":
+            return "❌ User ID not found in config."
 
-        print(f"📥 Downloading Terraform files from {bucket_name}/{folder_name}/")
-        for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
-            object_key = obj.object_name
-            relative_path = object_key[len(folder_name) + 1:]
-            local_path = os.path.join(local_tf_dir, relative_path)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            minio_client.fget_object(bucket_name, object_key, local_path)
-            print(f"⬇️  {object_key} -> {local_path}")
+        db: Session = next(get_db())
+        from app.models.workspace_status import WorkspaceStatus  # Ensure model is imported
 
-        terraform_file_path = os.path.join(local_tf_dir, "main.tf")
-        if not os.path.exists(terraform_file_path):
-            raise FileNotFoundError("❌ Terraform file not found.")
+        status_record = db.query(WorkspaceStatus).filter(
+            WorkspaceStatus.userid == user_id,
+            WorkspaceStatus.project_name == project_name
+        ).first()
 
-        with open(terraform_file_path, "r") as f:
-            terraform_code = f.read()
+        if status_record:
+            print(f"✅ Found status for {project_name}: {status_record.status[:300]}")
+            return f"""
+            ✅ Status for project `{project_name}`:
 
-        # Run validation + fix loop
-        attempt = 0
-        while True:
-            attempt += 1
-            print(f"🔄 Validation Attempt {attempt}")
+            ```bash
+            {status_record.status.strip()[:2000]}  # limit response size
+            ```
+            """
+        else:
+            return f"⚠️ No status found for project `{project_name}`."
 
-            with open(terraform_file_path, "w") as tf_file:
-                tf_file.write(terraform_code)
+    except Exception as e:
+        print(f"❌ Error fetching status: {e}")
+        return f"❌ Error fetching status: {str(e)}"
+    
 
-            success, error_message = validate_terraform_api(terraform_file_path)
-            if success:
-                print("✅ Terraform validation successful.")
-                break
+@tool
+def remediate_terraform_error_tool(project_name: str, terraform_code: str, error_message: str = "", user_instruction: str = "") -> str:
+    """
+    Suggests remediations for a Terraform error using LLM.
 
-            print(f"🛠️ Fixing error: {error_message}")
-            terraform_code = fix_terraform_with_openai(terraform_code, error_message)
+    🧠 This tool should be used AFTER:
+    1. Retrieving the error using `get_workspace_status_tool`.
+    2. Reading the Terraform configuration using `read_terraform_files_from_bucket`.
 
-        # Upload updated folder to MinIO (skip `.terraform`)
-        print("📤 Uploading updated folder to MinIO...")
-        for root, _, files in os.walk(local_tf_dir):
-            for file in files:
-                if ".terraform" in root:
-                    continue
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, local_tf_dir)
-                object_key = f"{folder_name}/{relative_path}"
-                minio_client.fput_object(bucket_name, object_key, file_path)
-                print(f"⬆️  {file_path} -> {object_key}")
+    Args:
+        project_name (str): Name of the Terraform project.
+        terraform_code (str): Contents of the `main.tf` file.
+        error_message (str, optional): Terraform error message if available.
+        user_instruction (str, optional): User-provided change/fix instruction (e.g. "add logging").
 
-        # Return final validated main.tf
-        return f"""
-            ✅ Terraform file validated and updated for `{project_name}`
+    Returns:
+        str: Suggested remediation, fix, or updated Terraform code.
+    """
+
+    print(f"🛠️ Remediating error for project `{project_name}`")
+
+    context_prompt = ""
+    if error_message:
+        context_prompt += f"\nTerraform error message:\n```\n{error_message.strip()}\n```"
+    if user_instruction:
+        context_prompt += f"\nUser instruction:\n```\n{user_instruction.strip()}\n```"
+    if not context_prompt:
+        return "❌ No error message or user instruction provided."
+
+    messages = [
+            SystemMessage(content="You are a Terraform expert. Based on the input below, suggest a correction or improvement to the Terraform configuration."),
+            HumanMessage(content=f"""
+            Terraform file for project `{project_name}`:
 
             ```hcl
-            {terraform_code.strip()}
-            ```
-            """ 
-    except Exception as e: raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+            {terraform_code}
+            Terraform instruction/error/requirement message:
 
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        print(f"🧹 Deleted temp directory: {temp_dir}")
+           {context_prompt}
+            Please suggest an updated version of the Terraform configuration to resolve the issue or apply the requested change.
+
+            ✅ Guidelines: 
+
+            Return only valid Terraform HCL code.
+
+            Follow AWS best practices.
+
+            Do NOT include explanations, deployment scripts, Docker config, or code snippets unrelated to infrastructure.  """) ]
+
+    try:
+        response = llm.invoke(messages)
+        fixed_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+        return f"""
+    ✅ Suggested remediation for {project_name}:
+    {fixed_code}
+    """ 
+    except Exception as e: return f"❌ Remediation failed: {str(e)}"
