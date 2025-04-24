@@ -1,5 +1,6 @@
 import os
 import dotenv
+import json
 from typing import Annotated
 
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -63,37 +64,52 @@ tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terra
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
+import json
+
 def chatbot(state: State):
-    """Process messages and decide next actions."""
     messages = state["messages"]
-    
-    # Add system message if not present
+
     if not any(isinstance(msg, SystemMessage) for msg in messages):
         tool_names = ", ".join([tool.name for tool in tools])
         system_message = SystemMessage(
             content=(
-                "You are an AI assistant that helps users manage cloud Infrastructure and optimise it "
-                "Terraform code. For architecture creation, use architecture_builder_tool. "
-                "When ready to generate Terraform, use generate_terraform_tool and return the content of the terraform file."
-                "When reading Terraform files, use read_terraform_files_from_bucket and return the content of the terraform files."
-                "To run terraform apply, use apply_terraform_tool_local and return outputs"
-                "To  understand the cloud asset Inventory, use query_inventory tool"
-                "To create pr with the generated terraform file, use create_pr tool"
-                f"\nAvailable tools: {tool_names}"
+                "You are an AI assistant that helps users with Terraform-based infrastructure..."
+                "After every message, respond ONLY with JSON in this format:"
+                '{ "reply": "<main reply>", "suggestions": ["<next step 1>", "<next step 2>", "<next step 3>"] }'
             )
         )
         messages = [system_message] + messages
 
     # Get LLM response
     response = llm_with_tools.invoke(messages)
-    
-    
-    # If it's a regular message or tool result, wrap it properly
+
+    # Ensure response is a JSON string, then wrap it in AIMessage
     if isinstance(response, str):
-        # If response is a string (like from generate_terraform_tool), wrap it in an AIMessage
-        response = AIMessage(content=response)
-    
+        return {
+            "messages": [AIMessage(content=response)],
+            "suggestions": []
+        }
+
+    if isinstance(response, AIMessage):
+        try:
+            parsed = json.loads(response.content)
+            reply = parsed.get("reply", "")
+            suggestions = parsed.get("suggestions", [])
+            return {
+                "messages": [AIMessage(content=json.dumps({
+                    "reply": reply,
+                    "suggestions": suggestions
+                }))],
+                "suggestions": suggestions
+            }
+        except Exception:
+            return {
+                "messages": [response],
+                "suggestions": []
+            }
+
     return {"messages": [response]}
+
 
 
 graph_builder.add_node("chatbot", chatbot)
