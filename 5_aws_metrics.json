@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2025-05-01T17:09:42.219062",
+  "metrics": {
+    "EC2": [],
+    "S3": [
+      {
+        "ARN": "arn:aws:s3:::costbucketshreyas",
+        "BucketName": "costbucketshreyas",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 795235.0,
+          "NumberOfObjects": 58,
+          "BucketSizeMB": 0.76
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
+        "BucketName": "cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 811370.0,
+          "NumberOfObjects": 58,
+          "BucketSizeMB": 0.77
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::database-chat-bot",
+        "BucketName": "database-chat-bot",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 6855268.0,
+          "NumberOfObjects": 8,
+          "BucketSizeMB": 6.54
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::myyamlfile",
+        "BucketName": "myyamlfile",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 2726.0,
+          "NumberOfObjects": 1,
+          "BucketSizeMB": 0.0
+        }
+      }
+    ],
+    "RDS": [],
+    "Lambda": []
+  },
+  "userid": 5
+}

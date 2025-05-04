@@ -1,0 +1,178 @@
+{
+  "generatedAt": "2025-05-01T17:09:28.397499",
+  "metrics": {
+    "EC2": [
+      {
+        "ARN": "arn:aws:ec2:us-east-1:666553928522:instance/i-04525c8a6b8259644",
+        "InstanceId": "i-04525c8a6b8259644",
+        "InstanceName": "ec2_dev_ec2_instance",
+        "InstanceType": "t2.micro",
+        "AvgCPU": "2.15%",
+        "MaxCPU": "14.93%",
+        "Recommendation": "Downsize the instance.",
+        "DailyMetrics": [
+          {
+            "Date": "2025-04-18",
+            "AvgCPU": "2.13%",
+            "MaxCPU": "5.79%"
+          },
+          {
+            "Date": "2025-04-19",
+            "AvgCPU": "2.19%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-04-20",
+            "AvgCPU": "2.18%",
+            "MaxCPU": "3.20%"
+          },
+          {
+            "Date": "2025-04-21",
+            "AvgCPU": "2.15%",
+            "MaxCPU": "3.15%"
+          },
+          {
+            "Date": "2025-04-22",
+            "AvgCPU": "2.17%",
+            "MaxCPU": "12.55%"
+          },
+          {
+            "Date": "2025-04-23",
+            "AvgCPU": "2.08%",
+            "MaxCPU": "3.41%"
+          },
+          {
+            "Date": "2025-04-24",
+            "AvgCPU": "2.13%",
+            "MaxCPU": "3.26%"
+          },
+          {
+            "Date": "2025-04-25",
+            "AvgCPU": "2.08%",
+            "MaxCPU": "14.93%"
+          },
+          {
+            "Date": "2025-04-26",
+            "AvgCPU": "2.05%",
+            "MaxCPU": "3.43%"
+          },
+          {
+            "Date": "2025-04-27",
+            "AvgCPU": "2.12%",
+            "MaxCPU": "3.30%"
+          },
+          {
+            "Date": "2025-04-28",
+            "AvgCPU": "2.15%",
+            "MaxCPU": "3.27%"
+          },
+          {
+            "Date": "2025-04-29",
+            "AvgCPU": "2.15%",
+            "MaxCPU": "3.64%"
+          },
+          {
+            "Date": "2025-04-30",
+            "AvgCPU": "2.37%",
+            "MaxCPU": "3.63%"
+          }
+        ]
+      }
+    ],
+    "S3": [
+      {
+        "ARN": "arn:aws:s3:::s3-dev-bucket-i5nsed",
+        "BucketName": "s3-dev-bucket-i5nsed",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      }
+    ],
+    "RDS": [
+      {
+        "ARN": "arn:aws:rds:us-east-1:666553928522:db:rds-dev-rds-instance",
+        "DBInstanceIdentifier": "rds-dev-rds-instance",
+        "DBInstanceClass": "db.t3.micro",
+        "Engine": "postgres",
+        "Metrics": {
+          "CPUUtilization": {
+            "Average": "3.81%",
+            "Maximum": "50.21%",
+            "DailyMetrics": [
+              {
+                "Date": "2025-04-18",
+                "AvgCPU": "4.03%",
+                "MaxCPU": "43.84%"
+              },
+              {
+                "Date": "2025-04-19",
+                "AvgCPU": "3.68%",
+                "MaxCPU": "5.32%"
+              },
+              {
+                "Date": "2025-04-20",
+                "AvgCPU": "3.63%",
+                "MaxCPU": "5.33%"
+              },
+              {
+                "Date": "2025-04-21",
+                "AvgCPU": "3.78%",
+                "MaxCPU": "5.45%"
+              },
+              {
+                "Date": "2025-04-22",
+                "AvgCPU": "3.80%",
+                "MaxCPU": "5.48%"
+              },
+              {
+                "Date": "2025-04-23",
+                "AvgCPU": "3.76%",
+                "MaxCPU": "5.61%"
+              },
+              {
+                "Date": "2025-04-24",
+                "AvgCPU": "3.76%",
+                "MaxCPU": "5.51%"
+              },
+              {
+                "Date": "2025-04-25",
+                "AvgCPU": "3.87%",
+                "MaxCPU": "50.21%"
+              },
+              {
+                "Date": "2025-04-26",
+                "AvgCPU": "3.90%",
+                "MaxCPU": "32.82%"
+              },
+              {
+                "Date": "2025-04-27",
+                "AvgCPU": "3.82%",
+                "MaxCPU": "6.12%"
+              },
+              {
+                "Date": "2025-04-28",
+                "AvgCPU": "3.84%",
+                "MaxCPU": "6.34%"
+              },
+              {
+                "Date": "2025-04-29",
+                "AvgCPU": "3.83%",
+                "MaxCPU": "6.18%"
+              },
+              {
+                "Date": "2025-04-30",
+                "AvgCPU": "3.80%",
+                "MaxCPU": "5.87%"
+              }
+            ]
+          }
+        },
+        "Recommendation": "Downsize the RDS instance."
+      }
+    ],
+    "Lambda": []
+  },
+  "userid": 7
+}

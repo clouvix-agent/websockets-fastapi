@@ -498,9 +498,10 @@ def fetch_and_save_aws_inventory():
         # Wait for 5 minutes before the next run
         time.sleep(60)
 
-# Start the background thread
-inventory_thread = threading.Thread(target=fetch_and_save_aws_inventory, daemon=True)
-inventory_thread.start()
+# # Start the background thread
+# inventory_thread = threading.Thread(target=fetch_and_save_aws_inventory, daemon=True)
+# inventory_thread.start() 
+#This moved into all_threads.py
 
 @router.get("/api/aws_inventory")
 async def get_aws_inventory():

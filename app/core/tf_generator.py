@@ -837,6 +837,47 @@ def query_inventory(user_query: str) -> str:
     print("Query Result:", response.content)
     return response.content
 
+ ##Shreyas code
+def load_metrics():
+    with open("aws_metrics.json", "r") as f:
+        return json.load(f)
+
+# Query the inventory using LangChain
+@tool
+def fetch_metrics(user_query: str) -> str:
+    """
+   Fetch Metrics through cloudwatch
+    
+    Args:
+        user_query (str): The query to be answered based on the AWS inventory.
+    
+    Returns:
+        str: The response from the AWS Metrics assistant.
+    """
+    print("Using fetch metrics Tool")
+    # Load inventory
+    metrics = load_metrics()
+
+    # Define the system message
+    system_message = SystemMessage(
+        content=(
+            "You are an AWS inventory assistant. The following is the current AWS inventory:"
+            f"\n{json.dumps(metrics, indent=2)}"
+            f"\nBased on this inventory, answer the following question: {user_query}"
+        )
+    )
+
+    # Create a human message with the user's query
+    human_message = HumanMessage(content=user_query)
+
+    # Run the query using the LLM
+    response = llm.invoke([system_message, human_message])
+
+    # Print the response
+    print("Query Result:", response.content)
+    return response.content
+ 
+ ##Shreyas Code
 
 @tool
 def update_terraform_file(instructions: str, project_name: str, config: RunnableConfig) -> str:
