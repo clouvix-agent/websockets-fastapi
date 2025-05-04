@@ -91,3 +91,4 @@ minio==7.2.3
 boto3>=1.26.0
 PyGithub
 GitPython
+APScheduler

@@ -5,6 +5,12 @@ from app.routers import general, auth
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
 
+# APScheduler import
+from apscheduler.schedulers.background import BackgroundScheduler
+
+# Import your scheduler job function
+from app.scheduled_jobs.terraform_inventory import fetch_all_state_files
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -20,7 +26,23 @@ app.add_middleware(
 app.include_router(general.router)
 app.include_router(auth.router)
 
+
+scheduler = BackgroundScheduler()
+
 @app.on_event("startup")
 async def startup_event():
     start_background_threads()
 # app.include_router(websocket.router)
+    print("🚀 FastAPI is starting... setting up scheduler.")
+    scheduler.add_job(fetch_all_state_files, 'cron', hour=19, minute=45)
+    scheduler.start()
+    print("✅ Scheduler started. The job will run daily at 7:45PM UTC.")
+        # 🚀 Run it IMMEDIATELY on startup for testing
+    print("🧪 Running fetch_all_state_files immediately for testing...")
+    fetch_all_state_files()
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    print("🛑 FastAPI is shutting down... stopping scheduler.")
+    scheduler.shutdown()
+    print("✅ Scheduler shut down cleanly.")

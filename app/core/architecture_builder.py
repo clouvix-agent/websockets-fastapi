@@ -5,8 +5,7 @@ from langchain_core.tools import tool
 def architecture_builder_tool():
     """Opens the architecture UI and waits for the JSON output. Runs when the user asks to build the architecture diagram."""
     print("Architecture creation tool initialed visit https://architecture.clouvix.com")
-    #return "Architecture creation tool initialed visit https://architecture.clouvix.com"
-    return "Architecture creation tool initialed visit http://localhost:8080"
+    return "Architecture creation tool initialed visit https://architecture.clouvix.com"
 
 @tool
 def check_architecture_file():
