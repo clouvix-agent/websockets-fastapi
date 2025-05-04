@@ -1,6 +1,21 @@
 {
     "S3": [
         {
+            "Name": "costreportclouvix",
+            "CreationDate": "2025-04-20 06:25:07",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvix",
+                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
             "Name": "heloottesting123453-s3-bucket",
             "CreationDate": "2025-04-08 06:26:24",
             "Location": null,
@@ -149,6 +164,36 @@
                     "Permission": "FULL_CONTROL"
                 }
             ]
+        },
+        {
+            "Name": "s3curbucketnew",
+            "CreationDate": "2025-04-22 14:49:32",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvix",
+                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "testshreyas123",
+            "CreationDate": "2025-04-28 07:07:41",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvix",
+                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
         }
     ],
     "EC2": [
@@ -171,7 +216,7 @@
                     "GroupName": "terraform-20250408064632825500000002"
                 }
             ],
-            "CPUUtilization": 3.559730775267892
+            "CPUUtilization": 3.8101174418350823
         },
         {
             "InstanceId": "i-0302c48397c8853fb",
@@ -192,23 +237,57 @@
                     "GroupName": "terraform-20250419041733806500000001"
                 }
             ],
-            "CPUUtilization": 0.2340104670034108
+            "CPUUtilization": 0.4019915411347855
+        },
+        {
+            "InstanceId": "i-0eafab1004b7ed403",
+            "State": "running",
+            "PublicIP": null,
+            "PrivateIP": "10.0.2.50",
+            "InstanceType": "t2.micro",
+            "LaunchTime": "2025-04-23 07:23:54",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-088ec1f4cd015be05",
+                    "GroupName": "launch-wizard-1"
+                }
+            ],
+            "CPUUtilization": 2.55
         }
     ],
     "DynamoDB": [],
     "ECS": [],
-    "RDS": [],
-    "ECR": [
+    "RDS": [
         {
-            "RepositoryName": "apprunner-dev-ecr",
-            "Arn": "arn:aws:ecr:us-east-1:536697269301:repository/apprunner-dev-ecr",
-            "CreatedAt": "2025-04-19 17:14:03",
-            "ImageTagMutability": "MUTABLE",
-            "EncryptionConfiguration": {
-                "encryptionType": "AES256"
-            }
+            "DBInstanceIdentifier": "rds-optimization-rds-instance",
+            "DBInstanceClass": "db.t3.micro",
+            "Engine": "postgres",
+            "EngineVersion": "17.3",
+            "Status": "available",
+            "Endpoint": "rds-optimization-rds-instance.ckj2wacu2quc.us-east-1.rds.amazonaws.com",
+            "AllocatedStorage": 20,
+            "AvailabilityZone": "us-east-1b",
+            "MultiAZ": false,
+            "CPUUtilization": 4.074127059347672
         }
     ],
+    "ECR": [],
     "EKS": [],
-    "Lambda": []
+    "Lambda": [
+        {
+            "FunctionName": "test",
+            "Runtime": "python3.13",
+            "Handler": "lambda_function.lambda_handler",
+            "MemorySize": 128,
+            "Timeout": 3,
+            "LastModified": "2025-04-28T07:01:50.000+0000",
+            "Environment": null
+        }
+    ]
 }

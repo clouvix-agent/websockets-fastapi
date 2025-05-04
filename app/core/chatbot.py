@@ -12,7 +12,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool
+from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool , fetch_metrics
 from app.core.architecture_builder import architecture_builder_tool, check_architecture_file
 from app.core.tf_generator import TerraformRequest
 from langchain.tools import tool
@@ -60,7 +60,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,fetch_metrics]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
@@ -84,32 +84,58 @@ def chatbot(state: State):
     response = llm_with_tools.invoke(messages)
 
     # Ensure response is a JSON string, then wrap it in AIMessage
+    # if isinstance(response, str):
+    #     return {
+    #         "messages": [AIMessage(content=response)],
+    #         "suggestions": []
+    #     }
+
+    # if isinstance(response, AIMessage):
+    #     try:
+    #         parsed = json.loads(response.content)
+    #         reply = parsed.get("reply", "")
+    #         suggestions = parsed.get("suggestions", [])
+    #         return {
+    #             "messages": [AIMessage(content=json.dumps({
+    #                 "reply": reply,
+    #                 "suggestions": suggestions
+    #             }))],
+    #             "suggestions": suggestions
+    #         }
+    #     except Exception:
+    #         return {
+    #             "messages": [response],
+    #             "suggestions": []
+    #         }
+
+    # return {"messages": [response]}
     if isinstance(response, str):
-        return {
-            "messages": [AIMessage(content=response)],
-            "suggestions": []
-        }
+            try:
+                parsed = json.loads(response)
+                return {
+                    "messages": [AIMessage(content=parsed.get("reply", ""))],
+                    "suggestions": parsed.get("suggestions", [])
+                }
+            except json.JSONDecodeError:
+                return {
+                    "messages": [AIMessage(content=response)],
+                    "suggestions": []
+                }
 
     if isinstance(response, AIMessage):
         try:
             parsed = json.loads(response.content)
-            reply = parsed.get("reply", "")
-            suggestions = parsed.get("suggestions", [])
             return {
-                "messages": [AIMessage(content=json.dumps({
-                    "reply": reply,
-                    "suggestions": suggestions
-                }))],
-                "suggestions": suggestions
+                "messages": [AIMessage(content=parsed.get("reply", ""))],
+                "suggestions": parsed.get("suggestions", [])
             }
-        except Exception:
+        except json.JSONDecodeError:
             return {
                 "messages": [response],
                 "suggestions": []
             }
 
     return {"messages": [response]}
-
 
 
 graph_builder.add_node("chatbot", chatbot)
