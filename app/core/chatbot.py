@@ -23,7 +23,7 @@ from langgraph.prebuilt import InjectedState
 from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables import RunnableConfig
 from app.core.github import create_pr
-from app.routers.abc import get_recommendations_for_all_metrics
+from app.routers.metrics_collector import get_recommendations_for_all_metrics
 
 memory = MemorySaver()
 
