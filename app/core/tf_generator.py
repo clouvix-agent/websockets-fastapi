@@ -850,7 +850,7 @@ def fetch_metrics(user_query: str) -> str:
    Fetch Metrics through cloudwatch
     
     Args:
-        user_query (str): The query to be answered based on the AWS inventory.
+        user_query (str): The query to be answered based on the AWS Metrics Data.
     
     Returns:
         str: The response from the AWS Metrics assistant.
