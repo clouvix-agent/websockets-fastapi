@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import general, auth
+from app.routers import general, auth, connections, inventory
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
 
@@ -25,6 +25,8 @@ app.add_middleware(
 
 app.include_router(general.router)
 app.include_router(auth.router)
+app.include_router(connections.router)
+app.include_router(inventory.router)
 
 
 scheduler = BackgroundScheduler()
