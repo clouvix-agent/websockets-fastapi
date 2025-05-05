@@ -23,7 +23,7 @@ from langgraph.prebuilt import InjectedState
 from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables import RunnableConfig
 from app.core.github import create_pr
-
+from app.routers.abc import get_recommendations_for_all_metrics
 
 memory = MemorySaver()
 
@@ -60,7 +60,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,fetch_metrics]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,fetch_metrics,get_recommendations_for_all_metrics]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 

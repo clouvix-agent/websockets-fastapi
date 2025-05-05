@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-05-04T15:22:54.685085",
+  "generatedAt": "2025-05-05T18:48:37.331453",
   "metrics": {
     "EC2": [],
     "S3": [
@@ -8,9 +8,9 @@
         "BucketName": "costbucketshreyas",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 987842.0,
-          "NumberOfObjects": 75,
-          "BucketSizeMB": 0.94
+          "BucketSizeBytes": 999197.0,
+          "NumberOfObjects": 77,
+          "BucketSizeMB": 0.95
         }
       },
       {
@@ -18,9 +18,9 @@
         "BucketName": "cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 974774.0,
-          "NumberOfObjects": 73,
-          "BucketSizeMB": 0.93
+          "BucketSizeBytes": 986300.0,
+          "NumberOfObjects": 75,
+          "BucketSizeMB": 0.94
         }
       },
       {
@@ -45,7 +45,33 @@
       }
     ],
     "RDS": [],
-    "Lambda": []
+    "Lambda": [
+      {
+        "ARN": "arn:aws:lambda:us-east-1:975050343511:function:myfunc",
+        "FunctionName": "myfunc",
+        "Runtime": "nodejs22.x",
+        "Metrics": {
+          "Invocations": {
+            "Total": 0,
+            "DailyMetrics": []
+          },
+          "Duration": {
+            "Average": 0,
+            "Maximum": 0,
+            "DailyMetrics": []
+          },
+          "Errors": {
+            "Total": 0,
+            "DailyMetrics": []
+          },
+          "Throttles": {
+            "Total": 0,
+            "DailyMetrics": []
+          }
+        },
+        "Recommendation": null
+      }
+    ]
   },
   "userid": 5
 }
