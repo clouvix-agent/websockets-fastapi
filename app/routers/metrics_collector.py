@@ -10,9 +10,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 import re
-from typing import List, Dict
+from typing import List, Dict, Any
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from openai import OpenAI
 
 # Load environment variables (only for DATABASE_URL)
 load_dotenv()
@@ -682,11 +683,68 @@ def insert_metrics_to_db(metrics_data, userid):
     except Exception as e:
         logger.error(f"Error in insert_metrics_to_db for userid {userid}: {str(e)}")
 
+
+def get_llm_recommendation(openai_client: OpenAI, resource_type: str, resource_id: str, instance_type: str | None, db_instance_class: str | None, rule: str, recommendation: str) -> str:
+    """
+    Calls the OpenAI LLM to refine a recommendation for a given resource type, rule, and original recommendation.
+
+    Args:
+        openai_client (OpenAI): Initialized OpenAI client.
+        resource_type (str): Type of resource (e.g., EC2, RDS, S3, Lambda).
+        resource_id (str): Identifier of the resource (e.g., instance ID, bucket name).
+        instance_type (str | None): EC2 instance type (if applicable), None for other resources.
+        db_instance_class (str | None): RDS DB instance class (if applicable), None for other resources.
+        rule (str): The rule that triggered the recommendation (e.g., 'AvgCPU > 80').
+        recommendation (str): The original recommendation from the cost table.
+
+    Returns:
+        str: Refined recommendation from the LLM, or the original recommendation if the LLM call fails.
+    """
+    try:
+        # Prepare prompt, including instance_type for EC2 or db_instance_class for RDS
+        if resource_type == 'EC2' and instance_type:
+            prompt = (
+                f"You are an AWS optimization expert. An EC2 instance of type '{instance_type}' "
+                f"has triggered the rule '{rule}' with the recommendation: '{recommendation}'. "
+                f"Refine this recommendation to provide a concise, actionable suggestion for optimizing the EC2 instance. "
+                f"Include specific details about the instance type and rule"
+            )
+        elif resource_type == 'RDS' and db_instance_class:
+            prompt = (
+                f"You are an AWS optimization expert. An RDS instance of class '{db_instance_class}' "
+                f"has triggered the rule '{rule}' with the recommendation: '{recommendation}'. "
+                f"Refine this recommendation to provide a concise, actionable suggestion for optimizing the RDS instance. "
+                f"Include specific details about the DB instance class and rule"
+            )
+        else:
+            prompt = (
+                f"You are an AWS optimization expert. A {resource_type} resource "
+                f"has triggered the rule '{rule}' with the recommendation: '{recommendation}'. "
+                f"Refine this recommendation to provide a concise, actionable suggestion for optimizing the {resource_type} resource. "
+                f"Include specific details about the rule"
+            )
+        
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": f"You are a helpful AWS optimization assistant for {resource_type}."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=350,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as llm_error:
+        print(f"LLM API error for {resource_type} {resource_id}: {str(llm_error)}")
+        return recommendation  
+
 @tool
 def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
     """
     Fetches metrics for a given user_id, compares them with cost table rules,
     and returns recommendations for all resource types (EC2, S3, RDS, Lambda) as a formatted string.
+    For all resources, recommendations are passed to an LLM for refinement before inclusion in the output.
     
     Args:
         config (RunnableConfig): Contains user_id in config['configurable']
@@ -696,19 +754,25 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
     """
     user_id = config.get('configurable', {}).get('user_id', 'unknown')
     try:
-        # Load DATABASE_URL from .env file
+        # Pull in env vars
         load_dotenv()
         database_url = os.getenv('DATABASE_URL')
+        openai_api_key = os.getenv('OPENAI_API_KEY')
         if not database_url:
             raise ValueError("DATABASE_URL not found in .env file")
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY not found in .env file")
 
-        # Set up SQLAlchemy engine
+       
         engine = create_engine(database_url)
+
+        
+        openai_client = OpenAI(api_key=openai_api_key)
 
         recommendations = []
 
         with engine.connect() as connection:
-            # Fetch all metrics for the given user_id
+            
             metrics_query = text("""
                 SELECT resource_type, resource_identifier, metrics_data
                 FROM metrics
@@ -716,7 +780,7 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
             """)
             metrics_result = connection.execute(metrics_query, {"user_id": user_id}).mappings().fetchall()
 
-            # Fetch all rules from cost table
+            
             cost_query = text("""
                 SELECT resource_type, rule, recommendation
                 FROM cost
@@ -749,25 +813,30 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                     rule = rule_info['rule']
                     recommendation = rule_info['recommendation']
 
-                    # EC2 and RDS rules (AvgCPU, MaxCPU)
-                    if resource_type in ['EC2', 'RDS']:
+                    # EC2 rules (AvgCPU, MaxCPU)
+                    if resource_type == 'EC2':
+                        ec2_instance_type = metrics_data.get('InstanceType', 'unknown')
                         # Handle AvgCPU rules
                         avg_cpu_match = re.match(r'AvgCPU\s*(>|<)\s*(\d+\.?\d*)', rule)
                         if avg_cpu_match:
                             operator, threshold = avg_cpu_match.groups()
                             threshold = float(threshold)
                             avg_cpu_str = metrics_data.get('AvgCPU') or \
-                                        metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Average', '0%')
+                                          metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Average', '0%')
                             try:
                                 avg_cpu = float(avg_cpu_str.replace('%', ''))
                                 if (operator == '>' and avg_cpu > threshold) or \
                                    (operator == '<' and avg_cpu < threshold):
+                                    llm_recommendation = get_llm_recommendation(
+                                        openai_client, resource_type, resource_id, ec2_instance_type, None, rule, recommendation
+                                    )
                                     recommendations.append({
                                         'resource_type': resource_type,
+                                        'instance_type': ec2_instance_type,
                                         'resource_identifier': resource_id,
                                         'metric': f"AvgCPU: {avg_cpu}%",
                                         'rule': rule,
-                                        'recommendation': recommendation
+                                        'recommendation': llm_recommendation
                                     })
                             except ValueError:
                                 print(f"Invalid AvgCPU format for {resource_id}: {avg_cpu_str}")
@@ -777,16 +846,71 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if max_cpu_match:
                             threshold = float(max_cpu_match.group(1))
                             max_cpu_str = metrics_data.get('MaxCPU') or \
-                                        metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Maximum', '0%')
+                                          metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Maximum', '0%')
                             try:
                                 max_cpu = float(max_cpu_str.replace('%', ''))
                                 if max_cpu > threshold:
+                                    llm_recommendation = get_llm_recommendation(
+                                        openai_client, resource_type, resource_id, ec2_instance_type, None, rule, recommendation
+                                    )
                                     recommendations.append({
                                         'resource_type': resource_type,
+                                        'instance_type': ec2_instance_type,
                                         'resource_identifier': resource_id,
                                         'metric': f"MaxCPU: {max_cpu}%",
                                         'rule': rule,
-                                        'recommendation': recommendation
+                                        'recommendation': llm_recommendation
+                                    })
+                            except ValueError:
+                                print(f"Invalid MaxCPU format for {resource_id}: {max_cpu_str}")
+
+                    # RDS rules (AvgCPU, MaxCPU)
+                    elif resource_type == 'RDS':
+                        db_instance_class = metrics_data.get('DBInstanceClass', 'unknown')
+                        # Handle AvgCPU rules
+                        avg_cpu_match = re.match(r'AvgCPU\s*(>|<)\s*(\d+\.?\d*)', rule)
+                        if avg_cpu_match:
+                            operator, threshold = avg_cpu_match.groups()
+                            threshold = float(threshold)
+                            avg_cpu_str = metrics_data.get('AvgCPU') or \
+                                          metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Average', '0%')
+                            try:
+                                avg_cpu = float(avg_cpu_str.replace('%', ''))
+                                if (operator == '>' and avg_cpu > threshold) or \
+                                   (operator == '<' and avg_cpu < threshold):
+                                    llm_recommendation = get_llm_recommendation(
+                                        openai_client, resource_type, resource_id, None, db_instance_class, rule, recommendation
+                                    )
+                                    recommendations.append({
+                                        'resource_type': resource_type,
+                                        'db_instance_class': db_instance_class,
+                                        'resource_identifier': resource_id,
+                                        'metric': f"AvgCPU: {avg_cpu}%",
+                                        'rule': rule,
+                                        'recommendation': llm_recommendation
+                                    })
+                            except ValueError:
+                                print(f"Invalid AvgCPU format for {resource_id}: {avg_cpu_str}")
+
+                        # Handle MaxCPU rules
+                        max_cpu_match = re.match(r'MaxCPU\s*>\s*(\d+\.?\d*)', rule)
+                        if max_cpu_match:
+                            threshold = float(max_cpu_match.group(1))
+                            max_cpu_str = metrics_data.get('MaxCPU') or \
+                                          metrics_data.get('Metrics', {}).get('CPUUtilization', {}).get('Maximum', '0%')
+                            try:
+                                max_cpu = float(max_cpu_str.replace('%', ''))
+                                if max_cpu > threshold:
+                                    llm_recommendation = get_llm_recommendation(
+                                        openai_client, resource_type, resource_id, None, db_instance_class, rule, recommendation
+                                    )
+                                    recommendations.append({
+                                        'resource_type': resource_type,
+                                        'db_instance_class': db_instance_class,
+                                        'resource_identifier': resource_id,
+                                        'metric': f"MaxCPU: {max_cpu}%",
+                                        'rule': rule,
+                                        'recommendation': llm_recommendation
                                     })
                             except ValueError:
                                 print(f"Invalid MaxCPU format for {resource_id}: {max_cpu_str}")
@@ -802,12 +926,15 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if size_match:
                             threshold = float(size_match.group(1))
                             if bucket_size_mb > threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"BucketSizeMB: {bucket_size_mb}",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
                         # Handle NumberOfObjects rules
@@ -815,32 +942,36 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if objects_match:
                             threshold = int(objects_match.group(1))
                             if num_objects > threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"NumberOfObjects: {num_objects}",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
                         # Handle BucketSizeMB > 100 and low access (simplified, assuming low access not available)
                         if 'BucketSizeMB > 100 and low access' in rule and bucket_size_mb > 100:
+                            llm_recommendation = get_llm_recommendation(
+                                openai_client, resource_type, resource_id, None, None, rule, recommendation
+                            )
                             recommendations.append({
                                 'resource_type': resource_type,
                                 'resource_identifier': resource_id,
                                 'metric': f"BucketSizeMB: {bucket_size_mb} (assuming low access)",
                                 'rule': rule,
-                                'recommendation': recommendation
+                                'recommendation': llm_recommendation
                             })
 
                     # Lambda rules (Errors.Total, Duration.Average, Throttles.Total, Invocations.Total)
                     elif resource_type == 'Lambda':
                         metrics = metrics_data.get('Metrics', {})
                         errors_total = int(metrics.get('Errors', {}).get('Total', 0))
-                        # Handle Duration.Average with potential 'ms' suffix
                         duration_avg_str = str(metrics.get('Duration', {}).get('Average', '0'))
                         try:
-                            # Remove non-numeric characters except decimal point
                             duration_avg = float(re.sub(r'[^\d.]', '', duration_avg_str))
                         except ValueError:
                             print(f"Invalid Duration.Average format for {resource_id}: {duration_avg_str}")
@@ -853,12 +984,15 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if errors_match:
                             threshold = int(errors_match.group(1))
                             if errors_total > threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"Errors.Total: {errors_total}",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
                         # Handle Duration.Average
@@ -866,12 +1000,15 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if duration_match:
                             threshold = float(duration_match.group(1))
                             if duration_avg > threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"Duration.Average: {duration_avg}ms",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
                         # Handle Throttles.Total
@@ -879,12 +1016,15 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if throttles_match:
                             threshold = int(throttles_match.group(1))
                             if throttles_total > threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"Throttles.Total: {throttles_total}",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
                         # Handle Invocations.Total
@@ -892,26 +1032,51 @@ def get_recommendations_for_all_metrics(config: RunnableConfig) -> str:
                         if invocations_match:
                             threshold = int(invocations_match.group(1))
                             if invocations_total == threshold:
+                                llm_recommendation = get_llm_recommendation(
+                                    openai_client, resource_type, resource_id, None, None, rule, recommendation
+                                )
                                 recommendations.append({
                                     'resource_type': resource_type,
                                     'resource_identifier': resource_id,
                                     'metric': f"Invocations.Total: {invocations_total}",
                                     'rule': rule,
-                                    'recommendation': recommendation
+                                    'recommendation': llm_recommendation
                                 })
 
         # Format recommendations as a string
         if recommendations:
             output = []
             for rec in recommendations:
-                output.append(
-                    f"Resource Type: {rec['resource_type']}\n"
-                    f"Resource: {rec['resource_identifier']}\n"
-                    f"Metric: {rec['metric']}\n"
-                    f"Rule: {rec['rule']}\n"
-                    f"Recommendation: {rec['recommendation']}\n"
-                    f"{'-' * 50}"
-                )
+                # Include instance_type for EC2, db_instance_class for RDS
+                if rec['resource_type'] == 'EC2':
+                    output.append(
+                        f"Resource Type: {rec['resource_type']}\n"
+                        f"Instance Type: {rec['instance_type']}\n"
+                        f"Resource: {rec['resource_identifier']}\n"
+                        f"Metric: {rec['metric']}\n"
+                        f"Rule: {rec['rule']}\n"
+                        f"Recommendation: {rec['recommendation']}\n"
+                        f"{'-' * 50}"
+                    )
+                elif rec['resource_type'] == 'RDS':
+                    output.append(
+                        f"Resource Type: {rec['resource_type']}\n"
+                        f"DB Instance Class: {rec['db_instance_class']}\n"
+                        f"Resource: {rec['resource_identifier']}\n"
+                        f"Metric: {rec['metric']}\n"
+                        f"Rule: {rec['rule']}\n"
+                        f"Recommendation: {rec['recommendation']}\n"
+                        f"{'-' * 50}"
+                    )
+                else:
+                    output.append(
+                        f"Resource Type: {rec['resource_type']}\n"
+                        f"Resource: {rec['resource_identifier']}\n"
+                        f"Metric: {rec['metric']}\n"
+                        f"Rule: {rec['rule']}\n"
+                        f"Recommendation: {rec['recommendation']}\n"
+                        f"{'-' * 50}"
+                    )
             return "\n".join(output)
         else:
             return f"No recommendations found for user_id={user_id}"
