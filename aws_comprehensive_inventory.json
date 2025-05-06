@@ -216,7 +216,7 @@
                     "GroupName": "terraform-20250408064632825500000002"
                 }
             ],
-            "CPUUtilization": 3.75296309989661
+            "CPUUtilization": 4.806654965014297
         },
         {
             "InstanceId": "i-0302c48397c8853fb",
@@ -237,7 +237,7 @@
                     "GroupName": "terraform-20250419041733806500000001"
                 }
             ],
-            "CPUUtilization": 0.3318219239204828
+            "CPUUtilization": 0.3323154899349392
         },
         {
             "InstanceId": "i-0eafab1004b7ed403",
@@ -258,7 +258,7 @@
                     "GroupName": "launch-wizard-1"
                 }
             ],
-            "CPUUtilization": 2.538357977047762
+            "CPUUtilization": 2.6473386562079106
         }
     ],
     "DynamoDB": [],
@@ -274,7 +274,7 @@
             "AllocatedStorage": 20,
             "AvailabilityZone": "us-east-1b",
             "MultiAZ": false,
-            "CPUUtilization": 4.071553028913894
+            "CPUUtilization": 4.311545963478135
         }
     ],
     "ECR": [],

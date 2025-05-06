@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-05-05T20:43:19.815192",
+  "generatedAt": "2025-05-06T12:42:35.037319",
   "metrics": {
     "EC2": [
       {
@@ -7,28 +7,23 @@
         "InstanceId": "i-064f82bbb097d67f6",
         "InstanceName": "heloottesting123453_ec2_instance",
         "InstanceType": "t2.micro",
-        "AvgCPU": "3.86%",
+        "AvgCPU": "3.87%",
         "MaxCPU": "76.20%",
         "Recommendation": "Downsize the instance.",
         "DailyMetrics": [
           {
-            "Date": "2025-04-21",
-            "AvgCPU": "3.68%",
-            "MaxCPU": "15.72%"
-          },
-          {
             "Date": "2025-04-22",
-            "AvgCPU": "3.78%",
+            "AvgCPU": "3.75%",
             "MaxCPU": "15.51%"
           },
           {
             "Date": "2025-04-23",
-            "AvgCPU": "3.80%",
+            "AvgCPU": "3.79%",
             "MaxCPU": "16.03%"
           },
           {
             "Date": "2025-04-24",
-            "AvgCPU": "3.78%",
+            "AvgCPU": "3.79%",
             "MaxCPU": "16.47%"
           },
           {
@@ -38,37 +33,37 @@
           },
           {
             "Date": "2025-04-26",
-            "AvgCPU": "3.91%",
+            "AvgCPU": "3.86%",
             "MaxCPU": "10.52%"
           },
           {
             "Date": "2025-04-27",
-            "AvgCPU": "3.93%",
+            "AvgCPU": "3.95%",
             "MaxCPU": "10.42%"
           },
           {
             "Date": "2025-04-28",
-            "AvgCPU": "3.89%",
+            "AvgCPU": "3.90%",
             "MaxCPU": "10.49%"
           },
           {
             "Date": "2025-04-29",
-            "AvgCPU": "3.90%",
-            "MaxCPU": "76.20%"
+            "AvgCPU": "3.85%",
+            "MaxCPU": "11.20%"
           },
           {
             "Date": "2025-04-30",
-            "AvgCPU": "3.85%",
-            "MaxCPU": "13.45%"
+            "AvgCPU": "3.89%",
+            "MaxCPU": "76.20%"
           },
           {
             "Date": "2025-05-01",
-            "AvgCPU": "3.94%",
+            "AvgCPU": "3.92%",
             "MaxCPU": "12.94%"
           },
           {
             "Date": "2025-05-02",
-            "AvgCPU": "3.92%",
+            "AvgCPU": "3.93%",
             "MaxCPU": "13.78%"
           },
           {
@@ -78,8 +73,13 @@
           },
           {
             "Date": "2025-05-04",
-            "AvgCPU": "3.90%",
+            "AvgCPU": "3.92%",
             "MaxCPU": "13.03%"
+          },
+          {
+            "Date": "2025-05-05",
+            "AvgCPU": "3.88%",
+            "MaxCPU": "9.44%"
           }
         ]
       },
@@ -93,38 +93,33 @@
         "Recommendation": "Downsize the instance.",
         "DailyMetrics": [
           {
-            "Date": "2025-04-21",
-            "AvgCPU": "0.42%",
-            "MaxCPU": "13.17%"
-          },
-          {
             "Date": "2025-04-22",
-            "AvgCPU": "0.43%",
+            "AvgCPU": "0.42%",
             "MaxCPU": "12.95%"
           },
           {
             "Date": "2025-04-23",
-            "AvgCPU": "0.44%",
+            "AvgCPU": "0.43%",
             "MaxCPU": "12.95%"
           },
           {
             "Date": "2025-04-24",
-            "AvgCPU": "0.42%",
-            "MaxCPU": "13.62%"
+            "AvgCPU": "0.43%",
+            "MaxCPU": "13.39%"
           },
           {
             "Date": "2025-04-25",
-            "AvgCPU": "0.43%",
-            "MaxCPU": "12.83%"
+            "AvgCPU": "0.44%",
+            "MaxCPU": "13.62%"
           },
           {
             "Date": "2025-04-26",
-            "AvgCPU": "0.41%",
-            "MaxCPU": "13.22%"
+            "AvgCPU": "0.40%",
+            "MaxCPU": "12.95%"
           },
           {
             "Date": "2025-04-27",
-            "AvgCPU": "0.40%",
+            "AvgCPU": "0.41%",
             "MaxCPU": "13.39%"
           },
           {
@@ -134,33 +129,38 @@
           },
           {
             "Date": "2025-04-29",
-            "AvgCPU": "0.41%",
+            "AvgCPU": "0.40%",
             "MaxCPU": "13.39%"
           },
           {
             "Date": "2025-04-30",
-            "AvgCPU": "0.43%",
+            "AvgCPU": "0.44%",
             "MaxCPU": "13.05%"
           },
           {
             "Date": "2025-05-01",
             "AvgCPU": "0.41%",
-            "MaxCPU": "13.39%"
+            "MaxCPU": "13.17%"
           },
           {
             "Date": "2025-05-02",
-            "AvgCPU": "0.41%",
-            "MaxCPU": "13.22%"
+            "AvgCPU": "0.42%",
+            "MaxCPU": "13.39%"
           },
           {
             "Date": "2025-05-03",
-            "AvgCPU": "0.40%",
+            "AvgCPU": "0.39%",
             "MaxCPU": "12.95%"
           },
           {
             "Date": "2025-05-04",
-            "AvgCPU": "0.39%",
+            "AvgCPU": "0.40%",
             "MaxCPU": "13.17%"
+          },
+          {
+            "Date": "2025-05-05",
+            "AvgCPU": "0.41%",
+            "MaxCPU": "13.56%"
           }
         ]
       },
@@ -176,67 +176,72 @@
           {
             "Date": "2025-04-22",
             "AvgCPU": "2.56%",
-            "MaxCPU": "2.90%"
+            "MaxCPU": "2.80%"
           },
           {
             "Date": "2025-04-23",
-            "AvgCPU": "2.55%",
+            "AvgCPU": "2.58%",
             "MaxCPU": "3.28%"
           },
           {
             "Date": "2025-04-24",
-            "AvgCPU": "2.45%",
+            "AvgCPU": "2.48%",
             "MaxCPU": "3.55%"
           },
           {
             "Date": "2025-04-25",
-            "AvgCPU": "2.46%",
+            "AvgCPU": "2.44%",
             "MaxCPU": "2.85%"
           },
           {
             "Date": "2025-04-26",
-            "AvgCPU": "2.46%",
+            "AvgCPU": "2.47%",
             "MaxCPU": "2.90%"
           },
           {
             "Date": "2025-04-27",
-            "AvgCPU": "2.43%",
-            "MaxCPU": "2.87%"
+            "AvgCPU": "2.46%",
+            "MaxCPU": "2.85%"
           },
           {
             "Date": "2025-04-28",
-            "AvgCPU": "2.49%",
-            "MaxCPU": "2.80%"
+            "AvgCPU": "2.42%",
+            "MaxCPU": "2.87%"
           },
           {
             "Date": "2025-04-29",
-            "AvgCPU": "2.50%",
+            "AvgCPU": "2.52%",
             "MaxCPU": "3.22%"
           },
           {
             "Date": "2025-04-30",
-            "AvgCPU": "2.48%",
+            "AvgCPU": "2.49%",
             "MaxCPU": "2.98%"
           },
           {
             "Date": "2025-05-01",
-            "AvgCPU": "2.43%",
-            "MaxCPU": "2.85%"
+            "AvgCPU": "2.45%",
+            "MaxCPU": "2.97%"
           },
           {
             "Date": "2025-05-02",
-            "AvgCPU": "2.44%",
+            "AvgCPU": "2.43%",
             "MaxCPU": "2.90%"
           },
           {
             "Date": "2025-05-03",
             "AvgCPU": "2.47%",
-            "MaxCPU": "3.11%"
+            "MaxCPU": "2.97%"
           },
           {
             "Date": "2025-05-04",
-            "AvgCPU": "2.52%",
-            "MaxCPU": "2.80%"
+            "AvgCPU": "2.49%",
+            "MaxCPU": "3.11%"
+          },
+          {
+            "Date": "2025-05-05",
+            "AvgCPU": "2.51%",
+            "MaxCPU": "2.77%"
           }
         ]
       }
@@ -247,9 +252,9 @@
         "BucketName": "costreportclouvix",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 11253453.0,
-          "NumberOfObjects": 61,
-          "BucketSizeMB": 10.73
+          "BucketSizeBytes": 11490087.0,
+          "NumberOfObjects": 67,
+          "BucketSizeMB": 10.96
         }
       },
       {
@@ -357,9 +362,9 @@
         "BucketName": "s3curbucketnew",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 2684413.0,
-          "NumberOfObjects": 55,
-          "BucketSizeMB": 2.56
+          "BucketSizeBytes": 2759265.0,
+          "NumberOfObjects": 61,
+          "BucketSizeMB": 2.63
         }
       },
       {
@@ -384,23 +389,18 @@
             "Maximum": "55.59%",
             "DailyMetrics": [
               {
-                "Date": "2025-04-21",
-                "AvgCPU": "4.00%",
-                "MaxCPU": "5.92%"
-              },
-              {
                 "Date": "2025-04-22",
                 "AvgCPU": "4.01%",
-                "MaxCPU": "5.94%"
+                "MaxCPU": "5.91%"
               },
               {
                 "Date": "2025-04-23",
-                "AvgCPU": "4.01%",
-                "MaxCPU": "5.85%"
+                "AvgCPU": "3.99%",
+                "MaxCPU": "5.94%"
               },
               {
                 "Date": "2025-04-24",
-                "AvgCPU": "4.04%",
+                "AvgCPU": "4.03%",
                 "MaxCPU": "6.16%"
               },
               {
@@ -410,48 +410,53 @@
               },
               {
                 "Date": "2025-04-26",
-                "AvgCPU": "4.01%",
+                "AvgCPU": "4.02%",
                 "MaxCPU": "5.93%"
               },
               {
                 "Date": "2025-04-27",
-                "AvgCPU": "4.10%",
-                "MaxCPU": "5.95%"
+                "AvgCPU": "4.06%",
+                "MaxCPU": "5.92%"
               },
               {
                 "Date": "2025-04-28",
-                "AvgCPU": "4.09%",
+                "AvgCPU": "4.11%",
                 "MaxCPU": "6.04%"
               },
               {
                 "Date": "2025-04-29",
-                "AvgCPU": "4.10%",
-                "MaxCPU": "6.11%"
+                "AvgCPU": "4.09%",
+                "MaxCPU": "6.00%"
               },
               {
                 "Date": "2025-04-30",
-                "AvgCPU": "4.10%",
-                "MaxCPU": "6.02%"
+                "AvgCPU": "4.11%",
+                "MaxCPU": "6.11%"
               },
               {
                 "Date": "2025-05-01",
-                "AvgCPU": "4.11%",
-                "MaxCPU": "6.16%"
+                "AvgCPU": "4.09%",
+                "MaxCPU": "5.97%"
               },
               {
                 "Date": "2025-05-02",
-                "AvgCPU": "4.10%",
-                "MaxCPU": "5.91%"
+                "AvgCPU": "4.13%",
+                "MaxCPU": "6.16%"
               },
               {
                 "Date": "2025-05-03",
                 "AvgCPU": "4.09%",
-                "MaxCPU": "5.83%"
+                "MaxCPU": "5.87%"
               },
               {
                 "Date": "2025-05-04",
-                "AvgCPU": "4.10%",
+                "AvgCPU": "4.09%",
                 "MaxCPU": "6.18%"
+              },
+              {
+                "Date": "2025-05-05",
+                "AvgCPU": "4.10%",
+                "MaxCPU": "5.89%"
               }
             ]
           }
