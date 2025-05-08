@@ -674,7 +674,7 @@ def fetch_and_save_metrics():
         except Exception as e:
             logger.error(f"Error in metrics collection cycle: {str(e)}", exc_info=True)
         
-        time.sleep(120)
+        time.sleep(86400)
 
 def insert_metrics_to_db(metrics_data, userid):
     """Insert metrics into the metrics table with userid."""
