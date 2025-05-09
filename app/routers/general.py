@@ -363,7 +363,7 @@ def fetch_and_save_aws_inventory():
             print(f"Error fetching AWS inventory: {str(e)}")
         
         # Wait for 5 minutes before the next run
-        time.sleep(60)
+        time.sleep(86400)  # 24 hours
 
 # # Start the background thread
 # inventory_thread = threading.Thread(target=fetch_and_save_aws_inventory, daemon=True)
