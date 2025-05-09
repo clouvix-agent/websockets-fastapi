@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-05-08T18:12:32.801808",
+  "generatedAt": "2025-05-09T18:32:48.517024",
   "metrics": {
     "EC2": [
       {
@@ -7,15 +7,10 @@
         "InstanceId": "i-064f82bbb097d67f6",
         "InstanceName": "heloottesting123453_ec2_instance",
         "InstanceType": "t2.micro",
-        "AvgCPU": "3.86%",
+        "AvgCPU": "3.85%",
         "MaxCPU": "76.20%",
         "Recommendation": "Downsize the instance.",
         "DailyMetrics": [
-          {
-            "Date": "2025-04-24",
-            "AvgCPU": "3.79%",
-            "MaxCPU": "16.47%"
-          },
           {
             "Date": "2025-04-25",
             "AvgCPU": "3.83%",
@@ -28,17 +23,17 @@
           },
           {
             "Date": "2025-04-27",
-            "AvgCPU": "3.92%",
+            "AvgCPU": "3.93%",
             "MaxCPU": "10.42%"
           },
           {
             "Date": "2025-04-28",
-            "AvgCPU": "3.90%",
+            "AvgCPU": "3.89%",
             "MaxCPU": "10.49%"
           },
           {
             "Date": "2025-04-29",
-            "AvgCPU": "3.92%",
+            "AvgCPU": "3.91%",
             "MaxCPU": "76.20%"
           },
           {
@@ -79,7 +74,12 @@
           {
             "Date": "2025-05-07",
             "AvgCPU": "3.70%",
-            "MaxCPU": "16.52%"
+            "MaxCPU": "17.35%"
+          },
+          {
+            "Date": "2025-05-08",
+            "AvgCPU": "3.69%",
+            "MaxCPU": "16.42%"
           }
         ]
       },
@@ -88,15 +88,10 @@
         "InstanceId": "i-0302c48397c8853fb",
         "InstanceName": "roadiestest_ec2_instance",
         "InstanceType": "t2.micro",
-        "AvgCPU": "0.42%",
-        "MaxCPU": "13.62%",
+        "AvgCPU": "0.41%",
+        "MaxCPU": "13.56%",
         "Recommendation": "Downsize the instance.",
         "DailyMetrics": [
-          {
-            "Date": "2025-04-24",
-            "AvgCPU": "0.42%",
-            "MaxCPU": "13.62%"
-          },
           {
             "Date": "2025-04-25",
             "AvgCPU": "0.43%",
@@ -119,7 +114,7 @@
           },
           {
             "Date": "2025-04-29",
-            "AvgCPU": "0.39%",
+            "AvgCPU": "0.40%",
             "MaxCPU": "13.39%"
           },
           {
@@ -161,6 +156,11 @@
             "Date": "2025-05-07",
             "AvgCPU": "0.45%",
             "MaxCPU": "13.11%"
+          },
+          {
+            "Date": "2025-05-08",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "13.17%"
           }
         ]
       },
@@ -169,15 +169,10 @@
         "InstanceId": "i-0eafab1004b7ed403",
         "InstanceName": "test",
         "InstanceType": "t2.micro",
-        "AvgCPU": "2.49%",
-        "MaxCPU": "3.55%",
+        "AvgCPU": "2.50%",
+        "MaxCPU": "3.22%",
         "Recommendation": "Downsize the instance.",
         "DailyMetrics": [
-          {
-            "Date": "2025-04-24",
-            "AvgCPU": "2.45%",
-            "MaxCPU": "3.55%"
-          },
           {
             "Date": "2025-04-25",
             "AvgCPU": "2.46%",
@@ -195,7 +190,7 @@
           },
           {
             "Date": "2025-04-28",
-            "AvgCPU": "2.46%",
+            "AvgCPU": "2.47%",
             "MaxCPU": "2.80%"
           },
           {
@@ -215,7 +210,7 @@
           },
           {
             "Date": "2025-05-02",
-            "AvgCPU": "2.43%",
+            "AvgCPU": "2.44%",
             "MaxCPU": "2.90%"
           },
           {
@@ -240,8 +235,13 @@
           },
           {
             "Date": "2025-05-07",
-            "AvgCPU": "2.61%",
+            "AvgCPU": "2.62%",
             "MaxCPU": "3.17%"
+          },
+          {
+            "Date": "2025-05-08",
+            "AvgCPU": "2.65%",
+            "MaxCPU": "3.03%"
           }
         ]
       }
@@ -252,9 +252,9 @@
         "BucketName": "costreportclouvix",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 12157504.0,
-          "NumberOfObjects": 77,
-          "BucketSizeMB": 11.59
+          "BucketSizeBytes": 12521979.0,
+          "NumberOfObjects": 81,
+          "BucketSizeMB": 11.94
         }
       },
       {
@@ -362,9 +362,9 @@
         "BucketName": "s3curbucketnew",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 2908418.0,
-          "NumberOfObjects": 71,
-          "BucketSizeMB": 2.77
+          "BucketSizeBytes": 2978084.0,
+          "NumberOfObjects": 75,
+          "BucketSizeMB": 2.84
         }
       },
       {
@@ -385,14 +385,9 @@
         "Engine": "postgres",
         "Metrics": {
           "CPUUtilization": {
-            "Average": "4.08%",
+            "Average": "4.09%",
             "Maximum": "55.59%",
             "DailyMetrics": [
-              {
-                "Date": "2025-04-24",
-                "AvgCPU": "4.04%",
-                "MaxCPU": "6.16%"
-              },
               {
                 "Date": "2025-04-25",
                 "AvgCPU": "4.07%",
@@ -425,7 +420,7 @@
               },
               {
                 "Date": "2025-05-01",
-                "AvgCPU": "4.10%",
+                "AvgCPU": "4.11%",
                 "MaxCPU": "6.16%"
               },
               {
@@ -455,8 +450,13 @@
               },
               {
                 "Date": "2025-05-07",
-                "AvgCPU": "4.09%",
-                "MaxCPU": "5.90%"
+                "AvgCPU": "4.08%",
+                "MaxCPU": "5.96%"
+              },
+              {
+                "Date": "2025-05-08",
+                "AvgCPU": "4.08%",
+                "MaxCPU": "5.93%"
               }
             ]
           }
