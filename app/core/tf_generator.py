@@ -33,6 +33,9 @@ import shutil
 import tempfile 
 from minio.error import S3Error
 
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from langchain_openai import OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -798,87 +801,85 @@ def generate_terraform_tool(config: RunnableConfig) -> str:
     # Rest of the existing implementation...
     # Return content of terraform file
 
-
-def load_inventory():
-    with open("aws_comprehensive_inventory.json", "r") as f:
-        return json.load(f)
-
-# Query the inventory using LangChain
 @tool
-def query_inventory(user_query: str) -> str:
+def query_inventory(config: RunnableConfig) -> str:
     """
-    Query the AWS inventory based on the user's query and return the result.
-    
-    Args:
-        user_query (str): The query to be answered based on the AWS inventory.
+    Query the AWS inventory for unique ARNs from infrastructure_inventory and metrics tables
+    based on the user's ID and return the result with resource name, resource type, and ARN.
     
     Returns:
-        str: The response from the AWS inventory assistant.
+        str: The formatted response containing unique ARN services.
     """
     print("Using Inventory Tool")
-    # Load inventory
-    inventory = load_inventory()
-
-    # Define the system message
-    system_message = SystemMessage(
-        content=(
-            "You are an AWS inventory assistant. The following is the current AWS inventory:"
-            f"\n{json.dumps(inventory, indent=2)}"
-            f"\nBased on this inventory, answer the following question: {user_query}"
-        )
-    )
-
-    # Create a human message with the user's query
-    human_message = HumanMessage(content=user_query)
-
-    # Run the query using the LLM
-    response = llm.invoke([system_message, human_message])
-
-    # Print the response
-    print("Query Result:", response.content)
-    return response.content
-
- ##Shreyas code
-def load_metrics():
-    with open("aws_metrics.json", "r") as f:
-        return json.load(f)
-
-# Query the inventory using LangChain
-@tool
-def fetch_metrics(user_query: str) -> str:
-    """
-   Fetch Metrics through cloudwatch
+    user_id = config['configurable'].get('user_id', 'unknown')
     
-    Args:
-        user_query (str): The query to be answered based on the AWS Metrics Data.
+    # Database setup
+    database_url = os.getenv('DATABASE_URL')
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    if not database_url:
+        raise ValueError("DATABASE_URL not found in .env file")
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY not found in .env file")
     
-    Returns:
-        str: The response from the AWS Metrics assistant.
-    """
-    print("Using fetch metrics Tool")
-    # Load inventory
-    metrics = load_metrics()
+    engine = create_engine(database_url)
+    openai_client = OpenAI(api_key=openai_api_key)
 
-    # Define the system message
-    system_message = SystemMessage(
-        content=(
-            "You are an AWS inventory assistant. The following is the current AWS inventory:"
-            f"\n{json.dumps(metrics, indent=2)}"
-            f"\nBased on this inventory, answer the following question: {user_query}"
+    # SQL query to fetch unique ARNs with resource name, resource type from both tables
+    query = text("""
+        SELECT DISTINCT
+            COALESCE(ii.resource_name, m.resource_identifier) AS resource_name,
+            COALESCE(ii.resource_type, m.resource_type) AS resource_type,
+            COALESCE(ii.arn, m.arn) AS arn
+        FROM infrastructure_inventory ii
+        FULL OUTER JOIN metrics m
+            ON ii.arn = m.arn
+        WHERE ii.user_id = :user_id OR m.userid = :user_id
+        ORDER BY resource_type, resource_name;
+    """)
+
+    # Execute the query
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(query, {"user_id": user_id}).fetchall()
+        
+        # Format the inventory data
+        inventory = [
+            {
+                "resource_name": row.resource_name if row.resource_name else "N/A",
+                "resource_type": row.resource_type,
+                "arn": row.arn
+            }
+            for row in result
+        ]
+
+        if not inventory:
+            return f"No inventory found for user ID {user_id}."
+
+        # Define the system message
+        system_message = SystemMessage(
+            content=(
+                "You are an AWS inventory assistant. The following is the current AWS inventory "
+                "with unique ARNs, resource names, and resource types for the user:\n"
+                f"{json.dumps(inventory, indent=2)}\n"
+                "Provide a clear and concise summary of the inventory in Markdown format. Use bullet points "
+                "for each resource, and include the resource name (if available), resource type, and ARN. "
+            )
         )
-    )
 
-    # Create a human message with the user's query
-    human_message = HumanMessage(content=user_query)
+        # Create a human message
+        human_message = HumanMessage(content="Summarize the AWS inventory for the user.")
 
-    # Run the query using the LLM
-    response = llm.invoke([system_message, human_message])
+        # Run the query using the LLM
+        response = openai_client.invoke([system_message, human_message])
 
-    # Print the response
-    print("Query Result:", response.content)
-    return response.content
- 
- ##Shreyas Code
+        # Handle the response (string, not an object with .content)
+        print("Query Result:", response)
+        return response
+
+    except Exception as e:
+        error_message = f"Error querying inventory: {str(e)}"
+        print(error_message)
+        return error_message
 
 @tool
 def update_terraform_file(instructions: str, project_name: str, config: RunnableConfig) -> str:
