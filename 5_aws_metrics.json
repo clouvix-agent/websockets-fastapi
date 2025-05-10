@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-05-09T18:32:17.560250",
+  "generatedAt": "2025-05-10T21:41:16.331460",
   "metrics": {
     "EC2": [],
     "S3": [
@@ -8,9 +8,9 @@
         "BucketName": "costbucketshreyas",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 1184807.0,
-          "NumberOfObjects": 97,
-          "BucketSizeMB": 1.13
+          "BucketSizeBytes": 1247352.0,
+          "NumberOfObjects": 101,
+          "BucketSizeMB": 1.19
         }
       },
       {
@@ -18,9 +18,9 @@
         "BucketName": "cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 1173620.0,
-          "NumberOfObjects": 95,
-          "BucketSizeMB": 1.12
+          "BucketSizeBytes": 1236507.0,
+          "NumberOfObjects": 99,
+          "BucketSizeMB": 1.18
         }
       },
       {

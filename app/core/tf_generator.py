@@ -36,6 +36,8 @@ from minio.error import S3Error
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from langchain_openai import OpenAI
+from typing import Optional
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -878,6 +880,113 @@ def query_inventory(config: RunnableConfig) -> str:
 
     except Exception as e:
         error_message = f"Error querying inventory: {str(e)}"
+        print(error_message)
+        return error_message
+
+@tool
+def fetch_metrics(config: RunnableConfig, resource_type: str = None) -> str:
+    """
+    Query the AWS metrics for resource type from metrics tables based on the user's ID and optional resource type.
+    Returns the formatted response containing ARN, resource identifier, and metrics_data.
+
+    Args:
+        config (RunnableConfig): Configuration containing user ID.
+        resource_type (str, optional): Specific resource type to filter (e.g., 'EC2'). Defaults to None.
+
+    Returns:
+        str: The formatted response with metrics data in Markdown.
+    """
+    print("Using Fetch Metrics Tool")
+    user_id = config['configurable'].get('user_id', 'unknown')
+    
+    # Database setup
+    database_url = os.getenv('DATABASE_URL')
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    if not database_url:
+        raise ValueError("DATABASE_URL not found in .env file")
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY not found in .env file")
+    
+    engine = create_engine(database_url)
+    openai_client = OpenAI(api_key=openai_api_key)
+
+    # SQL query to fetch metrics data
+    query = """
+        SELECT DISTINCT
+            m.arn,
+            m.resource_identifier,
+            m.resource_type,
+            m.metrics_data
+        FROM metrics m
+        WHERE m.userid = :user_id
+        {resource_type_filter}
+        ORDER BY m.resource_type, m.resource_identifier;
+    """
+
+    # Add resource type filter if provided
+    params = {"user_id": int(user_id)}  # Ensure user_id is an integer
+    resource_type_filter = "AND m.resource_type = :resource_type" if resource_type else ""
+    if resource_type:
+        params["resource_type"] = resource_type
+
+    # Format the query with the resource type filter
+    query = query.format(resource_type_filter=resource_type_filter)
+
+    # Execute the query
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text(query), params).fetchall()
+        
+        # Format the metrics data
+        metrics_data = [
+            {
+                "arn": row.arn,
+                "resource_identifier": row.resource_identifier,
+                "resource_type": row.resource_type,
+                "metrics_data": row.metrics_data
+            }
+            for row in result
+        ]
+
+        if not metrics_data:
+            return f"No metrics data found for user ID {user_id}" + (f" and resource type {resource_type}." if resource_type else ".")
+
+        # Define the system message
+        system_message = SystemMessage(
+            content=(
+                "You are an AWS metrics assistant. The following is the AWS metrics collection "
+                "for the user with ARNs, resource identifiers, resource types, and metrics data:\n"
+                f"{json.dumps(metrics_data, indent=2)}\n"
+                "Provide a clear and concise summary of the metrics in Markdown format. For each resource, include:\n"
+                "- A bullet point with the resource name (from metrics_data.InstanceName if available, else use resource_identifier).\n"
+                "- Sub-bullets for Resource Identifier, Resource Type, and ARN.\n"
+                "- A table with the following columns: Metric, Value. Include AvgCPU, MaxCPU, and InstanceType (if available in metrics_data).\n"
+                "Ensure all fields are displayed, even if some metrics are missing. Do not provide recommendations or visualizations."
+            )
+        )
+
+        # Create a human message
+        human_message = HumanMessage(
+            content=f"Summarize the AWS metrics data for the user" + 
+                    (f" for resource type {resource_type}." if resource_type else ".")
+        )
+
+        # Run the query using the LLM
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_message.content},
+                {"role": "user", "content": human_message.content}
+            ]
+        )
+
+        # Extract the response content
+        response_content = response.choices[0].message.content
+        print("Query Result:", response_content)
+        return response_content
+
+    except Exception as e:
+        error_message = f"Error querying metrics data: {str(e)}"
         print(error_message)
         return error_message
 
