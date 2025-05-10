@@ -13,7 +13,7 @@ router = APIRouter(
     tags=["recommendations"]
 )
 
-@router.get("/")
+@router.get("")
 async def get_recommendations(
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
