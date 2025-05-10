@@ -14,6 +14,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,fetch_metrics 
 from app.core.architecture_builder import architecture_builder_tool, check_architecture_file
+from app.core.architect import architecture_tool
 from app.core.tf_generator import TerraformRequest
 from langchain.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
@@ -60,7 +61,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,get_recommendations_for_all_metrics,fetch_metrics]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,get_recommendations_for_all_metrics,fetch_metrics, architecture_tool]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
