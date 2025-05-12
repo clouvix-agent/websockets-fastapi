@@ -803,6 +803,7 @@ def generate_terraform_tool(config: RunnableConfig) -> str:
     # Rest of the existing implementation...
     # Return content of terraform file
 
+
 @tool
 def query_inventory(config: RunnableConfig) -> str:
     """
@@ -872,11 +873,17 @@ def query_inventory(config: RunnableConfig) -> str:
         human_message = HumanMessage(content="Summarize the AWS inventory for the user.")
 
         # Run the query using the LLM
-        response = openai_client.invoke([system_message, human_message])
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_message.content},
+                {"role": "user", "content": human_message.content}
+            ]
+        )
 
-        # Handle the response (string, not an object with .content)
-        print("Query Result:", response)
-        return response
+        # Handle the response (extract content from the response object)
+        print("Query Result:", response.choices[0].message.content)
+        return response.choices[0].message.content
 
     except Exception as e:
         error_message = f"Error querying inventory: {str(e)}"
