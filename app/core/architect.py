@@ -1,50 +1,77 @@
+import os
+import re
+import json
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableConfig
 from langchain.schema import SystemMessage, HumanMessage
-from langchain.tools import tool
-import re
+from langchain_core.tools import tool
 
-llm = ChatOpenAI(model="gpt-4o-mini")  # You can use any model you prefer
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 @tool
-def architecture_tool(requirement: str, config: RunnableConfig) -> str:
+def architecture_tool(action: str = "explain", requirement: str = "", config: RunnableConfig = {}) -> str:
     """
-    Helps users design AWS architecture by understanding their application's purpose, use case, and requirements.
-    Suggests appropriate AWS services and how they can be used together to achieve the user's goal.
+    A unified architecture tool that either:
+    1. Opens the architecture diagram UI,
+    2. Checks and summarizes an existing architecture JSON file,
+    3. Or explains what AWS services to use based on a described use case.
 
     Args:
-        requirement (str): A natural language input from the user describing their application's goals or infrastructure needs.
+        action (str): One of ['draw', 'check', 'explain']
+        requirement (str): User-described app or infra need (used only for 'explain')
+        config (RunnableConfig): Includes user_id
 
     Returns:
-        str: Markdown-formatted architecture suggestion with appropriate AWS services and interactions.
+        str: A message, markdown summary, or architecture recommendation.
     """
-    print("🏗️ Running architecture_builder_tool")
+    print(f"🛠️ Running architecture_tool with action: {action}")
+    user_id = config.get('configurable', {}).get('user_id', 'unknown')
 
-    user_id = config['configurable'].get('user_id', 'unknown')
+    if action == "draw":
+        return "📐 Open the architecture diagram builder here: https://architecture.clouvix.com"
 
-    messages = [
-        SystemMessage(content="""
-            You are an expert AWS solutions architect.
-            Based on the user's requirements, analyze the application use case and suggest the most suitable AWS services.
-            Clearly explain:
-            - The purpose of each recommended AWS service
-            - How these services interact with each other
-            - Any IAM roles, networking, or monitoring considerations
-            Format your response in Markdown, using bullet points and subheadings for clarity.
-            Keep the output concise and actionable for infrastructure planning.
-        """),
-        HumanMessage(content=f"""
-            The user has described their application or goal as follows:
+    elif action == "check":
+        print("🔎 Checking if architecture file exists...")
+        path = "architecture_json/request.json"
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                try:
+                    data = json.load(f)
+                    return f"✅ Found architecture file:\n```json\n{json.dumps(data, indent=2)}\n```"
+                except json.JSONDecodeError:
+                    return "⚠️ Architecture file is not valid JSON."
+        return "❌ No architecture file found."
 
-            {requirement.strip()}
+    elif action == "explain":
+        if not requirement.strip():
+            return "❌ Please provide a valid `requirement` to explain the AWS architecture."
+        
+        messages = [
+            SystemMessage(content="""
+                You are an expert AWS solutions architect.
+                Based on the user's requirements, analyze the application use case and suggest the most suitable AWS services.
+                Clearly explain:
+                - The purpose of each recommended AWS service
+                - How these services interact with each other
+                - Any IAM roles, networking, or monitoring considerations
+                Format your response in Markdown, using bullet points and subheadings for clarity.
+                Keep the output concise and actionable for infrastructure planning.
+            """),
+            HumanMessage(content=f"""
+                The user has described their application or goal as follows:
 
-            Suggest the optimal AWS architecture and services for this use case.
-        """)
-    ]
+                {requirement.strip()}
 
-    try:
-        response = llm.invoke(messages)
-        markdown_output = re.sub(r"```markdown|```", "", response.content.strip()).strip()
-        return markdown_output
-    except Exception as e:
-        return f"❌ Architecture suggestion failed: {str(e)}"
+                Suggest the optimal AWS architecture and services for this use case.
+            """)
+        ]
+
+        try:
+            response = llm.invoke(messages)
+            markdown_output = re.sub(r"```markdown|```", "", response.content.strip()).strip()
+            return markdown_output
+        except Exception as e:
+            return f"❌ Architecture suggestion failed: {str(e)}"
+
+    else:
+        return f"❌ Unknown action '{action}'. Valid options are: 'draw', 'check', or 'explain'."

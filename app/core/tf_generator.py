@@ -1647,3 +1647,118 @@ def remediate_terraform_error_tool(project_name: str, terraform_code: str, error
     {fixed_code}
     """ 
     except Exception as e: return f"❌ Remediation failed: {str(e)}"
+
+@tool
+def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConfig) -> str:
+    """
+    Applies optimization directly to the Terraform file based on the ARN and recommendation.
+    - Finds the project name from the ARN.
+    - Updates the Terraform file using the recommendation.
+    - Uploads the updated file back to MinIO.
+    - Returns the updated Terraform code.
+    """
+
+    user_id = config['configurable'].get('user_id', 'unknown')
+    print("Applying optimization for:", arn)
+
+    try:
+        # Step 1: Identify the Terraform project
+        with get_db_session() as db:
+            result = db.execute(
+                text("SELECT project_name FROM infrastructure_inventory WHERE arn = :arn AND user_id = :user_id LIMIT 1"),
+                {"arn": arn, "user_id": user_id}
+            ).fetchone()
+
+        if not result or not result.project_name:
+            return f"❌ No project found for ARN `{arn}` for user `{user_id}`."
+
+        project_name = result.project_name
+        bucket_name = f"terraform-workspaces-user-{user_id}"
+        folder_name = f"{project_name}_terraform"
+
+        # Step 2: Download Terraform files from MinIO
+        temp_dir = tempfile.mkdtemp()
+        download_path = os.path.join(temp_dir, folder_name)
+        os.makedirs(download_path, exist_ok=True)
+
+        minio_client = Minio(
+            "storage.clouvix.com",
+            access_key="clouvix@gmail.com",
+            secret_key="Clouvix@bangalore2025",
+            secure=True
+        )
+
+        for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
+            object_key = obj.object_name
+            relative_path = object_key[len(folder_name) + 1:]
+            local_path = os.path.join(download_path, relative_path)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            minio_client.fget_object(bucket_name, object_key, local_path)
+
+        terraform_file_path = os.path.join(download_path, "main.tf")
+        if not os.path.exists(terraform_file_path):
+            raise FileNotFoundError("❌ main.tf not found in the downloaded folder.")
+
+        # Step 3: Read and update Terraform file using LLM
+        with open(terraform_file_path, "r") as file:
+            existing_code = file.read()
+        print("Exisiting code read:")
+        print(existing_code)
+
+        messages = [
+            SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
+            HumanMessage(content=f"""Here is the current Terraform configuration:
+                ```hcl
+                {existing_code}
+                ```
+                The user wants the following changes:
+                Update the configuration to downsize EC2 to t4g.nano
+
+                Important:
+
+                Only include valid Terraform HCL, no explanation.
+
+                Do NOT remove unrelated infrastructure unless specified.
+
+                Do NOT include deployment or function code.""") ]
+
+  # Call LLM to get updated code
+        response = llm.invoke(messages)
+        print("Here is the llm response:")
+        print(response)
+        updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+        # Write updated code to main.tf
+        with open(terraform_file_path, "w") as file:
+            file.write(updated_code)
+
+        print("✅ main.tf updated")
+    
+    # Upload back to MinIO
+        print("📤 Uploading updated folder to MinIO...")
+        for root, _, files in os.walk(download_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, download_path)
+                object_key = f"{folder_name}/{relative_path}"
+                minio_client.fput_object(bucket_name, object_key, file_path)
+                print(f"⬆️  {file_path} -> {object_key}")
+
+        print("✅ Upload complete")
+
+        return f"""
+        ✅ Optimization applied to `{project_name}`.
+
+        Terraform configuration has been updated and synced to MinIO.
+
+        ```hcl
+        {updated_code} 
+        """
+    except S3Error as s3e:
+        raise Exception(f"❌ MinIO error: {str(s3e)}")
+    except Exception as e:
+        raise Exception(f"❌ Update failed: {str(e)}")
+    finally:
+        # Cleanup temporary folder
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"🧹 Deleted temp directory: {temp_dir}")
