@@ -71,73 +71,55 @@ def chatbot(state: State):
     messages = state["messages"]
 
     if not any(isinstance(msg, SystemMessage) for msg in messages):
-        tool_names = ", ".join([tool.name for tool in tools])
         system_message = SystemMessage(
             content=(
-                "You are an AI assistant that helps users with Terraform-based infrastructure..."
-                "After every message, respond ONLY with JSON in this format:"
-                '{ "reply": "<main reply>", "suggestions": ["<next step 1>", "<next step 2>", "<next step 3>"] }'
+                "You are an AI assistant that helps users with Terraform-based infrastructure.\n"
+                "Always reply in the following JSON format:\n"
+                '{ "reply": "<your main answer>", "suggestions": ["<next step 1>", "<next step 2>", "<next step 3>"] }\n\n'
+                "If you're unable to generate suggestions, include general ones about Terraform."
             )
         )
         messages = [system_message] + messages
 
-    # Get LLM response
     response = llm_with_tools.invoke(messages)
-    print(response)
 
-    # Ensure response is a JSON string, then wrap it in AIMessage
-    # if isinstance(response, str):
-    #     return {
-    #         "messages": [AIMessage(content=response)],
-    #         "suggestions": []
-    #     }
-
-    # if isinstance(response, AIMessage):
-    #     try:
-    #         parsed = json.loads(response.content)
-    #         reply = parsed.get("reply", "")
-    #         suggestions = parsed.get("suggestions", [])
-    #         return {
-    #             "messages": [AIMessage(content=json.dumps({
-    #                 "reply": reply,
-    #                 "suggestions": suggestions
-    #             }))],
-    #             "suggestions": suggestions
-    #         }
-    #     except Exception:
-    #         return {
-    #             "messages": [response],
-    #             "suggestions": []
-    #         }
-
-    # return {"messages": [response]}
-    if isinstance(response, str):
-            try:
-                parsed = json.loads(response)
-                return {
-                    "messages": [AIMessage(content=parsed.get("reply", ""))],
-                    "suggestions": parsed.get("suggestions", [])
-                }
-            except json.JSONDecodeError:
-                return {
-                    "messages": [AIMessage(content=response)],
-                    "suggestions": []
-                }
+    fallback_suggestions = [
+        "Generate Terraform code",
+        "Apply infrastructure configuration",
+        "Optimize cloud costs"
+    ]
 
     if isinstance(response, AIMessage):
         try:
             parsed = json.loads(response.content)
+
+            # ✅ Fallback if suggestions missing or empty
+            suggestions = parsed.get("suggestions")
+            if not suggestions or not isinstance(suggestions, list) or len(suggestions) == 0:
+                suggestions = fallback_suggestions
+
             return {
                 "messages": [AIMessage(content=parsed.get("reply", ""))],
-                "suggestions": parsed.get("suggestions", [])
-            }
-        except json.JSONDecodeError:
-            return {
-                "messages": [response],
-                "suggestions": []
+                "reply": parsed.get("reply", ""),
+                "suggestions": suggestions
             }
 
-    return {"messages": [response]}
+        except Exception as e:
+            print("❌ JSON parsing error in chatbot():", e)
+            return {
+                "messages": [response],
+                "reply": response.content,
+                "suggestions": fallback_suggestions
+            }
+
+    return {
+        "messages": [response],
+        "reply": response.content,
+        "suggestions": fallback_suggestions
+    }
+
+
+
 
 
 graph_builder.add_node("chatbot", chatbot)
@@ -162,7 +144,7 @@ config = lambda user_id: {
     }
 }
 
-async def process_query(query: str, user_id: int = None) -> str:
+async def process_query(query: str, user_id: int = None) -> dict:
     messages = [
         {
             "role": "user",
@@ -178,9 +160,17 @@ async def process_query(query: str, user_id: int = None) -> str:
         "app_git_url": "",
         "user_id": user_id
     }
-    
-    print("State: ", state)
+
     result = await graph.ainvoke(state, config(user_id))
     
     final_message = result["messages"][-1]
-    return final_message.content
+    
+    print("Final Message")
+    print(final_message)
+    print("Final Message Content")
+    print(final_message.content)
+
+    return {
+        "reply": result.get("reply", final_message.content),
+        "suggestions": result.get("suggestions", [])  # ✅ Extract suggestions properly
+    }
