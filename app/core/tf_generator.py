@@ -1719,7 +1719,7 @@ def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConf
                 {existing_code}
                 ```
                 The user wants the following changes:
-                Update the configuration to downsize EC2 to t4g.nano
+                {recommendation}
 
                 Important:
 

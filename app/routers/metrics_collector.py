@@ -783,7 +783,7 @@ def get_llm_recommendation(openai_client: OpenAI, resource_type: str, resource_i
                 f"Include specific details about the rule"
             )
         
-        
+        prompt += "Make the recommendation concise in single"
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
