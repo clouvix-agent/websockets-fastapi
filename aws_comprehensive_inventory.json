@@ -1,14 +1,14 @@
 {
     "S3": [
         {
-            "Name": "costreportclouvix",
-            "CreationDate": "2025-04-20 06:25:07",
+            "Name": "abcdshreyascur-unique-123456789012",
+            "CreationDate": "2025-05-24 17:29:30",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -16,14 +16,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket",
-            "CreationDate": "2025-04-08 06:26:24",
+            "Name": "costbucketshreyas",
+            "CreationDate": "2025-04-18 05:28:48",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -31,14 +31,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique",
-            "CreationDate": "2025-04-08 06:30:41",
+            "Name": "cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
+            "CreationDate": "2025-04-18 11:58:43",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -46,14 +46,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique-235a2fb7",
-            "CreationDate": "2025-04-08 06:56:05",
+            "Name": "database-chat-bot",
+            "CreationDate": "2024-10-02 01:41:50",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -61,14 +61,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique-42b96c1d",
-            "CreationDate": "2025-04-08 06:50:58",
+            "Name": "myyamlfile",
+            "CreationDate": "2025-04-12 06:57:12",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -76,14 +76,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique-4d5f63c6",
-            "CreationDate": "2025-04-08 06:59:28",
+            "Name": "shreyas-cur-bucket-1bcc0f2eda",
+            "CreationDate": "2025-05-25 13:00:48",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -91,14 +91,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique-61e5c925",
-            "CreationDate": "2025-04-08 07:04:54",
+            "Name": "shreyas-cur-bucket-70ea2654d5",
+            "CreationDate": "2025-05-25 13:21:09",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -106,89 +106,14 @@
             ]
         },
         {
-            "Name": "heloottesting123453-s3-bucket-unique-8713f467",
-            "CreationDate": "2025-04-08 06:46:30",
+            "Name": "shreyas-cur-bucket-b37daec375",
+            "CreationDate": "2025-05-25 13:25:32",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "heloottesting123453-s3-bucket-unique-bf847e70",
-            "CreationDate": "2025-04-08 07:13:09",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "heloottesting123453-s3-bucket-unique-d6987b1d",
-            "CreationDate": "2025-04-08 07:19:59",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "roadiestest-s3-bucket",
-            "CreationDate": "2025-04-19 04:17:32",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "s3curbucketnew",
-            "CreationDate": "2025-04-22 14:49:32",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "testshreyas123",
-            "CreationDate": "2025-04-28 07:07:41",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvix",
-                        "ID": "a5cdf3c16fd9e24fb5ca717bd32ebf53cc811cd968cb29531db1e44872db4c03",
+                        "DisplayName": "pythonwithscience",
+                        "ID": "4f375ade172c3e1b03639ff5cc30de12d0aa204475d06d6d3ec7ccfe60e2c982",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -196,97 +121,20 @@
             ]
         }
     ],
-    "EC2": [
-        {
-            "InstanceId": "i-064f82bbb097d67f6",
-            "State": "running",
-            "PublicIP": "34.233.71.84",
-            "PrivateIP": "10.0.1.71",
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-04-08 06:46:46",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "heloottesting123453_ec2_instance"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-04fd103efe06bd87f",
-                    "GroupName": "terraform-20250408064632825500000002"
-                }
-            ],
-            "CPUUtilization": 3.600038048106149
-        },
-        {
-            "InstanceId": "i-0302c48397c8853fb",
-            "State": "running",
-            "PublicIP": "52.91.122.218",
-            "PrivateIP": "10.0.1.131",
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-04-19 04:26:46",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "roadiestest_ec2_instance"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-054ea786ea05f06e5",
-                    "GroupName": "terraform-20250419041733806500000001"
-                }
-            ],
-            "CPUUtilization": 0.3350652959155228
-        },
-        {
-            "InstanceId": "i-0eafab1004b7ed403",
-            "State": "running",
-            "PublicIP": null,
-            "PrivateIP": "10.0.2.50",
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-04-23 07:23:54",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "test"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-088ec1f4cd015be05",
-                    "GroupName": "launch-wizard-1"
-                }
-            ],
-            "CPUUtilization": 2.7902362239253087
-        }
-    ],
+    "EC2": [],
     "DynamoDB": [],
     "ECS": [],
-    "RDS": [
-        {
-            "DBInstanceIdentifier": "rds-optimization-rds-instance",
-            "DBInstanceClass": "db.t3.micro",
-            "Engine": "postgres",
-            "EngineVersion": "17.3",
-            "Status": "available",
-            "Endpoint": "rds-optimization-rds-instance.ckj2wacu2quc.us-east-1.rds.amazonaws.com",
-            "AllocatedStorage": 20,
-            "AvailabilityZone": "us-east-1b",
-            "MultiAZ": false,
-            "CPUUtilization": 4.022718325444429
-        }
-    ],
+    "RDS": [],
     "ECR": [],
     "EKS": [],
     "Lambda": [
         {
-            "FunctionName": "test",
-            "Runtime": "python3.13",
-            "Handler": "lambda_function.lambda_handler",
+            "FunctionName": "myfunc",
+            "Runtime": "nodejs22.x",
+            "Handler": "index.handler",
             "MemorySize": 128,
             "Timeout": 3,
-            "LastModified": "2025-04-28T07:01:50.000+0000",
+            "LastModified": "2025-05-04T17:24:31.430+0000",
             "Environment": null
         }
     ]
