@@ -1,0 +1,552 @@
+{
+  "generatedAt": "2025-05-27T20:56:28.521130",
+  "metrics": {
+    "EC2": [
+      {
+        "ARN": "arn:aws:ec2:us-east-1:536697269301:instance/i-064f82bbb097d67f6",
+        "InstanceId": "i-064f82bbb097d67f6",
+        "InstanceName": "heloottesting123453_ec2_instance",
+        "InstanceType": "t2.micro",
+        "AvgCPU": "3.61%",
+        "MaxCPU": "76.04%",
+        "Recommendation": "Downsize the instance.",
+        "DailyMetrics": [
+          {
+            "Date": "2025-05-13",
+            "AvgCPU": "3.67%",
+            "MaxCPU": "17.08%"
+          },
+          {
+            "Date": "2025-05-14",
+            "AvgCPU": "3.71%",
+            "MaxCPU": "76.04%"
+          },
+          {
+            "Date": "2025-05-15",
+            "AvgCPU": "3.71%",
+            "MaxCPU": "16.51%"
+          },
+          {
+            "Date": "2025-05-16",
+            "AvgCPU": "3.73%",
+            "MaxCPU": "16.58%"
+          },
+          {
+            "Date": "2025-05-17",
+            "AvgCPU": "3.54%",
+            "MaxCPU": "23.56%"
+          },
+          {
+            "Date": "2025-05-18",
+            "AvgCPU": "3.53%",
+            "MaxCPU": "16.52%"
+          },
+          {
+            "Date": "2025-05-19",
+            "AvgCPU": "3.56%",
+            "MaxCPU": "16.98%"
+          },
+          {
+            "Date": "2025-05-20",
+            "AvgCPU": "3.56%",
+            "MaxCPU": "16.69%"
+          },
+          {
+            "Date": "2025-05-21",
+            "AvgCPU": "3.60%",
+            "MaxCPU": "16.66%"
+          },
+          {
+            "Date": "2025-05-22",
+            "AvgCPU": "3.59%",
+            "MaxCPU": "16.53%"
+          },
+          {
+            "Date": "2025-05-23",
+            "AvgCPU": "3.60%",
+            "MaxCPU": "16.75%"
+          },
+          {
+            "Date": "2025-05-24",
+            "AvgCPU": "3.57%",
+            "MaxCPU": "16.51%"
+          },
+          {
+            "Date": "2025-05-25",
+            "AvgCPU": "3.56%",
+            "MaxCPU": "16.54%"
+          },
+          {
+            "Date": "2025-05-26",
+            "AvgCPU": "3.59%",
+            "MaxCPU": "16.54%"
+          }
+        ]
+      },
+      {
+        "ARN": "arn:aws:ec2:us-east-1:536697269301:instance/i-0be0f815877eca644",
+        "InstanceId": "i-0be0f815877eca644",
+        "InstanceName": "clouvixdemo_ec2",
+        "InstanceType": "t2.micro",
+        "AvgCPU": "2.91%",
+        "MaxCPU": "13.08%",
+        "Recommendation": "Downsize the instance.",
+        "DailyMetrics": [
+          {
+            "Date": "2025-05-13",
+            "AvgCPU": "2.54%",
+            "MaxCPU": "2.77%"
+          },
+          {
+            "Date": "2025-05-14",
+            "AvgCPU": "2.58%",
+            "MaxCPU": "11.37%"
+          },
+          {
+            "Date": "2025-05-15",
+            "AvgCPU": "2.75%",
+            "MaxCPU": "12.97%"
+          },
+          {
+            "Date": "2025-05-16",
+            "AvgCPU": "2.92%",
+            "MaxCPU": "13.08%"
+          },
+          {
+            "Date": "2025-05-17",
+            "AvgCPU": "2.92%",
+            "MaxCPU": "4.10%"
+          },
+          {
+            "Date": "2025-05-18",
+            "AvgCPU": "2.94%",
+            "MaxCPU": "4.12%"
+          },
+          {
+            "Date": "2025-05-19",
+            "AvgCPU": "2.97%",
+            "MaxCPU": "5.06%"
+          },
+          {
+            "Date": "2025-05-20",
+            "AvgCPU": "2.92%",
+            "MaxCPU": "4.50%"
+          },
+          {
+            "Date": "2025-05-21",
+            "AvgCPU": "2.98%",
+            "MaxCPU": "7.98%"
+          },
+          {
+            "Date": "2025-05-22",
+            "AvgCPU": "2.99%",
+            "MaxCPU": "3.98%"
+          },
+          {
+            "Date": "2025-05-23",
+            "AvgCPU": "2.97%",
+            "MaxCPU": "4.38%"
+          },
+          {
+            "Date": "2025-05-24",
+            "AvgCPU": "3.08%",
+            "MaxCPU": "9.68%"
+          },
+          {
+            "Date": "2025-05-25",
+            "AvgCPU": "3.10%",
+            "MaxCPU": "7.45%"
+          },
+          {
+            "Date": "2025-05-26",
+            "AvgCPU": "3.06%",
+            "MaxCPU": "7.61%"
+          }
+        ]
+      },
+      {
+        "ARN": "arn:aws:ec2:us-east-1:536697269301:instance/i-0302c48397c8853fb",
+        "InstanceId": "i-0302c48397c8853fb",
+        "InstanceName": "roadiestest_ec2_instance",
+        "InstanceType": "t2.micro",
+        "AvgCPU": "0.40%",
+        "MaxCPU": "13.39%",
+        "Recommendation": "Downsize the instance.",
+        "DailyMetrics": [
+          {
+            "Date": "2025-05-13",
+            "AvgCPU": "0.39%",
+            "MaxCPU": "12.83%"
+          },
+          {
+            "Date": "2025-05-14",
+            "AvgCPU": "0.43%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-15",
+            "AvgCPU": "0.38%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-16",
+            "AvgCPU": "0.41%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-17",
+            "AvgCPU": "0.39%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-18",
+            "AvgCPU": "0.41%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-19",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "13.17%"
+          },
+          {
+            "Date": "2025-05-20",
+            "AvgCPU": "0.42%",
+            "MaxCPU": "13.17%"
+          },
+          {
+            "Date": "2025-05-21",
+            "AvgCPU": "0.43%",
+            "MaxCPU": "13.17%"
+          },
+          {
+            "Date": "2025-05-22",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "13.33%"
+          },
+          {
+            "Date": "2025-05-23",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "13.39%"
+          },
+          {
+            "Date": "2025-05-24",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-25",
+            "AvgCPU": "0.38%",
+            "MaxCPU": "12.95%"
+          },
+          {
+            "Date": "2025-05-26",
+            "AvgCPU": "0.40%",
+            "MaxCPU": "12.95%"
+          }
+        ]
+      }
+    ],
+    "S3": [
+      {
+        "ARN": "arn:aws:s3:::abcdshreyascur",
+        "BucketName": "abcdshreyascur",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 81630.0,
+          "NumberOfObjects": 3,
+          "BucketSizeMB": 0.08
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::costreportclouvix",
+        "BucketName": "costreportclouvix",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 26869700.0,
+          "NumberOfObjects": 151,
+          "BucketSizeMB": 25.62
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket",
+        "BucketName": "heloottesting123453-s3-bucket",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 2210433540.0,
+          "NumberOfObjects": 111,
+          "BucketSizeMB": 2108.03
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique",
+        "BucketName": "heloottesting123453-s3-bucket-unique",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 96378.0,
+          "NumberOfObjects": 6,
+          "BucketSizeMB": 0.09
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-235a2fb7",
+        "BucketName": "heloottesting123453-s3-bucket-unique-235a2fb7",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 96432.0,
+          "NumberOfObjects": 6,
+          "BucketSizeMB": 0.09
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-42b96c1d",
+        "BucketName": "heloottesting123453-s3-bucket-unique-42b96c1d",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 701.0,
+          "NumberOfObjects": 1,
+          "BucketSizeMB": 0.0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-4d5f63c6",
+        "BucketName": "heloottesting123453-s3-bucket-unique-4d5f63c6",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 76516.0,
+          "NumberOfObjects": 4,
+          "BucketSizeMB": 0.07
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-61e5c925",
+        "BucketName": "heloottesting123453-s3-bucket-unique-61e5c925",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 76516.0,
+          "NumberOfObjects": 4,
+          "BucketSizeMB": 0.07
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-8713f467",
+        "BucketName": "heloottesting123453-s3-bucket-unique-8713f467",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 17256429.0,
+          "NumberOfObjects": 5,
+          "BucketSizeMB": 16.46
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-bf847e70",
+        "BucketName": "heloottesting123453-s3-bucket-unique-bf847e70",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 76425.0,
+          "NumberOfObjects": 3,
+          "BucketSizeMB": 0.07
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::heloottesting123453-s3-bucket-unique-d6987b1d",
+        "BucketName": "heloottesting123453-s3-bucket-unique-d6987b1d",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 76516.0,
+          "NumberOfObjects": 4,
+          "BucketSizeMB": 0.07
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::roadiestest-s3-bucket",
+        "BucketName": "roadiestest-s3-bucket",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 76420.0,
+          "NumberOfObjects": 4,
+          "BucketSizeMB": 0.07
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::s3curbucketnew",
+        "BucketName": "s3curbucketnew",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 4855724.0,
+          "NumberOfObjects": 145,
+          "BucketSizeMB": 4.63
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-1442dfa667",
+        "BucketName": "shreyas-cur-bucket-1442dfa667",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-2023547c3a",
+        "BucketName": "shreyas-cur-bucket-2023547c3a",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-5dc3bb163d",
+        "BucketName": "shreyas-cur-bucket-5dc3bb163d",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-a89f9c8336",
+        "BucketName": "shreyas-cur-bucket-a89f9c8336",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-report",
+        "BucketName": "shreyas-cur-report",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 2118902.0,
+          "NumberOfObjects": 1,
+          "BucketSizeMB": 2.02
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::testshreyas123",
+        "BucketName": "testshreyas123",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      }
+    ],
+    "RDS": [
+      {
+        "ARN": "arn:aws:rds:us-east-1:536697269301:db:rds-optimization-rds-instance",
+        "InstanceId": "rds-optimization-rds-instance",
+        "DBInstanceClass": "db.t3.micro",
+        "Engine": "postgres",
+        "Metrics": {
+          "CPUUtilization": {
+            "Average": "4.06%",
+            "Maximum": "47.31%",
+            "DailyMetrics": [
+              {
+                "Date": "2025-05-13",
+                "AvgCPU": "4.07%",
+                "MaxCPU": "5.98%"
+              },
+              {
+                "Date": "2025-05-14",
+                "AvgCPU": "4.08%",
+                "MaxCPU": "6.11%"
+              },
+              {
+                "Date": "2025-05-15",
+                "AvgCPU": "4.04%",
+                "MaxCPU": "6.32%"
+              },
+              {
+                "Date": "2025-05-16",
+                "AvgCPU": "4.13%",
+                "MaxCPU": "47.31%"
+              },
+              {
+                "Date": "2025-05-17",
+                "AvgCPU": "4.07%",
+                "MaxCPU": "6.11%"
+              },
+              {
+                "Date": "2025-05-18",
+                "AvgCPU": "4.06%",
+                "MaxCPU": "6.05%"
+              },
+              {
+                "Date": "2025-05-19",
+                "AvgCPU": "4.07%",
+                "MaxCPU": "6.25%"
+              },
+              {
+                "Date": "2025-05-20",
+                "AvgCPU": "4.07%",
+                "MaxCPU": "6.22%"
+              },
+              {
+                "Date": "2025-05-21",
+                "AvgCPU": "4.05%",
+                "MaxCPU": "6.13%"
+              },
+              {
+                "Date": "2025-05-22",
+                "AvgCPU": "4.03%",
+                "MaxCPU": "5.96%"
+              },
+              {
+                "Date": "2025-05-23",
+                "AvgCPU": "4.02%",
+                "MaxCPU": "6.31%"
+              },
+              {
+                "Date": "2025-05-24",
+                "AvgCPU": "4.04%",
+                "MaxCPU": "6.14%"
+              },
+              {
+                "Date": "2025-05-25",
+                "AvgCPU": "4.02%",
+                "MaxCPU": "6.11%"
+              },
+              {
+                "Date": "2025-05-26",
+                "AvgCPU": "4.07%",
+                "MaxCPU": "6.11%"
+              }
+            ]
+          }
+        },
+        "Recommendation": "Downsize the RDS instance."
+      }
+    ],
+    "Lambda": [
+      {
+        "ARN": "arn:aws:lambda:us-east-1:536697269301:function:test",
+        "FunctionName": "test",
+        "Runtime": "python3.13",
+        "Metrics": {
+          "Invocations": {
+            "Total": 0,
+            "DailyMetrics": []
+          },
+          "Duration": {
+            "Average": 0,
+            "Maximum": 0,
+            "DailyMetrics": []
+          },
+          "Errors": {
+            "Total": 0,
+            "DailyMetrics": []
+          },
+          "Throttles": {
+            "Total": 0,
+            "DailyMetrics": []
+          }
+        },
+        "Recommendation": null
+      }
+    ]
+  },
+  "userid": 3
+}

@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 # JWT Configuration
 SECRET_KEY = config("SECRET_KEY", default="your-secret-key")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
