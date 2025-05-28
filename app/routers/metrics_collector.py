@@ -1580,14 +1580,14 @@ def collect_metrics_for_user(userid, access_key, secret_key, region, output_file
         logger.info(f"Running metrics collection for userid {userid}")
         metrics_data = collector.run_collection()
         
-        # Save metrics to JSON file (optional)
-        print(f"Saving metrics to {output_file} for userid {userid}")
-        with open(f"{userid}_{output_file}", 'w') as f:
-            json.dump({
-                'generatedAt': datetime.datetime.now().isoformat(),
-                'metrics': metrics_data,
-                'userid': userid
-            }, f, indent=2)
+        # # Save metrics to JSON file (optional)
+        # print(f"Saving metrics to {output_file} for userid {userid}")
+        # with open(f"{userid}_{output_file}", 'w') as f:
+        #     json.dump({
+        #         'generatedAt': datetime.datetime.now().isoformat(),
+        #         'metrics': metrics_data,
+        #         'userid': userid
+        #     }, f, indent=2)
         
         # Insert metrics into database
         logger.info(f"Inserting metrics into database for userid {userid}")

@@ -1,16 +1,26 @@
 {
-  "generatedAt": "2025-05-10T21:41:16.331460",
+  "generatedAt": "2025-05-27T20:54:42.907025",
   "metrics": {
     "EC2": [],
     "S3": [
+      {
+        "ARN": "arn:aws:s3:::abcdshreyascur-unique-123456789012",
+        "BucketName": "abcdshreyascur-unique-123456789012",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 23614.0,
+          "NumberOfObjects": 3,
+          "BucketSizeMB": 0.02
+        }
+      },
       {
         "ARN": "arn:aws:s3:::costbucketshreyas",
         "BucketName": "costbucketshreyas",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 1247352.0,
-          "NumberOfObjects": 101,
-          "BucketSizeMB": 1.19
+          "BucketSizeBytes": 2579041.0,
+          "NumberOfObjects": 167,
+          "BucketSizeMB": 2.46
         }
       },
       {
@@ -18,9 +28,9 @@
         "BucketName": "cz-cur-hourly-csv-664a8f60-1c4c-11f0-a564-0affcc496de3",
         "BucketRegion": "us-east-1",
         "Metrics": {
-          "BucketSizeBytes": 1236507.0,
-          "NumberOfObjects": 99,
-          "BucketSizeMB": 1.18
+          "BucketSizeBytes": 2573839.0,
+          "NumberOfObjects": 165,
+          "BucketSizeMB": 2.45
         }
       },
       {
@@ -41,6 +51,33 @@
           "BucketSizeBytes": 2726.0,
           "NumberOfObjects": 1,
           "BucketSizeMB": 0.0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-1bcc0f2eda",
+        "BucketName": "shreyas-cur-bucket-1bcc0f2eda",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-70ea2654d5",
+        "BucketName": "shreyas-cur-bucket-70ea2654d5",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
+        }
+      },
+      {
+        "ARN": "arn:aws:s3:::shreyas-cur-bucket-b37daec375",
+        "BucketName": "shreyas-cur-bucket-b37daec375",
+        "BucketRegion": "us-east-1",
+        "Metrics": {
+          "BucketSizeBytes": 0,
+          "NumberOfObjects": 0
         }
       }
     ],
