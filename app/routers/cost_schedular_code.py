@@ -3,6 +3,7 @@ import json
 import gzip
 import shutil
 import tempfile
+
 import pandas as pd
 import boto3
 from io import StringIO
@@ -10,6 +11,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 from datetime import datetime
+
+import time
 
 # Load env variables
 load_dotenv()
@@ -151,46 +154,52 @@ def process_user_cur(userid, aws_access_key, aws_secret_key, bucket_name):
     shutil.rmtree(temp_dir)
 
 def run_cost_scheduler():
-    # Fetch all user credentials & buckets from DB
-    cur_bucket_rows = session.execute(text("""
-        SELECT userid, connection_json
-        FROM connections
-        WHERE type = 'cur_bucket'
-    """)).fetchall()
+    while True:
+        print(f"\n[INFO] Starting CUR processing cycle at {datetime.utcnow().isoformat()}")
 
-    for row in cur_bucket_rows:
-        userid = row.userid
-        connection_data = row.connection_json  # already parsed
-
-        bucket_name = next((item['value'] for item in connection_data if item.get('key') == 'aws_cur_bucket'), None)
-        if not bucket_name:
-            print(f"[WARN] User {userid}: No bucket found, skipping.")
-            continue
-
-        aws_row = session.execute(text("""
-            SELECT connection_json
+        # Fetch all user credentials & buckets from DB
+        cur_bucket_rows = session.execute(text("""
+            SELECT userid, connection_json
             FROM connections
-            WHERE userid = :userid AND type = 'aws'
-        """), {'userid': userid}).fetchone()
+            WHERE type = 'cur_bucket'
+        """)).fetchall()
 
-        if not aws_row:
-            print(f"[WARN] User {userid}: No AWS credentials found, skipping.")
-            continue
+        for row in cur_bucket_rows:
+            userid = row.userid
+            connection_data = row.connection_json  # already parsed
 
-        try:
-            aws_data = json.loads(aws_row.connection_json)
-        except json.JSONDecodeError:
-            print(f"[WARN] User {userid}: Invalid AWS JSON, skipping.")
-            continue
+            bucket_name = next((item['value'] for item in connection_data if item.get('key') == 'aws_cur_bucket'), None)
+            if not bucket_name:
+                print(f"[WARN] User {userid}: No bucket found, skipping.")
+                continue
 
-        aws_access_key = next((item['value'] for item in aws_data if item.get('key') == 'AWS_ACCESS_KEY_ID'), None)
-        aws_secret_key = next((item['value'] for item in aws_data if item.get('key') == 'AWS_SECRET_ACCESS_KEY'), None)
+            aws_row = session.execute(text("""
+                SELECT connection_json
+                FROM connections
+                WHERE userid = :userid AND type = 'aws'
+            """), {'userid': userid}).fetchone()
 
-        if not aws_access_key or not aws_secret_key:
-            print(f"[WARN] User {userid}: Missing AWS keys, skipping.")
-            continue
+            if not aws_row:
+                print(f"[WARN] User {userid}: No AWS credentials found, skipping.")
+                continue
 
-        # Call the processing function for this user
-        process_user_cur(userid, aws_access_key, aws_secret_key, bucket_name)
+            try:
+                aws_data = json.loads(aws_row.connection_json)
+            except json.JSONDecodeError:
+                print(f"[WARN] User {userid}: Invalid AWS JSON, skipping.")
+                continue
 
-    session.close()
+            aws_access_key = next((item['value'] for item in aws_data if item.get('key') == 'AWS_ACCESS_KEY_ID'), None)
+            aws_secret_key = next((item['value'] for item in aws_data if item.get('key') == 'AWS_SECRET_ACCESS_KEY'), None)
+
+            if not aws_access_key or not aws_secret_key:
+                print(f"[WARN] User {userid}: Missing AWS keys, skipping.")
+                continue
+
+            # Call the processing function for this user
+            process_user_cur(userid, aws_access_key, aws_secret_key, bucket_name)
+
+        session.close()
+
+        print("[INFO] Completed CUR processing for all users. Sleeping for 24 hours...")
+        time.sleep(86400)
