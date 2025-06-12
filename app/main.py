@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import general, auth, connections, inventory, workspace, recommendation_route , cost_endpoint
+from app.routers import general, auth, connections, inventory, workspace, recommendation_route , cost_endpoint, terraform
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
 
@@ -32,7 +32,7 @@ app.include_router(inventory.router)
 app.include_router(workspace.router)
 app.include_router(recommendation_route.router)
 app.include_router(cost_endpoint.router)
-
+app.include_router(terraform.router)
 
 scheduler = BackgroundScheduler()
 
