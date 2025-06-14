@@ -61,6 +61,9 @@ async def read_terraform_files(
         output = f"# 📁 Contents of `{project_name}_terraform`:\n"
         for root, _, files in os.walk(download_path):
             for filename in files:
+                if not (filename.endswith(".tf") or filename.endswith(".tfvars")):
+                    continue  # ⛔ Skip non-Terraform files
+
                 filepath = os.path.join(root, filename)
                 rel_path = os.path.relpath(filepath, download_path)
                 try:
