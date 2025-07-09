@@ -12,7 +12,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from app.core.tf_generator import generate_terraform_tool, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,fetch_metrics, optimize_resource_by_arn 
+from app.core.tf_generator import apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,fetch_metrics, optimize_resource_by_arn 
 from app.core.architecture_builder import architecture_builder_tool, check_architecture_file
 from app.core.architect import architecture_tool
 from app.core.tf_generator import TerraformRequest
@@ -23,8 +23,10 @@ from langchain_core.tools import Tool
 from langgraph.prebuilt import InjectedState
 from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables import RunnableConfig
-from app.core.github import create_pr
+from app.core.github import raise_pr_with_tf_code,fetch_tf_files_from_repo
 from app.routers.metrics_collector import get_recommendations_for_all_metrics
+
+from app.core.tf_agent import generate_terraform_code
 
 memory = MemorySaver()
 
@@ -61,7 +63,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_tool, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool, create_pr,get_recommendations_for_all_metrics,fetch_metrics, architecture_tool, optimize_resource_by_arn]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_code, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,get_recommendations_for_all_metrics,fetch_metrics, architecture_tool, optimize_resource_by_arn,fetch_tf_files_from_repo,raise_pr_with_tf_code]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
@@ -76,7 +78,10 @@ def chatbot(state: State):
                 "You are an AI assistant that helps users with Terraform-based infrastructure.\n"
                 "Always reply in the following JSON format:\n"
                 '{ "reply": "<your main answer>", "suggestions": ["<next step 1>", "<next step 2>", "<next step 3>"] }\n\n'
-                "If you're unable to generate suggestions, include general ones about Terraform."
+                "If you're unable to generate suggestions, include general ones about Terraform.\n\n"
+                "IMPORTANT: When users ask to generate Terraform code, encourage them to include a project name in their request.\n"
+                "You should extract project names from the user's query automatically, but if none is found, you should ask the user to provide one.\n"
+                
             )
         )
         messages = [system_message] + messages
