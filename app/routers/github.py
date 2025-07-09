@@ -115,11 +115,26 @@ def get_github_installation_id(user_id: int):
             result = connection.execute(query, {"user_id": user_id})
 
             for row in result:
-                json_data = json.loads(row.connection_json)
+                # Handle the case where connection_json could be a string or already a list
+                if isinstance(row.connection_json, str):
+                    try:
+                        json_data = json.loads(row.connection_json)
+                    except json.JSONDecodeError:
+                        print(f"Error decoding JSON: {row.connection_json}")
+                        raise HTTPException(status_code=500, detail="Invalid JSON in connection_json")
+                else:
+                    # If it's already a list or dictionary, use it directly
+                    json_data = row.connection_json
+                
+                # Process the data based on its type
                 if isinstance(json_data, list):
                     for item in json_data:
-                        if item.get("key") == "GITHUB_INSTALL_ID":
+                        if isinstance(item, dict) and item.get("key") == "GITHUB_INSTALL_ID":
                             return str(item.get("value"))
+                elif isinstance(json_data, dict):
+                    if "GITHUB_INSTALL_ID" in json_data:
+                        return str(json_data["GITHUB_INSTALL_ID"])
+                    
         raise HTTPException(status_code=404, detail="GitHub installation ID not found")
 
     except SQLAlchemyError as e:
