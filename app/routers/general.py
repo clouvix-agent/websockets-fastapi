@@ -8,6 +8,7 @@ from minio import Minio
 from jose import jwt, JWTError
 from app.auth.utils import SECRET_KEY, ALGORITHM
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from fastapi import Depends
 from app.database import get_db
 from app.models.workspace import Workspace
@@ -132,15 +133,88 @@ async def websocket_endpoint(websocket: WebSocket):
 
 # Receive a object at /api/generate_terraform
 @router.post("/api/generate_terraform")
-async def generate_terraform(request: TerraformRequest):
+async def generate_terraform(request: TerraformRequest, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     # Create architecture_json directory if it doesn't exist
     os.makedirs("architecture_json", exist_ok=True)
     
     print("Received request")
     print(f"Received request: {request}")
-    with open("architecture_json/request.json", "w") as f:
-        json.dump(request.model_dump(), f)
-    return {"message": "Terraform request saved"}
+    
+    try:
+        # Decode the JWT token to get the user ID
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+            
+        # Save the architecture JSON to the database directly using SQL
+        architecture_json = request.model_dump()
+        project_name = request.project_name
+        
+        # Check if architecture already exists for this user and project using raw SQL
+        result = db.execute(
+            text("SELECT COUNT(*) FROM architecture WHERE userid = :userid AND project_name = :project_name"),
+            {"userid": user_id, "project_name": project_name}
+        ).fetchone()
+        
+        if result and result[0] > 0:
+            # Raise an error for duplicate project name
+            raise HTTPException(
+                status_code=409,
+                detail=f"Project name '{project_name}' already exists for this user. Please use a different project name."
+            )
+        else:
+            # Create new architecture
+            db.execute(
+                text("INSERT INTO architecture (userid, architecture_json, project_name) VALUES (:userid, :architecture_json, :project_name)"),
+                {"userid": user_id, "architecture_json": json.dumps(architecture_json), "project_name": project_name}
+            )
+            db.commit()
+            print(f"Created new architecture for user {user_id}, project {project_name}")
+            
+            # First save to file temporarily (in case we need it for backward compatibility)
+            architecture_file_path = "architecture_json/request.json"
+            with open(architecture_file_path, "w") as f:
+                json.dump(architecture_json, f)
+            
+            # Then delete the file after saving to database
+            try:
+                os.remove(architecture_file_path)
+                print(f"Deleted architecture file: {architecture_file_path}")
+                
+                # Also delete the directory if it's empty
+                architecture_dir = os.path.dirname(architecture_file_path)
+                if os.path.exists(architecture_dir) and not os.listdir(architecture_dir):
+                    os.rmdir(architecture_dir)
+                    print(f"Deleted empty directory: {architecture_dir}")
+            except Exception as e:
+                print(f"Warning: Could not delete architecture file or directory: {str(e)}")
+        
+        # Return success response
+        return {"message": "Terraform request saved to database successfully"}
+        
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+    except HTTPException as e:
+        # Re-raise HTTP exceptions (like our duplicate project error)
+        print(f"HTTP Exception: {e.detail}")
+        # No need to save to file on error
+        raise
+    except Exception as e:
+        print(f"Error saving architecture to database: {str(e)}")
+        # Only save to file if there was a database error (as a fallback)
+        architecture_file_path = "architecture_json/request.json"
+        architecture_dir = os.path.dirname(architecture_file_path)
+        
+        # Create directory if it doesn't exist
+        if not os.path.exists(architecture_dir):
+            os.makedirs(architecture_dir, exist_ok=True)
+            
+        # Save to file as fallback
+        with open(architecture_file_path, "w") as f:
+            json.dump(request.model_dump(), f)
+            
+        return {"message": "Error saving to database. Architecture saved to file as fallback.", "error": str(e)}
     
     # Load environment variables
 load_dotenv()
@@ -374,3 +448,120 @@ async def get_aws_inventory():
         return inventory
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching AWS inventory: {str(e)}")
+
+# @router.get("/api/architectures")
+# async def get_user_architectures(
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     """
+#     Get all architecture projects for the authenticated user
+#     """
+#     try:
+#         # Decode the JWT token
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+            
+#         # Query all architectures for this user
+#         results = db.execute(
+#             text("SELECT id, project_name, created_at, updated_at FROM architecture WHERE userid = :userid ORDER BY updated_at DESC"),
+#             {"userid": user_id}
+#         ).fetchall()
+        
+#         # Convert to list of dictionaries
+#         architectures = []
+#         for row in results:
+#             architectures.append({
+#                 "id": row[0],
+#                 "project_name": row[1],
+#                 "created_at": row[2].isoformat() if row[2] else None,
+#                 "updated_at": row[3].isoformat() if row[3] else None
+#             })
+            
+#         return architectures
+        
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error retrieving architectures: {str(e)}")
+
+# @router.get("/api/architecture/{project_name}")
+# async def get_architecture_by_project_name(
+#     project_name: str,
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     """
+#     Get a specific architecture project by name for the authenticated user
+#     """
+#     try:
+#         # Decode the JWT token
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+            
+#         # Query the architecture for this user and project name
+#         result = db.execute(
+#             text("SELECT id, architecture_json, created_at, updated_at FROM architecture WHERE userid = :userid AND project_name = :project_name"),
+#             {"userid": user_id, "project_name": project_name}
+#         ).fetchone()
+        
+#         if not result:
+#             raise HTTPException(status_code=404, detail=f"Architecture project '{project_name}' not found")
+            
+#         # Return the architecture data
+#         return {
+#             "id": result[0],
+#             "project_name": project_name,
+#             "architecture_json": result[1],
+#             "created_at": result[2].isoformat() if result[2] else None,
+#             "updated_at": result[3].isoformat() if result[3] else None
+#         }
+        
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+#     except HTTPException as e:
+#         # Re-raise HTTP exceptions
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error retrieving architecture: {str(e)}")
+
+# @router.delete("/api/architecture/{project_name}")
+# async def delete_architecture_by_project_name(
+#     project_name: str,
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     """
+#     Delete a specific architecture project by name for the authenticated user
+#     """
+#     try:
+#         # Decode the JWT token
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+            
+#         # Delete the architecture for this user and project name
+#         result = db.execute(
+#             text("DELETE FROM architecture WHERE userid = :userid AND project_name = :project_name"),
+#             {"userid": user_id, "project_name": project_name}
+#         )
+#         db.commit()
+        
+#         # Check if any rows were affected
+#         if result.rowcount == 0:
+#             raise HTTPException(status_code=404, detail=f"Architecture project '{project_name}' not found")
+            
+#         return {"message": f"Architecture project '{project_name}' successfully deleted"}
+        
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+#     except HTTPException as e:
+#         # Re-raise HTTP exceptions
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error deleting architecture: {str(e)}")

@@ -535,161 +535,161 @@ def get_terraform_folder(project_name: str) -> str:
     os.makedirs(folder, exist_ok=True)
     return folder
 
-@tool
-def generate_terraform_tool(config: RunnableConfig) -> str:
-    """Main function to orchestrate Terraform generation and file extraction.
-    Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
+# @tool
+# def generate_terraform_tool(config: RunnableConfig) -> str:
+#     """Main function to orchestrate Terraform generation and file extraction.
+#     Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
     
-    print("Running generate_terraform_tool")
+#     print("Running generate_terraform_tool")
     
-    user_id = config['configurable'].get('user_id', 'unknown')
-    # **Step 1: Check and create necessary directories**
-    if not os.path.exists("architecture_json"):
-        os.makedirs("architecture_json", exist_ok=True)
-        print("Created architecture_json directory")
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     # **Step 1: Check and create necessary directories**
+#     if not os.path.exists("architecture_json"):
+#         os.makedirs("architecture_json", exist_ok=True)
+#         print("Created architecture_json directory")
     
-    # **Step 2: Extract User Requirements**
-    request = None
-    architecture_file = "architecture_json/request.json"
+#     # **Step 2: Extract User Requirements**
+#     request = None
+#     architecture_file = "architecture_json/request.json"
     
-    if not os.path.exists(architecture_file):
-        error_msg = f"Error: Architecture file not found at {architecture_file}"
-        print(error_msg)
-        raise FileNotFoundError(error_msg)
+#     if not os.path.exists(architecture_file):
+#         error_msg = f"Error: Architecture file not found at {architecture_file}"
+#         print(error_msg)
+#         raise FileNotFoundError(error_msg)
     
-    try:
-        with open(architecture_file, "r") as f:
-            request_data = json.loads(f.read())
-            print(f"Successfully read architecture file: {request_data}")
-            request = TerraformRequest(**request_data)
-    except json.JSONDecodeError as e:
-        error_msg = f"Error: Invalid JSON format in architecture file: {str(e)}"
-        print(error_msg)
-        raise ValueError(error_msg)
-    except Exception as e:
-        error_msg = f"Error reading or parsing architecture file: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+#     try:
+#         with open(architecture_file, "r") as f:
+#             request_data = json.loads(f.read())
+#             print(f"Successfully read architecture file: {request_data}")
+#             request = TerraformRequest(**request_data)
+#     except json.JSONDecodeError as e:
+#         error_msg = f"Error: Invalid JSON format in architecture file: {str(e)}"
+#         print(error_msg)
+#         raise ValueError(error_msg)
+#     except Exception as e:
+#         error_msg = f"Error reading or parsing architecture file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
     
-    print(f"Received request: {request}")
+#     print(f"Received request: {request}")
     
-    # Create numbered terraform folder
-    terraform_dir = get_terraform_folder(request.project_name)
+#     # Create numbered terraform folder
+#     terraform_dir = get_terraform_folder(request.project_name)
     
-    # Update global TERRAFORM_DIR for other functions
-    global TERRAFORM_DIR
-    TERRAFORM_DIR = terraform_dir
+#     # Update global TERRAFORM_DIR for other functions
+#     global TERRAFORM_DIR
+#     TERRAFORM_DIR = terraform_dir
     
-    os.makedirs(TERRAFORM_DIR, exist_ok=True)
-    print(f"Created Terraform directory: {TERRAFORM_DIR}")
+#     os.makedirs(TERRAFORM_DIR, exist_ok=True)
+#     print(f"Created Terraform directory: {TERRAFORM_DIR}")
     
-    project_name = request.project_name
-    user_services = request.services
-    user_connections = request.connections
+#     project_name = request.project_name
+#     user_services = request.services
+#     user_connections = request.connections
     
-    # **Step 3: Query Knowledge Base**
-    try:
-        service_details = query_knowledge_base(user_services)
-        print("Successfully queried knowledge base")
-    except Exception as e:
-        error_msg = f"Error querying knowledge base: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+#     # **Step 3: Query Knowledge Base**
+#     try:
+#         service_details = query_knowledge_base(user_services)
+#         print("Successfully queried knowledge base")
+#     except Exception as e:
+#         error_msg = f"Error querying knowledge base: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
 
-    # **Step 4: Build OpenAI Messages**
-    try:
-        openai_messages = build_openai_prompt(project_name, service_details, user_connections)
-        print("Successfully built OpenAI messages")
-    except Exception as e:
-        error_msg = f"Error building OpenAI messages: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+#     # **Step 4: Build OpenAI Messages**
+#     try:
+#         openai_messages = build_openai_prompt(project_name, service_details, user_connections)
+#         print("Successfully built OpenAI messages")
+#     except Exception as e:
+#         error_msg = f"Error building OpenAI messages: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
 
-    # **Step 5: Call OpenAI API**
-    try:
-        terraform_output = generate_terraform(openai_messages)
-        if not terraform_output:
-            error_msg = "Error: No Terraform code was generated"
-            print(error_msg)
-            raise ValueError(error_msg)
-        print("Successfully generated Terraform code")
-    except Exception as e:
-        error_msg = f"Error generating Terraform code: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+#     # **Step 5: Call OpenAI API**
+#     try:
+#         terraform_output = generate_terraform(openai_messages)
+#         if not terraform_output:
+#             error_msg = "Error: No Terraform code was generated"
+#             print(error_msg)
+#             raise ValueError(error_msg)
+#         print("Successfully generated Terraform code")
+#     except Exception as e:
+#         error_msg = f"Error generating Terraform code: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
 
-    # **Step 6: Extract and Save Terraform File**
-    try:
-        extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
-        print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
-    except Exception as e:
-        error_msg = f"Error saving Terraform file: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+#     # **Step 6: Extract and Save Terraform File**
+#     try:
+#         extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
+#         print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
+#     except Exception as e:
+#         error_msg = f"Error saving Terraform file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
     
-    # Read the generated Terraform file and return its contents with a success message
-    try:
-        with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
-            terraform_content = f.read()
-#             return f"""
-# ```hcl
-# {terraform_content}
-# ```
+#     # Read the generated Terraform file and return its contents with a success message
+#     try:
+#         with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
+#             terraform_content = f.read()
+# #             return f"""
+# # ```hcl
+# # {terraform_content}
+# # ```
 
-# You can now proceed with applying this Terraform configuration."""
-    except Exception as e:
-        error_msg = f"Error reading generated Terraform file: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+# # You can now proceed with applying this Terraform configuration."""
+#     except Exception as e:
+#         error_msg = f"Error reading generated Terraform file: {str(e)}"
+#         print(error_msg)
+#         raise Exception(error_msg)
     
 
-    print("📤 Uploading Terraform directory to MinIO...")
+#     print("📤 Uploading Terraform directory to MinIO...")
 
-    minio_client = Minio(
-        "storage.clouvix.com",
-        access_key="clouvix@gmail.com",
-        secret_key="Clouvix@bangalore2025",
-        secure=True
-    )
+#     minio_client = Minio(
+#         "storage.clouvix.com",
+#         access_key="clouvix@gmail.com",
+#         secret_key="Clouvix@bangalore2025",
+#         secure=True
+#     )
 
-    print(minio_client)
+#     print(minio_client)
 
-    bucket_name = f"terraform-workspaces-user-{user_id}"
+#     bucket_name = f"terraform-workspaces-user-{user_id}"
 
-    print(minio_client.bucket_exists(bucket_name))
-        # Create bucket if it doesn't exist
-    if not minio_client.bucket_exists(bucket_name):
-        print("Inside Make bucket")
-        minio_client.make_bucket(bucket_name)
-        print(f"🪣 Created bucket: {bucket_name}")
-    else:
-        print(f"📦 Bucket exists: {bucket_name}")
+#     print(minio_client.bucket_exists(bucket_name))
+#         # Create bucket if it doesn't exist
+#     if not minio_client.bucket_exists(bucket_name):
+#         print("Inside Make bucket")
+#         minio_client.make_bucket(bucket_name)
+#         print(f"🪣 Created bucket: {bucket_name}")
+#     else:
+#         print(f"📦 Bucket exists: {bucket_name}")
 
-    folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
+#     folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
 
-        # Upload each file with folder_name prefix
-    for root, _, files in os.walk(TERRAFORM_DIR):
-        for file in files:
-            file_path = os.path.join(root, file)
-            relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
-            object_key = f"{folder_name}/{relative_path}"
-            print(f"⬆️ Uploading: {file_path} -> {object_key}")
-            minio_client.fput_object(bucket_name, object_key, file_path)
+#         # Upload each file with folder_name prefix
+#     for root, _, files in os.walk(TERRAFORM_DIR):
+#         for file in files:
+#             file_path = os.path.join(root, file)
+#             relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+#             object_key = f"{folder_name}/{relative_path}"
+#             print(f"⬆️ Uploading: {file_path} -> {object_key}")
+#             minio_client.fput_object(bucket_name, object_key, file_path)
 
-    print("✅ Terraform directory uploaded to MinIO!")
+#     print("✅ Terraform directory uploaded to MinIO!")
 
-    try:
-        shutil.rmtree(TERRAFORM_DIR)
-        print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
-    except Exception as e:
-        print(f"⚠️ Failed to delete local Terraform directory: {e}")
+#     try:
+#         shutil.rmtree(TERRAFORM_DIR)
+#         print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
+#     except Exception as e:
+#         print(f"⚠️ Failed to delete local Terraform directory: {e}")
 
 
-    return f"""
-        ```hcl
-        {terraform_content}
-        ```
-        You can now proceed with adding user inputs required this Terraform configuration and then proceed with applying."""
+#     return f"""
+#         ```hcl
+#         {terraform_content}
+#         ```
+#         You can now proceed with adding user inputs required this Terraform configuration and then proceed with applying."""
 
     
     

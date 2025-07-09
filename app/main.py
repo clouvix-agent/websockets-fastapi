@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import general, auth, connections, inventory, workspace, recommendation_route , cost_endpoint, terraform
+from app.routers import general, auth, connections, inventory, workspace, recommendation_route, cost_endpoint, terraform, github
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
 
@@ -11,7 +11,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 # Import your scheduler job function
 from app.scheduled_jobs.terraform_inventory import fetch_all_state_files
 from app.routers.cost_schedular_code import run_cost_scheduler
-
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,6 +32,7 @@ app.include_router(workspace.router)
 app.include_router(recommendation_route.router)
 app.include_router(cost_endpoint.router)
 app.include_router(terraform.router)
+app.include_router(github.router)
 
 scheduler = BackgroundScheduler()
 
