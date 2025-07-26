@@ -27,7 +27,7 @@ from jose import JWTError, jwt
 from langchain_core.runnables import RunnableConfig
 # from app.models.connection import Connection
 from app.db.connection import get_user_connections_by_type
-from app.db.workpsace_status import create_or_update_workspace_status
+from app.db.workspace_status import create_or_update_workspace_status
 from minio import Minio
 import shutil
 import tempfile 

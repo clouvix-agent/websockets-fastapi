@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import general, auth, connections, inventory, workspace, recommendation_route, cost_endpoint, terraform, github
+from app.routers import general, auth, connections, inventory, workspace, recommendation_route, cost_endpoint, terraform, github , existing_to_tf
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
 
@@ -33,8 +33,9 @@ app.include_router(recommendation_route.router)
 app.include_router(cost_endpoint.router)
 app.include_router(terraform.router)
 app.include_router(github.router)
+app.include_router(existing_to_tf.router)
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
 @app.on_event("startup")
 async def startup_event():
@@ -43,6 +44,8 @@ async def startup_event():
     print("🚀 FastAPI is starting... setting up scheduler.")
     scheduler.add_job(fetch_all_state_files, 'cron', hour=19, minute=45)
     scheduler.add_job(run_cost_scheduler, 'cron', hour=19, minute=45)
+    scheduler.add_job(run_daily_drift_detection_job, 'cron', hour=3,minute=0,id="daily_drift_detection",replace_existing=True)
+    
     scheduler.start()
     # print("✅ Scheduler started. The job will run daily at 7:45PM UTC.")
         # 🚀 Run it IMMEDIATELY on startup for testing

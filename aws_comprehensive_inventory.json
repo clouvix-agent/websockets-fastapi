@@ -1,14 +1,14 @@
 {
     "S3": [
         {
-            "Name": "shreyas-cur-bucket-182de96fc7",
-            "CreationDate": "2025-05-25 12:48:28",
+            "Name": "july28migrationtest1-bucket",
+            "CreationDate": "2025-07-28 15:33:34",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "02fe21bcs081",
-                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -16,59 +16,14 @@
             ]
         },
         {
-            "Name": "shreyas-cur-bucket-9a73dddbd8",
-            "CreationDate": "2025-05-25 11:56:31",
+            "Name": "test-migration-bucket-clouvix",
+            "CreationDate": "2025-07-26 06:31:36",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "02fe21bcs081",
-                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "shreyas-cur-bucket-b80b4466dd",
-            "CreationDate": "2025-05-25 12:07:41",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "02fe21bcs081",
-                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "shreyas-cur-bucket-ba7e808294",
-            "CreationDate": "2025-05-25 14:22:31",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "02fe21bcs081",
-                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "shreyas-cur-bucket-da988e11a5",
-            "CreationDate": "2025-05-25 12:02:50",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "02fe21bcs081",
-                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -76,7 +31,71 @@
             ]
         }
     ],
-    "EC2": [],
+    "EC2": [
+        {
+            "InstanceId": "i-096f22b81d2a30889",
+            "State": "running",
+            "PublicIP": null,
+            "PrivateIP": "10.0.1.135",
+            "InstanceType": "t2.nano",
+            "LaunchTime": "2025-07-28 15:45:22",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "july28migrationtest1-ec2-with-role"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-0b3529289d7915f33",
+                    "GroupName": "terraform-20250728153336558700000001"
+                }
+            ],
+            "CPUUtilization": 0.19836065573770478
+        },
+        {
+            "InstanceId": "i-0500881de5a5f5041",
+            "State": "stopped",
+            "PublicIP": null,
+            "PrivateIP": "172.31.27.138",
+            "InstanceType": "t2.nano",
+            "LaunchTime": "2025-07-26 07:47:47",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test_migration-clouvix2"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-02a7e966630bef063",
+                    "GroupName": "launch-wizard-3"
+                }
+            ],
+            "CPUUtilization": null
+        },
+        {
+            "InstanceId": "i-080df76d8b01c37de",
+            "State": "stopped",
+            "PublicIP": null,
+            "PrivateIP": "172.31.23.16",
+            "InstanceType": "t2.nano",
+            "LaunchTime": "2025-07-26 09:16:22",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "migration-shreyas_test"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-07e6286dd3151e645",
+                    "GroupName": "launch-wizard-4"
+                }
+            ],
+            "CPUUtilization": null
+        }
+    ],
     "DynamoDB": [],
     "ECS": [],
     "RDS": [],

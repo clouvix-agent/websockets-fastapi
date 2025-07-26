@@ -1,5 +1,3 @@
-# app/routes/connections.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
@@ -64,7 +62,6 @@ async def save_credentials(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving credentials: {str(e)}")
-
 
 # Get credentials
 @router.get("/{serviceId}")
@@ -141,3 +138,115 @@ async def update_credentials(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating credentials: {str(e)}")
+
+# class ConnectionWithRegionRequest(BaseModel):
+#     serviceId: str
+#     bucketName: str
+#     variables: List[CredentialVariable]
+#     resourceExplorerRegion: str
+
+# # Endpoint 1: Create connection with resource explorer region
+# @router.post("/createregion")
+# async def create_connection_with_region(
+#     request: ConnectionWithRegionRequest,
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+#     new_connection = Connection(
+#         userid=user_id,
+#         type=request.serviceId,
+#         connection_bucket_name=request.bucketName,
+#         connection_json=json.dumps([var.dict() for var in request.variables]),
+#         connection_region=request.resourceExplorerRegion
+#     )
+
+#     try:
+#         db.add(new_connection)
+#         db.commit()
+#         db.refresh(new_connection)
+#         return {
+#             "message": "Connection created successfully",
+#             "connection_id": new_connection.connid
+#         }
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"Error creating connection: {str(e)}")
+
+# #to update existing one
+# class UpdateRegionRequest(BaseModel):
+#     resourceExplorerRegion: str
+
+# @router.put("/update-region/{serviceId}")
+# async def update_resource_explorer_region(
+#     serviceId: str,
+#     region_request: UpdateRegionRequest,
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+#     connection = db.query(Connection).filter(
+#         Connection.userid == user_id,
+#         Connection.type == serviceId
+#     ).first()
+
+#     if not connection:
+#         raise HTTPException(
+#             status_code=404,
+#             detail=f"No existing credentials found for service ID '{serviceId}'"
+#         )
+
+#     try:
+#         connection.connection_region = region_request.resourceExplorerRegion
+#         db.commit()
+#         db.refresh(connection)
+#         return {
+#             "message": f"Resource Explorer Region updated successfully for service ID '{serviceId}'",
+#             "connection_id": connection.connid
+#         }
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"Error updating resource explorer region: {str(e)}")
+
+# @router.get("/region/{serviceId}")
+# async def get_resource_explorer_region(
+#     serviceId: str,
+#     db: Session = Depends(get_db),
+#     token: str = Depends(oauth2_scheme)
+# ):
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("id")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+#     connection = db.query(Connection).filter(
+#         Connection.userid == user_id,
+#         Connection.type == serviceId
+#     ).first()
+
+#     if not connection:
+#         raise HTTPException(
+#             status_code=404,
+#             detail=f"No existing connection found for service ID '{serviceId}'"
+#         )
+
+#     return {
+#         "resourceExplorerRegion": getattr(connection, "connection_region", None)
+#     }
