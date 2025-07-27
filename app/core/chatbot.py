@@ -25,6 +25,7 @@ from langchain_core.runnables import RunnableLambda
 from langchain_core.runnables import RunnableConfig
 from app.core.github import raise_pr_with_tf_code,fetch_tf_files_from_repo
 from app.routers.metrics_collector import get_recommendations_for_all_metrics
+from app.core.migration_tool import migration_tool
 
 from app.core.tf_agent import generate_terraform_code
 
@@ -63,7 +64,7 @@ def get_user_id(config: RunnableConfig) -> int:
 #     return f"Your user ID is: {config['configurable'].get('user_id', 'unknown')}"
 
 tools = []
-tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_code, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,get_recommendations_for_all_metrics,fetch_metrics, architecture_tool, optimize_resource_by_arn,fetch_tf_files_from_repo,raise_pr_with_tf_code]
+tools = [add_two_numbers, search_tool, architecture_builder_tool, generate_terraform_code, check_architecture_file, get_user_id, apply_terraform_tool_local, query_inventory, update_terraform_file, read_terraform_files_from_bucket, destroy_terraform_tool_local, get_workspace_status_tool,get_recommendations_for_all_metrics,fetch_metrics, architecture_tool, optimize_resource_by_arn,fetch_tf_files_from_repo,raise_pr_with_tf_code,migration_tool]
 llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 llm_with_tools = llm.bind_tools(tools)
 
