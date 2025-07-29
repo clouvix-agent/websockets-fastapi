@@ -1,13 +1,12 @@
 {
     "S3": [
         {
-            "Name": "july28migrationtest1-bucket",
-            "CreationDate": "2025-07-28 15:33:34",
+            "Name": "smile-test-bucket",
+            "CreationDate": "2025-07-29 17:19:37",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -33,25 +32,25 @@
     ],
     "EC2": [
         {
-            "InstanceId": "i-096f22b81d2a30889",
+            "InstanceId": "i-02a02c539e76e0090",
             "State": "running",
             "PublicIP": null,
-            "PrivateIP": "10.0.1.135",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-28 15:45:22",
+            "PrivateIP": "10.0.1.154",
+            "InstanceType": "t2.micro",
+            "LaunchTime": "2025-07-29 17:31:07",
             "Tags": [
                 {
                     "Key": "Name",
-                    "Value": "july28migrationtest1-ec2-with-role"
+                    "Value": "smile_test_ec2"
                 }
             ],
             "SecurityGroups": [
                 {
-                    "GroupId": "sg-0b3529289d7915f33",
-                    "GroupName": "terraform-20250728153336558700000001"
+                    "GroupId": "sg-022ed30561b34cf05",
+                    "GroupName": "terraform-20250729171938849600000001"
                 }
             ],
-            "CPUUtilization": 0.19836065573770478
+            "CPUUtilization": 0.06734578381437459
         },
         {
             "InstanceId": "i-0500881de5a5f5041",

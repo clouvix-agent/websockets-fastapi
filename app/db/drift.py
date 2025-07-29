@@ -67,3 +67,16 @@ def delete_drift_result(db: Session, userid: int, project_name: str) -> bool:
     
     print(f"ℹ️ No drift record found to delete for {project_name} (user {userid})")
     return False
+
+def fetch_all_drifts_for_user(db: Session, userid: int):
+    """
+    Fetches all drift detection records for the given user.
+
+    Args:
+        db (Session): SQLAlchemy DB session.
+        userid (int): User ID.
+
+    Returns:
+        List[DriftDetection]: List of drift records for the user.
+    """
+    return db.query(DriftDetection).filter_by(userid=userid).all()
