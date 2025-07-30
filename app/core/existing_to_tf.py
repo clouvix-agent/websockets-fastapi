@@ -1288,6 +1288,7 @@ def generate_terraform_from_resource_details(arns: list[str], inspector: Dynamic
         - Do **NOT** include any deprecated or legacy Terraform attributes.
         - Do **NOT** include `acl` or `aws_s3_bucket_acl` if the bucket has `BucketOwnerEnforced` ownership.
         - Use the exact resource name `{resource_id}`.
+        - **IMPORTANT EC2 RULE**: If the `instance_type` (e.g., "t2.nano", "t3.micro") starts with `t2`, `t3`, or `t4g`, you **MUST OMIT** the `cpu_options` block entirely, as it is not a configurable attribute for these burstable instance types.
         - All values must come strictly from the actual configuration JSON.
 
         ---
@@ -2162,7 +2163,7 @@ def validate_and_fix_terraform_code(code: str, working_dir: str = TEMP_DIR) -> s
     return "❌ Could not produce valid Terraform code after multiple attempts."
 
 
-def fetch_and_save_aws_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector, project_name: str = "project_name") -> str:
+def fetch_and_save_aws_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector,output_dir: str, project_name: str = "project_name") -> str:
     """
     Fetches AWS resource details for all ARNs, structures them, and writes to a JSON file.
 
@@ -2191,7 +2192,7 @@ def fetch_and_save_aws_resource_details(arns: list[str], inspector: DynamicAWSRe
         aggregated_details[project_name][resource_name] = result['details']
 
     # Save to JSON
-    output_json_path = os.path.join(TEMP_DIR, f"{project_name}_resource_details.json")
+    output_json_path = os.path.join(output_dir, f"{project_name}_resource_details.json")
 
     with open(output_json_path, "w", encoding="utf-8") as f:
         json.dump(aggregated_details, f, indent=2, default=str)

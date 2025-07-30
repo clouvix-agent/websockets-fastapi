@@ -103,6 +103,7 @@ import os
 import shutil
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+import tempfile
 
 from app.core.existing_to_tf import (
     get_aws_credentials_from_db,
@@ -131,6 +132,7 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
     - Insert workspace into the database
     - Cleanup temporary working folder
     """
+    temp_dir_path = tempfile.mkdtemp()
     try:
         # 1. Extract user_id from LangChain config
         user_id = config['configurable'].get('user_id', 'unknown')
@@ -150,7 +152,8 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
         fetch_and_save_aws_resource_details(
             arns=listofarn,
             inspector=inspector,
-            project_name=project_name
+            project_name=project_name,
+            output_dir=temp_dir_path
         )
 
         # 5. Generate Terraform code using GPT
@@ -158,12 +161,12 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
             arns=listofarn,
             inspector=inspector
         )
-
+        print(terraform_code)
         # 6. Validate and fix the code
-        final_tf_code = validate_and_fix_terraform_code(terraform_code)
-
+        final_tf_code = validate_and_fix_terraform_code(terraform_code,working_dir=temp_dir_path)
+        print(final_tf_code)
         # 7. Import and Apply
-        main_tf_path = os.path.join(TEMP_DIR, "main.tf")
+        main_tf_path = os.path.join(temp_dir_path, "main.tf")
         result = import_and_apply_for_resource(
             main_tf_path=main_tf_path,
             arns=listofarn,
@@ -173,7 +176,7 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
 
         # 8. Upload to MinIO
         upload_status = upload_terraform_to_minio(
-            local_tf_dir=TEMP_DIR,
+            local_tf_dir=temp_dir_path,
             user_id=user_id,
             project_name=project_name
         )
@@ -207,8 +210,8 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
             db_status = f"❌ Failed to insert workspace: {str(db_err)}"
 
         # 10. Cleanup
-        if os.path.exists(TEMP_DIR):
-            shutil.rmtree(TEMP_DIR)
+        if os.path.exists(temp_dir_path):
+            shutil.rmtree(temp_dir_path)
 
         return f"""
 Migration Completed from AWS → Terraform
