@@ -1325,14 +1325,7 @@ def get_aws_resource_type_from_arn(arn: str) -> str:
             inferred_type = resource_part.split(':')[0]
         else:
             inferred_type = resource_part
-
-        # You can map custom inferred types if needed
-        # fallback_mapping = {
-        #     'function': 'aws_lambda_function',
-        #     'instance': 'aws_instance',
-        #     'bucket': 'aws_s3_bucket'
-        #     # Extend if needed
-        # }
+        
         fallback_mapping = {
             # EC2
             'instance': 'aws_instance',
@@ -1460,8 +1453,6 @@ def get_aws_resource_type_from_arn(arn: str) -> str:
             # Cost Explorer (not importable but listable)
             'cost-and-usage': 'aws_ce_cost_category'
         }
-
-
         return fallback_mapping.get(inferred_type)
 
 
