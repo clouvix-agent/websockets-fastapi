@@ -163,7 +163,6 @@ async def create_s3_remote_state_connection(
         connection_json.append({"key": "PREFIX", "value": request.prefix})
 
     new_connection = Connection(
-        connid=str(uuid.uuid4()),
         userid=user_id,
         type="aws_s3_remote_state",
         connection_json=json.dumps(connection_json),
