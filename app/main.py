@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.routers import general, auth, connections, inventory, workspace, recommendation_route, cost_endpoint, terraform, github , existing_to_tf,drift
 from app.database import engine, Base
 from app.routers.all_threads import start_background_threads
+from app.scheduled_jobs import drift_script_standalone
 
 # APScheduler import
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -36,7 +37,7 @@ app.include_router(terraform.router)
 app.include_router(github.router)
 app.include_router(existing_to_tf.router)
 app.include_router(drift.router)
-
+app.include_router(drift_script_standalone.router)
 
 scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 

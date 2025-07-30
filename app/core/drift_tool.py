@@ -8,7 +8,7 @@ from langchain.tools import tool
 import subprocess
 from typing import List, Optional, Dict, Tuple
 from app.db.drift import fetch_drift_reason
-
+import uuid
 import json
 import boto3
 from app.models.connection import Connection
@@ -466,13 +466,21 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
 
     print(f"✅ User ID extracted: {user_id} for project: {project_name}")
 
-    local_path = None  # Define early for finally block
+    # Create a unique temporary directory using uuid
+    temp_dir_base = "/tmp"  # or os.environ.get("TEMP_DIR_ROOT", "/tmp")
+    unique_folder_name = f"{project_name}_terraform_{uuid.uuid4().hex}"
+    local_path = os.path.join(temp_dir_base, unique_folder_name)
+    os.makedirs(local_path, exist_ok=True)
 
     try:
-        local_path = download_terraform_project_from_minio(user_id, project_name)
-        if not os.path.isdir(local_path):
-            return local_path  # Contains error string if download failed
+        # Download project files
+        download_result = download_terraform_project_from_minio(user_id, project_name)
+        if not os.path.isdir(download_result):
+            return download_result  # Contains error message
 
+        local_path = download_result
+
+        # Load AWS credentials
         aws_access_key, aws_secret_key = get_aws_credentials_from_db(user_id)
 
         terraform_env = os.environ.copy()
@@ -498,17 +506,20 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
             print("📄 Terraform Apply STDOUT:\n", stdout)
             print("📄 Terraform Apply STDERR:\n", stderr)
 
-            if success:
-                
-                with get_db_session() as db:
-                    print(f"🔄 Updating workspace status for '{project_name}' to 'synced'...")
-                    status_data = WorkspaceStatusCreate(userid=user_id, project_name=project_name, status="synced")
-                    create_or_update_workspace_status(db, status_data)
-                    
+            with get_db_session() as db:
+                status_data = WorkspaceStatusCreate(
+                    userid=user_id,
+                    project_name=project_name,
+                    status=stdout or "Terraform apply (revert_back) completed with no output."
+                )
+                create_or_update_workspace_status(db, status_data)
+
+                if success:
                     print(f"🧹 Clearing resolved drift record for '{project_name}'...")
                     delete_drift_result(db, user_id, project_name)
-                
-                return f"✅ Drift reverted successfully for project `{project_name}`. Workspace is now synced and the drift record has been cleared.\n\nSTDOUT:\n{stdout}"
+
+            if success:
+                return f"✅ Drift reverted successfully for project `{project_name}`.\n\nSTDOUT:\n{stdout}"
             else:
                 return f"❌ Terraform apply failed for project `{project_name}`.\n\nSTDERR:\n{stderr}"
 
@@ -533,20 +544,21 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
             print("📄 Terraform Apply STDOUT:\n", stdout)
             print("📄 Terraform Apply STDERR:\n", stderr)
 
-            if success:
-                upload_msg = upload_project_to_minio(local_path, user_id, project_name)
-                
-                with get_db_session() as db:
-                    print(f"🔄 Updating workspace status for '{project_name}' to 'synced'...")
-                    status_data = WorkspaceStatusCreate(userid=user_id, project_name=project_name, status="synced")
-                    create_or_update_workspace_status(db, status_data)
+            with get_db_session() as db:
+                status_data = WorkspaceStatusCreate(
+                    userid=user_id,
+                    project_name=project_name,
+                    status=stdout or "Terraform apply (apply_drift) completed with no output."
+                )
+                create_or_update_workspace_status(db, status_data)
 
+                if success:
+                    upload_msg = upload_project_to_minio(local_path, user_id, project_name)
                     print(f"🧹 Clearing resolved drift record for '{project_name}'...")
                     delete_drift_result(db, user_id, project_name)
-                
-                return f"✅ Drift applied successfully for `{project_name}`. Workspace is now synced and the drift record has been cleared.\n\n{upload_msg}\n\nSTDOUT:\n{stdout}"
-            else:
-                return f"❌ Terraform apply failed after updating main.tf.\n\nSTDERR:\n{stderr}"
+                    return f"✅ Drift applied successfully for `{project_name}`. Workspace is now synced and the drift record has been cleared.\n\n{upload_msg}\n\nSTDOUT:\n{stdout}"
+                else:
+                    return f"❌ Terraform apply failed after updating main.tf.\n\nSTDERR:\n{stderr}"
 
         else:
             return f"❌ Invalid action: `{action}`. Use either 'apply_drift' or 'revert_back'."
@@ -554,7 +566,7 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
     finally:
         if local_path and os.path.isdir(local_path):
             try:
-                shutil.rmtree(local_path, ignore_errors=True)
-                print(f"🧹 Cleaned up temp directory")
+                shutil.rmtree(local_path)
+                print(f"🧹 Cleaned up temp directory: {local_path}")
             except Exception as cleanup_err:
-                print(f"⚠️ Failed to clean temp folder: {cleanup_err}")
+                print(f"⚠️ Failed to clean temp folder {local_path}: {cleanup_err}")
