@@ -870,6 +870,8 @@ import re
 import shutil
 import tempfile
 import datetime
+import boto3
+from app.models.connection import Connection
 
 from pymongo import MongoClient
 
@@ -920,6 +922,81 @@ sagemaker_collection = db["sagemaker_bedrock_resources"]
 sns_sqs_collection = db["sns_sqs_resources"]
 vpc_collection = db["vpc_route53_api_gateway_resources"]
 
+
+def get_s3_connection_info_with_credentials(user_id):
+    """
+    Fetches S3 backend info for Terraform remote state + AWS credentials.
+
+    Returns:
+        dict: {
+            "bucket": str,
+            "region": str,
+            "prefix": str,
+            "aws_access_key_id": str,
+            "aws_secret_access_key": str
+        }
+    """
+    result = {
+        "bucket": None,
+        "region": "us-east-1",
+        "prefix": "",
+        "aws_access_key_id": None,
+        "aws_secret_access_key": None
+    }
+
+    with get_db_session() as db:
+        # Fetch S3 remote state connection
+        s3_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws_s3_remote_state"
+        ).first()
+
+        if not s3_conn:
+            raise Exception("No S3 remote state connection found for user")
+
+        s3_json = s3_conn.connection_json
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid first-level JSON in S3 connection_json")
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid second-level JSON in S3 connection_json")
+
+        s3_info = {item["key"]: item["value"] for item in s3_json}
+        result["bucket"] = s3_info.get("BUCKET_NAME")
+        result["region"] = s3_info.get("AWS_REGION", result["region"])
+        result["prefix"] = s3_info.get("PREFIX", result["prefix"])
+
+        # Fetch AWS credentials
+        aws_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws"
+        ).first()
+
+        if aws_conn:
+            aws_json = aws_conn.connection_json
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid first-level JSON in AWS connection_json")
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid second-level JSON in AWS connection_json")
+
+            aws_info = {item["key"]: item["value"] for item in aws_json}
+            result["aws_access_key_id"] = aws_info.get("AWS_ACCESS_KEY_ID")
+            result["aws_secret_access_key"] = aws_info.get("AWS_SECRET_ACCESS_KEY")
+            # If region wasn't set in S3 config, take from credentials
+            result["region"] = result["region"] or aws_info.get("AWS_REGION", result["region"])
+
+    return result
 
 
 def fetch_doc(collection, index, query):
@@ -1300,6 +1377,44 @@ def generate_terraform_code(query: str, project_name: str, config: RunnableConfi
 
         except Exception as e:
             print(f"❌ Error uploading to MinIO: {e}")
+        # === Upload to S3 (alongside MinIO) ===
+        try:
+            s3_config = get_s3_connection_info_with_credentials(user_id)
+            s3_bucket = s3_config.get("bucket")
+            s3_region = s3_config.get("region")
+            s3_prefix = s3_config.get("prefix", "")
+            aws_access_key_id = s3_config.get("aws_access_key_id")
+            aws_secret_access_key = s3_config.get("aws_secret_access_key")
+
+            print("S3 Bucket Name:", s3_bucket)
+
+            if s3_bucket and s3_region and aws_access_key_id and aws_secret_access_key:
+                s3 = boto3.client(
+                    's3',
+                    region_name=s3_region,
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key
+                )
+
+                folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
+                s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                for root, _, files in os.walk(TERRAFORM_DIR):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+                        object_key = f"{s3_object_prefix}{relative_path}"
+                        print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
+                        s3.upload_file(file_path, s3_bucket, object_key)
+
+                print("✅ Terraform directory uploaded to S3!")
+
+            else:
+                print("⚠️ Skipping S3 upload - missing S3 configuration or AWS credentials")
+
+        except Exception as e:
+            print(f"❌ Error uploading to S3: {e}")
+
 
         # === Cleanup local directory ===
         try:

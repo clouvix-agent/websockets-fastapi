@@ -18,6 +18,8 @@ from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.model import ServiceModel
 from openai import OpenAI
 from datetime import datetime, date 
+import boto3
+from app.models.connection import Connection
 
 import subprocess
 # Load API key from .env
@@ -28,6 +30,82 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 TEMP_DIR = os.path.abspath("temp")
 os.makedirs(TEMP_DIR, exist_ok=True)
+
+
+def get_s3_connection_info_with_credentials(user_id):
+    """
+    Fetches S3 backend info for Terraform remote state + AWS credentials.
+
+    Returns:
+        dict: {
+            "bucket": str,
+            "region": str,
+            "prefix": str,
+            "aws_access_key_id": str,
+            "aws_secret_access_key": str
+        }
+    """
+    result = {
+        "bucket": None,
+        "region": "us-east-1",
+        "prefix": "",
+        "aws_access_key_id": None,
+        "aws_secret_access_key": None
+    }
+
+    with get_db_session() as db:
+        # Fetch S3 remote state connection
+        s3_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws_s3_remote_state"
+        ).first()
+
+        if not s3_conn:
+            raise Exception("No S3 remote state connection found for user")
+
+        s3_json = s3_conn.connection_json
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid first-level JSON in S3 connection_json")
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid second-level JSON in S3 connection_json")
+
+        s3_info = {item["key"]: item["value"] for item in s3_json}
+        result["bucket"] = s3_info.get("BUCKET_NAME")
+        result["region"] = s3_info.get("AWS_REGION", result["region"])
+        result["prefix"] = s3_info.get("PREFIX", result["prefix"])
+
+        # Fetch AWS credentials
+        aws_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws"
+        ).first()
+
+        if aws_conn:
+            aws_json = aws_conn.connection_json
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid first-level JSON in AWS connection_json")
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid second-level JSON in AWS connection_json")
+
+            aws_info = {item["key"]: item["value"] for item in aws_json}
+            result["aws_access_key_id"] = aws_info.get("AWS_ACCESS_KEY_ID")
+            result["aws_secret_access_key"] = aws_info.get("AWS_SECRET_ACCESS_KEY")
+            # If region wasn't set in S3 config, take from credentials
+            result["region"] = result["region"] or aws_info.get("AWS_REGION", result["region"])
+
+    return result
 
 
 
@@ -2133,21 +2211,24 @@ def upload_terraform_to_minio(
     secure: bool = True
 ) -> str:
     """
-    Uploads Terraform files (main.tf, terraform.tfstate, etc.) to a MinIO bucket.
+    Uploads Terraform files to both MinIO and S3 (if configured).
 
     Args:
-        local_tf_dir (str): Path to directory containing Terraform files.
-        user_id (int): ID of the user (used in bucket name).
+        local_tf_dir (str): Path to local Terraform project folder.
+        user_id (int): User ID (for bucket naming).
         project_name (str): Project folder name inside bucket.
-        minio_*: MinIO connection details.
 
     Returns:
-        str: Status message.
+        str: Upload status summary.
     """
     bucket_name = f"terraform-workspaces-user-{user_id}"
     folder_name = f"{project_name}_terraform"
 
+    minio_success = False
+    s3_success = False
+
     try:
+        # === Upload to MinIO ===
         minio_client = Minio(
             minio_endpoint,
             access_key=minio_access_key,
@@ -2155,32 +2236,79 @@ def upload_terraform_to_minio(
             secure=secure
         )
 
-        # ✅ Create bucket if it doesn't exist
         if not minio_client.bucket_exists(bucket_name):
             print(f"🪣 Bucket `{bucket_name}` does not exist. Creating it...")
             minio_client.make_bucket(bucket_name)
         else:
-            print(f"✅ Bucket `{bucket_name}` exists.")
+            print(f"✅ MinIO bucket `{bucket_name}` exists.")
 
         print("📤 Uploading Terraform files to MinIO...")
         for root, _, files in os.walk(local_tf_dir):
+            if ".terraform" in root:
+                continue
+
             for file in files:
-                if ".terraform" in root or file.endswith(".json"):
-                    continue  # Skip internal TF cache or exported config JSON
+                if file.endswith(".json"):
+                    continue
 
                 file_path = os.path.join(root, file)
                 relative_path = os.path.relpath(file_path, local_tf_dir)
-                object_key = f"{folder_name}/{relative_path}"
+                object_key = f"{folder_name}/{relative_path}".replace("\\", "/")
 
                 minio_client.fput_object(bucket_name, object_key, file_path)
-                print(f"⬆️  Uploaded: {object_key}")
+                print(f"⬆️ MinIO: {object_key}")
 
-        return f"✅ Upload complete to `s3://{bucket_name}/{folder_name}`"
+        minio_success = True
+    except Exception as e:
+        print(f"❌ MinIO upload failed: {e}")
 
-    except S3Error as e:
-        return f"❌ MinIO S3 error: {str(e)}"
-    except Exception as ex:
-        return f"❌ Upload failed: {str(ex)}"
+    # === Upload to S3 (if configured) ===
+    try:
+        s3_config = get_s3_connection_info_with_credentials(user_id)
+        s3_bucket = s3_config["bucket"]
+        s3_region = s3_config["region"]
+        s3_prefix = s3_config.get("prefix", "")
+        aws_access_key_id = s3_config.get("aws_access_key_id")
+        aws_secret_access_key = s3_config.get("aws_secret_access_key")
+
+        if s3_bucket and aws_access_key_id and aws_secret_access_key:
+            s3 = boto3.client(
+                's3',
+                region_name=s3_region,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key
+            )
+
+            s3_folder_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+            print("📤 Uploading Terraform files to S3...")
+            for root, _, files in os.walk(local_tf_dir):
+                if ".terraform" in root:
+                    continue
+
+                for file in files:
+                    if file.endswith(".json"):
+                        continue
+
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, local_tf_dir)
+                    object_key = f"{s3_folder_prefix}{relative_path}".replace("\\", "/")
+
+                    s3.upload_file(file_path, s3_bucket, object_key)
+                    print(f"⬆️ S3: {object_key}")
+
+            s3_success = True
+        else:
+            print("⚠️ Skipping S3 upload – missing credentials or bucket info.")
+
+    except Exception as e:
+        print(f"❌ S3 upload failed: {e}")
+
+    # === Final status message ===
+    status = "Upload Summary:\n"
+    status += "✅ MinIO upload successful.\n" if minio_success else "❌ MinIO upload failed.\n"
+    status += "✅ S3 upload successful.\n" if s3_success else "⚠️ S3 upload skipped or failed.\n"
+    return status
 
 
 

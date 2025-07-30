@@ -38,6 +38,8 @@ from sqlalchemy.orm import sessionmaker
 from langchain_openai import OpenAI
 from typing import Optional
 from openai import OpenAI
+import boto3
+from app.models.connection import Connection
 
 # Load environment variables
 load_dotenv()
@@ -132,6 +134,83 @@ class TerraformRequest(BaseModel):
 #     }
 #   ]
 # }
+
+
+def get_s3_connection_info_with_credentials(user_id):
+    """
+    Fetches S3 backend info for Terraform remote state + AWS credentials.
+
+    Returns:
+        dict: {
+            "bucket": str,
+            "region": str,
+            "prefix": str,
+            "aws_access_key_id": str,
+            "aws_secret_access_key": str
+        }
+    """
+    result = {
+        "bucket": None,
+        "region": "us-east-1",
+        "prefix": "",
+        "aws_access_key_id": None,
+        "aws_secret_access_key": None
+    }
+
+    with get_db_session() as db:
+        # Fetch S3 remote state connection
+        s3_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws_s3_remote_state"
+        ).first()
+
+        if not s3_conn:
+            raise Exception("No S3 remote state connection found for user")
+
+        s3_json = s3_conn.connection_json
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid first-level JSON in S3 connection_json")
+        if isinstance(s3_json, str):
+            try:
+                s3_json = json.loads(s3_json)
+            except json.JSONDecodeError:
+                raise Exception("Invalid second-level JSON in S3 connection_json")
+
+        s3_info = {item["key"]: item["value"] for item in s3_json}
+        result["bucket"] = s3_info.get("BUCKET_NAME")
+        result["region"] = s3_info.get("AWS_REGION", result["region"])
+        result["prefix"] = s3_info.get("PREFIX", result["prefix"])
+
+        # Fetch AWS credentials
+        aws_conn = db.query(Connection).filter(
+            Connection.userid == user_id,
+            Connection.type == "aws"
+        ).first()
+
+        if aws_conn:
+            aws_json = aws_conn.connection_json
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid first-level JSON in AWS connection_json")
+            if isinstance(aws_json, str):
+                try:
+                    aws_json = json.loads(aws_json)
+                except json.JSONDecodeError:
+                    raise Exception("Invalid second-level JSON in AWS connection_json")
+
+            aws_info = {item["key"]: item["value"] for item in aws_json}
+            result["aws_access_key_id"] = aws_info.get("AWS_ACCESS_KEY_ID")
+            result["aws_secret_access_key"] = aws_info.get("AWS_SECRET_ACCESS_KEY")
+            # If region wasn't set in S3 config, take from credentials
+            result["region"] = result["region"] or aws_info.get("AWS_REGION", result["region"])
+
+    return result
+
 
 def query_knowledge_base(user_services):
     """
@@ -1094,8 +1173,33 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 
         print("✅ Upload complete")
 
+        try:
+            s3_info = get_s3_connection_info_with_credentials(user_id)
+            if s3_info:
+                s3_client = boto3.client(
+                    's3',
+                    region_name=s3_info["region"],
+                    aws_access_key_id=s3_info["aws_access_key_id"],
+                    aws_secret_access_key=s3_info["aws_secret_access_key"]
+                )
+                s3_bucket = s3_info["bucket"]
+                s3_prefix = s3_info.get("prefix", "")
+                s3_folder = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                print("📤 Uploading updated folder to S3...")
+                for root, _, files in os.walk(download_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, download_path)
+                        object_key = f"{s3_folder}{relative_path}".replace("\\", "/")
+                        s3_client.upload_file(file_path, s3_bucket, object_key)
+                        print(f"⬆️ S3: {file_path} -> {object_key}")
+                print("✅ S3 upload complete")
+        except Exception as s3e:
+            print(f"⚠️ S3 upload failed: {s3e}")
+
         return f"""
-        ✅ Terraform file updated and synced to MinIO.
+        ✅ Terraform file updated and synced to S3.
         {updated_code}
         """
     except S3Error as s3e:
@@ -1220,6 +1324,42 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
                     minio_client.fput_object(bucket_name, object_key, file_path)
                     print(f"⬆️  {file_path} -> {object_key}")
             print(result)
+            try:
+                s3_conn = get_s3_connection_info_with_credentials(user_id)
+                s3_bucket = s3_conn["bucket"]
+                s3_region = s3_conn["region"]
+                s3_prefix = s3_conn.get("prefix", "")
+                aws_access_key_id = s3_conn["aws_access_key_id"]
+                aws_secret_access_key = s3_conn["aws_secret_access_key"]
+
+                if s3_bucket and s3_region and aws_access_key_id and aws_secret_access_key:
+                    s3 = boto3.client(
+                        's3',
+                        region_name=s3_region,
+                        aws_access_key_id=aws_access_key_id,
+                        aws_secret_access_key=aws_secret_access_key
+                    )
+
+                    folder_name = os.path.basename(local_tf_dir.rstrip("/"))
+                    s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                    for root, _, files in os.walk(local_tf_dir):
+                        for file in files:
+                            if ".terraform" in root:
+                                continue
+                            file_path = os.path.join(root, file)
+                            relative_path = os.path.relpath(file_path, local_tf_dir)
+                            object_key = f"{s3_object_prefix}{relative_path}"
+                            print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
+                            s3.upload_file(file_path, s3_bucket, object_key)
+
+                    print("✅ Terraform directory uploaded to S3!")
+                else:
+                    print("⚠️ Skipping S3 upload - missing S3 credentials or config")
+            except Exception as e:
+                print(f"❌ Error uploading to S3: {e}")
+
+
             # 🌟 Update status in DB
             # apply_status = result
 
@@ -1444,6 +1584,41 @@ def destroy_terraform_tool_local(project_name: str, config: RunnableConfig) -> s
                     minio_client.fput_object(bucket_name, object_key, file_path)
                     print(f"⬆️  {file_path} -> {object_key}")
 
+            # === Step 4: Upload to S3 ===
+            try:
+                s3_conn = get_s3_connection_info_with_credentials(user_id)
+                s3_bucket = s3_conn["bucket"]
+                s3_region = s3_conn["region"]
+                s3_prefix = s3_conn.get("prefix", "")
+                aws_access_key_id = s3_conn["aws_access_key_id"]
+                aws_secret_access_key = s3_conn["aws_secret_access_key"]
+
+                if s3_bucket and aws_access_key_id and aws_secret_access_key:
+                    s3 = boto3.client(
+                        "s3",
+                        region_name=s3_region,
+                        aws_access_key_id=aws_access_key_id,
+                        aws_secret_access_key=aws_secret_access_key
+                    )
+
+                    print("📤 Uploading updated folder to S3...")
+                    s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                    for root, _, files in os.walk(local_tf_dir):
+                        for file in files:
+                            if ".terraform" in root:
+                                continue
+                            file_path = os.path.join(root, file)
+                            relative_path = os.path.relpath(file_path, local_tf_dir)
+                            object_key = f"{s3_object_prefix}{relative_path}"
+                            print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
+                            s3.upload_file(file_path, s3_bucket, object_key)
+
+                    print("✅ Terraform directory uploaded to S3!")
+                else:
+                    print("⚠️ S3 upload skipped - credentials missing or bucket config not found.")
+            except Exception as s3e:
+                print(f"❌ Error uploading to S3: {s3e}")                    
             # Format and return result
             if result.returncode == 0:
                 return f"""
