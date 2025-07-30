@@ -1,6 +1,22 @@
 {
     "S3": [
         {
+            "Name": "smile-test-bucket",
+            "CreationDate": "2025-07-29 17:19:37",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        }
+    ],
+    "EC2": [
+        {
             "Name": "test-migration-bucket-clouvix",
             "CreationDate": "2025-07-26 06:31:36",
             "Location": null,
@@ -18,25 +34,25 @@
     ],
     "EC2": [
         {
-            "InstanceId": "i-07afd478d75a74630",
+            "InstanceId": "i-02a02c539e76e0090",
             "State": "running",
-            "PublicIP": "13.222.179.216",
-            "PrivateIP": "172.31.31.224",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-26 13:29:12",
+            "PublicIP": null,
+            "PrivateIP": "10.0.1.154",
+            "InstanceType": "t2.micro",
+            "LaunchTime": "2025-07-29 17:31:07",
             "Tags": [
                 {
                     "Key": "Name",
-                    "Value": "testec2"
+                    "Value": "smile_test_ec2"
                 }
             ],
             "SecurityGroups": [
                 {
-                    "GroupId": "sg-0b9de9a6d44df21f3",
-                    "GroupName": "launch-wizard-6"
+                    "GroupId": "sg-022ed30561b34cf05",
+                    "GroupName": "terraform-20250729171938849600000001"
                 }
             ],
-            "CPUUtilization": 2.1769176490024345
+            "CPUUtilization": 0.06734578381437459
         },
         {
             "InstanceId": "i-0500881de5a5f5041",

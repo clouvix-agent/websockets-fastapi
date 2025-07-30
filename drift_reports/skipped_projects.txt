@@ -1,0 +1,426 @@
+--- Skipped Workspaces ---
+
+Workspace: testecs (ID: 42, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/testecs_terraform/terraform.tfstate
+
+Workspace: testecs (ID: 43, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/testecs_1_terraform/terraform.tfstate
+
+Workspace: testecs (ID: 44, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/testecs_2_terraform/terraform.tfstate
+
+Workspace: ECR2ECS (ID: 45, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/ECR2ECS_terraform/terraform.tfstate
+
+Workspace: ECR2ECS (ID: 46, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/ECR2ECS_terraform/terraform.tfstate
+
+Workspace: GoSuperEdtechTest (ID: 47, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/GoSuperEdtechTest_terraform/terraform.tfstate
+
+Workspace: testingedtech (ID: 50, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/testingedtech_terraform/terraform.tfstate
+
+Workspace: rdstest (ID: 52, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/rdstest_terraform/terraform.tfstate
+
+Workspace: servertesting (ID: 54, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/servertesting_terraform/terraform.tfstate
+
+Workspace: gosuperpulse (ID: 56, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/gosuperpulse_terraform/terraform.tfstate
+
+Workspace: rdsgosuper (ID: 58, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/rdsgosuper_terraform/terraform.tfstate
+
+Workspace: aprunner_ecr_test (ID: 87, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/aprunner_ecr_test_terraform/terraform.tfstate
+
+Workspace: aprunner_ecr_test (ID: 88, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/aprunner_ecr_test_terraform/terraform.tfstate
+
+Workspace: rdsgosuper (ID: 89, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/rdsgosuper_terraform/terraform.tfstate
+
+Workspace: arunner (ID: 90, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/arunner_terraform/terraform.tfstate
+
+Workspace: lambdaEC2Test (ID: 103, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/lambdaEC2Test_terraform/terraform.tfstate
+
+Workspace: lambdaEC2Test (ID: 104, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/lambdaEC2Test_terraform/terraform.tfstate
+
+Workspace: lambdaEC2Test (ID: 105, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/lambdaEC2Test_terraform/terraform.tfstate
+
+Workspace: shubhrag (ID: 107, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shubhrag_terraform/terraform.tfstate
+
+Workspace: demotesting (ID: 108, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/demotesting_terraform/terraform.tfstate
+
+Workspace: demotesting (ID: 109, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/demotesting_terraform/terraform.tfstate
+
+Workspace: shreyas_cur_test (ID: 113, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shreyas_cur_test_terraform/terraform.tfstate
+
+Workspace: shreyas_cur (ID: 114, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shreyas_cur_terraform/terraform.tfstate
+
+Workspace: curtest (ID: 115, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/curtest_terraform/terraform.tfstate
+
+Workspace: testshreyas12345 (ID: 118, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/testshreyas12345_terraform/terraform.tfstate
+
+Workspace: june6localtest2 (ID: 136, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/june6localtest2_terraform/terraform.tfstate
+
+Workspace: june6ec2global (ID: 137, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/june6ec2global_terraform/terraform.tfstate
+
+Workspace: shreyas (ID: 142, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shreyas_terraform/terraform.tfstate
+
+Workspace: shrtest12334445shsh (ID: 143, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shrtest12334445shsh_terraform/terraform.tfstate
+
+Workspace: raginstance (ID: 147, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/raginstance_terraform/terraform.tfstate
+
+Workspace: dhruv test (ID: 148, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/dhruv test_terraform/terraform.tfstate
+
+Workspace: june30test (ID: 149, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/june30test_terraform/terraform.tfstate
+
+Workspace: shreyastfaent (ID: 151, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shreyastfaent_terraform/terraform.tfstate
+
+Workspace: shreyas2julytest (ID: 152, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/shreyas2julytest_terraform/terraform.tfstate
+
+Workspace: july2test2 (ID: 153, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test2_terraform/terraform.tfstate
+
+Workspace: july2test3 (ID: 154, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test3_terraform/terraform.tfstate
+
+Workspace: july2test3 (ID: 155, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test3_terraform/terraform.tfstate
+
+Workspace: july2test4 (ID: 156, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test4_terraform/terraform.tfstate
+
+Workspace: july2test5 (ID: 157, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test5_terraform/terraform.tfstate
+
+Workspace: july2test6 (ID: 158, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test6_terraform/terraform.tfstate
+
+Workspace: july2test7 (ID: 159, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july2test7_terraform/terraform.tfstate
+
+Workspace: july3test1 (ID: 160, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test1_terraform/terraform.tfstate
+
+Workspace: july3test3 (ID: 161, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test3_terraform/terraform.tfstate
+
+Workspace: july3test3 (ID: 162, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test3_terraform/terraform.tfstate
+
+Workspace: july3test4 (ID: 163, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test4_terraform/terraform.tfstate
+
+Workspace: july3test4 (ID: 164, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test4_terraform/terraform.tfstate
+
+Workspace: july3test5 (ID: 165, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july3test5_terraform/terraform.tfstate
+
+Workspace: july11test5 (ID: 172, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/july11test5_terraform/terraform.tfstate
+
+Workspace: pranjalitest (ID: 175, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/pranjalitest_terraform/terraform.tfstate
+
+Workspace: popin (ID: 183, User: 3) - Reason: terraform.tfstate not found in terraform-workspaces-user-3/popin_terraform/terraform.tfstate
+
+Workspace: sp (ID: 51, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/sp_terraform/terraform.tfstate
+
+Workspace: shreyas (ID: 62, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyas_terraform/terraform.tfstate
+
+Workspace: shreyastest (ID: 63, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyastest_terraform/terraform.tfstate
+
+Workspace: spshreyas (ID: 64, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/spshreyas_terraform/terraform.tfstate
+
+Workspace: spshreyas (ID: 65, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/spshreyas_terraform/terraform.tfstate
+
+Workspace: spshreyas (ID: 66, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/spshreyas_terraform/terraform.tfstate
+
+Workspace: shreyaspatil (ID: 67, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyaspatil_terraform/terraform.tfstate
+
+Workspace: shreyasdone (ID: 68, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyasdone_terraform/terraform.tfstate
+
+Workspace: end (ID: 69, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/end_1_terraform/terraform.tfstate
+
+Workspace: shreyasend (ID: 70, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyasend_terraform/terraform.tfstate
+
+Workspace: startshreyas (ID: 71, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/startshreyas_terraform/terraform.tfstate
+
+Workspace: design (ID: 73, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/design_terraform/terraform.tfstate
+
+Workspace: design (ID: 74, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/design_1_terraform/terraform.tfstate
+
+Workspace: design (ID: 75, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/design_2_terraform/terraform.tfstate
+
+Workspace: design (ID: 76, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/design_3_terraform/terraform.tfstate
+
+Workspace: abc (ID: 81, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/abc_1_terraform/terraform.tfstate
+
+Workspace: qwer (ID: 82, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/qwer_terraform/terraform.tfstate
+
+Workspace: qwerty (ID: 83, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/qwerty_terraform/terraform.tfstate
+
+Workspace: xyz (ID: 85, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/xyz_terraform/terraform.tfstate
+
+Workspace: new (ID: 86, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/new_1_terraform/terraform.tfstate
+
+Workspace: rag (ID: 106, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/rag_terraform/terraform.tfstate
+
+Workspace:  (ID: 111, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/_terraform/terraform.tfstate
+
+Workspace: capital_hub (ID: 112, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/capital_hub_terraform/terraform.tfstate
+
+Workspace: s3buckettesting (ID: 119, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/s3buckettesting_terraform/terraform.tfstate
+
+Workspace: shreyass3testing (ID: 120, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyass3testing_terraform/terraform.tfstate
+
+Workspace: bucketshreyaspatil (ID: 122, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/bucketshreyaspatil_terraform/terraform.tfstate
+
+Workspace: s3buckettestshreyas (ID: 123, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/s3buckettestshreyas_terraform/terraform.tfstate
+
+Workspace: buckets3test123 (ID: 124, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/buckets3test123_terraform/terraform.tfstate
+
+Workspace: testec2instancelocally (ID: 125, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/testec2instancelocally_terraform/terraform.tfstate
+
+Workspace: s3buckettestlocally (ID: 126, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/s3buckettestlocally_terraform/terraform.tfstate
+
+Workspace: sebucktestt (ID: 127, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/sebucktestt_terraform/terraform.tfstate
+
+Workspace: ec2testtloc (ID: 128, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/ec2testtloc_terraform/terraform.tfstate
+
+Workspace: sebuckete5june (ID: 129, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/sebuckete5june_terraform/terraform.tfstate
+
+Workspace: ec2localplay (ID: 130, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/ec2localplay_terraform/terraform.tfstate
+
+Workspace: shreyassp (ID: 150, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/shreyassp_terraform/terraform.tfstate
+
+Workspace: rdstest12345 (ID: 166, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/rdstest12345_terraform/terraform.tfstate
+
+Workspace: rdstest12345 (ID: 167, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/rdstest12345_terraform/terraform.tfstate
+
+Workspace: july11test1 (ID: 168, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/july11test1_terraform/terraform.tfstate
+
+Workspace: july11test2 (ID: 169, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/july11test2_terraform/terraform.tfstate
+
+Workspace: july17test3 (ID: 180, User: 5) - Reason: terraform.tfstate not found in terraform-workspaces-user-5/july17test3_terraform/terraform.tfstate
+
+Workspace: test (ID: 91, User: 8) - Reason: terraform.tfstate not found in terraform-workspaces-user-8/test_terraform/terraform.tfstate
+
+Workspace: demo (ID: 92, User: 8) - Reason: terraform.tfstate not found in terraform-workspaces-user-8/demo_terraform/terraform.tfstate
+
+Workspace: ec2Test (ID: 93, User: 8) - Reason: terraform.tfstate not found in terraform-workspaces-user-8/ec2Test_terraform/terraform.tfstate
+
+Workspace: roadiestest (ID: 94, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+
+STDERR:
+
+Error: Reference to undeclared resource
+
+  on main.tf line 4, in resource "aws_instance" "roadiestest_ec2":
+   4:   subnet_id             = aws_subnet.roadiestest_public_subnet.id
+
+A managed resource "aws_subnet" "roadiestest_public_subnet" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 5, in resource "aws_instance" "roadiestest_ec2":
+   5:   vpc_security_group_ids = [aws_security_group.roadiestest_sg.id]
+
+A managed resource "aws_security_group" "roadiestest_sg" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 6, in resource "aws_instance" "roadiestest_ec2":
+   6:   iam_instance_profile   = aws_iam_instance_profile.roadiestest_instance_profile.name
+
+A managed resource "aws_iam_instance_profile" "roadiestest_instance_profile"
+has not been declared in the root module.
+
+--------------
+
+Workspace: rds_optimization (ID: 95, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+
+STDERR:
+
+Error: Reference to undeclared resource
+
+  on main.tf line 8, in resource "aws_db_instance" "rds_optimization_rds_instance":
+   8:   db_subnet_group_name    = aws_db_subnet_group.rds_optimization_rds_subnet_group.name
+
+A managed resource "aws_db_subnet_group" "rds_optimization_rds_subnet_group"
+has not been declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 9, in resource "aws_db_instance" "rds_optimization_rds_instance":
+   9:   vpc_security_group_ids  = [aws_security_group.rds_optimization_rds_security_group.id]
+
+A managed resource "aws_security_group" "rds_optimization_rds_security_group"
+has not been declared in the root module.
+
+--------------
+
+Workspace: testing2ec2 (ID: 49, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+
+STDERR:
+
+Error: Unsupported argument
+
+  on main.tf line 107, in resource "aws_instance" "testing2ec2_ec2":
+ 107:   security_group_ids    = [aws_security_group.testing2ec2_sg.id]
+
+An argument named "security_group_ids" is not expected here.
+
+--------------
+
+Workspace: bugfix (ID: 101, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: 4057f0c0-abc5-4267-9621-40e5057d5fe3, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: pulse (ID: 55, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: bb5b095a-dde2-4451-8f5c-48b24dd377f7, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: ec2gosuper (ID: 57, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: afa8fc7f-5037-4abc-bb86-1241b11c1124, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: clouvixdemo (ID: 110, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+
+STDERR:
+
+Error: Reference to undeclared resource
+
+  on main.tf line 5, in resource "aws_instance" "clouvixdemo_ec2":
+   5:   subnet_id         = aws_subnet.clouvixdemo_public_subnet.id
+
+A managed resource "aws_subnet" "clouvixdemo_public_subnet" has not been
+declared in the root module.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 6, in resource "aws_instance" "clouvixdemo_ec2":
+   6:   vpc_security_group_ids = [aws_security_group.clouvixdemo_sg.id]
+
+A managed resource "aws_security_group" "clouvixdemo_sg" has not been
+declared in the root module.
+
+--------------
+
+Workspace: clouvixroute53 (ID: 116, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: 8643b53d-8b49-4f7d-b8af-f536fd56af37, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: ec2testlocal (ID: 135, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: 4bdb8a43-c4f9-4d40-a5cc-a6da7ff789f7, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: june6ec2test3 (ID: 139, User: 3) - Reason: Terraform execution error.
+--- Output ---
+TERRAFORM_PLAN_FAILED
+STDOUT:
+
+Planning failed. Terraform encountered an error while generating this plan.
+
+
+
+STDERR:
+
+Error: Retrieving AWS account details: validating provider credentials: retrieving caller identity from STS: operation error STS: GetCallerIdentity, https response error StatusCode: 403, RequestID: f3066362-2c9e-465f-8496-57a7130ac039, api error InvalidClientTokenId: The security token included in the request is invalid.
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 1, in provider "aws":
+   1: provider "aws" {
+
+
+--------------
+
+Workspace: migration4 (ID: 190, User: 3) - Reason: Terraform execution error.
+--- Output ---
+Terraform Init Failed:
+
+Error: Failed to install provider
+
+Error while installing hashicorp/aws v6.5.0: failed to remove existing
+F:/Clouvix/backend/websockets-fastapi/temp_drift/terraform-workspaces-user-3/migration4_terraform/.terraform-plugin-cache/registry.terraform.io/hashicorp/aws/6.5.0/windows_amd64
+before linking it to
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.5.0/windows_amd64:
+remove
+.terraform/providers/registry.terraform.io/hashicorp/aws/6.5.0/windows_amd64\terraform-provider-aws_v6.5.0_x5.exe:
+Access is denied.
+
+--------------

@@ -31,7 +31,7 @@ os.makedirs(TEMP_DIR, exist_ok=True)
 
 
 
-def get_aws_credentials_from_db(user_id: int = 3) -> tuple[str, str]:
+def get_aws_credentials_from_db(user_id: int) -> tuple[str, str]:
     """
     Fetch AWS credentials from the database for a given user.
     
@@ -1325,15 +1325,134 @@ def get_aws_resource_type_from_arn(arn: str) -> str:
             inferred_type = resource_part.split(':')[0]
         else:
             inferred_type = resource_part
-
-        # You can map custom inferred types if needed
+        
         fallback_mapping = {
-            'function': 'aws_lambda_function',
+            # EC2
             'instance': 'aws_instance',
-            'bucket': 'aws_s3_bucket'
-            # Extend if needed
-        }
+            'volume': 'aws_ebs_volume',
+            'vpc': 'aws_vpc',
+            'subnet': 'aws_subnet',
+            'security-group': 'aws_security_group',
+            'key-pair': 'aws_key_pair',
+            'image': 'aws_ami',
+            'snapshot': 'aws_ebs_snapshot',
+            'network-interface': 'aws_network_interface',
+            'route-table': 'aws_route_table',
+            'internet-gateway': 'aws_internet_gateway',
 
+            #S3 bucket
+            'bucket': 'aws_s3_bucket',
+
+            # RDS
+            'db': 'aws_db_instance',
+            'cluster': 'aws_rds_cluster',
+            'db-cluster': 'aws_rds_cluster',
+            'db-instance': 'aws_db_instance',
+            'db-snapshot': 'aws_db_snapshot',
+
+            # Lambda
+            'function': 'aws_lambda_function',
+
+            # IAM
+            'role': 'aws_iam_role',
+            'user': 'aws_iam_user',
+            'policy': 'aws_iam_policy',
+
+            # DynamoDB
+            'table': 'aws_dynamodb_table',
+
+            # SNS / SQS
+            'topic': 'aws_sns_topic',
+            'queue': 'aws_sqs_queue',
+
+            # CloudFormation
+            'stack': 'aws_cloudformation_stack',
+
+            # CloudWatch
+            'alarm': 'aws_cloudwatch_metric_alarm',
+
+            # Logs
+            'log-group': 'aws_cloudwatch_log_group',
+
+            # SecretsManager / SSM / KMS
+            'secret': 'aws_secretsmanager_secret',
+            'parameter': 'aws_ssm_parameter',
+            'key': 'aws_kms_key',
+
+            # API Gateway
+            'restapis': 'aws_api_gateway_rest_api',
+            'rest-api': 'aws_api_gateway_rest_api',
+
+            # CloudFront / EFS / Elasticache / Redshift
+            'distribution': 'aws_cloudfront_distribution',
+            'file-system': 'aws_efs_file_system',
+            'cluster': 'aws_elasticache_cluster',  # also used for redshift and emr
+            'cache-cluster': 'aws_elasticache_cluster',
+            'redshift-cluster': 'aws_redshift_cluster',
+
+            # Auto Scaling
+            'autoScalingGroup': 'aws_autoscaling_group',
+
+            # Route53
+            'hostedzone': 'aws_route53_zone',
+
+            # ELB
+            'loadbalancer': 'aws_elb',  # classic
+            'targetgroup': 'aws_lb_target_group',  # used in elbv2
+
+            # SageMaker
+            'notebook-instance': 'aws_sagemaker_notebook_instance',
+            'model': 'aws_sagemaker_model',
+            'endpoint': 'aws_sagemaker_endpoint',
+            'endpoint-config': 'aws_sagemaker_endpoint_configuration',
+            'training-job': 'aws_sagemaker_training_job',
+
+            # EKS / ECS / ECR
+            'eks-cluster': 'aws_eks_cluster',
+            'nodegroup': 'aws_eks_node_group',
+            'ecs-cluster': 'aws_ecs_cluster',
+            'service': 'aws_ecs_service',
+            'task': 'aws_ecs_task',
+            'repository': 'aws_ecr_repository',
+
+            # Athena / Glue
+            'workgroup': 'aws_athena_workgroup',
+            'glue-database': 'aws_glue_catalog_database',
+            'glue-table': 'aws_glue_catalog_table',
+            'crawler': 'aws_glue_crawler',
+            'job': 'aws_glue_job',
+
+            # EMR
+            'emr-cluster': 'aws_emr_cluster',
+
+            # Beanstalk
+            'application': 'aws_elastic_beanstalk_application',
+            'environment': 'aws_elastic_beanstalk_environment',
+
+            # AppSync
+            'graphqlApi': 'aws_appsync_graphql_api',
+
+            # Step Functions
+            'stateMachine': 'aws_sfn_state_machine',
+
+            # EventBridge
+            'rule': 'aws_cloudwatch_event_rule',
+
+            # GuardDuty / Macie / Inspector / SecurityHub
+            'detector': 'aws_guardduty_detector',
+            'classification-job': 'aws_macie2_classification_job',
+            'assessment-template': 'aws_inspector_assessment_template',
+            'hub': 'aws_securityhub_hub',
+
+            # AWS Config
+            'configuration-recorder': 'aws_config_configuration_recorder',
+
+            # Budgets
+            'budget': 'aws_budgets_budget',
+
+            # Cost Explorer (not importable but listable)
+            'cost-and-usage': 'aws_ce_cost_category'
+        }
         return fallback_mapping.get(inferred_type)
 
 
@@ -1395,21 +1514,125 @@ def run_terraform_import_for_arn(main_tf_path: str, arn: str) -> str:
 
 def get_import_id(resource_type: str, arn: str) -> str:
     """
-    Determines the correct import ID for Terraform import based on the resource type.
-    """
-    if resource_type == "aws_s3_bucket":
-        return arn.split("/")[-1] if "/" in arn else arn.split(":")[-1] 
-        print(arn) # S3 bucket name only
-    elif resource_type == "aws_instance":
-        return arn.split("/")[-1]  # EC2 instance ID
-    elif resource_type == "aws_lambda_function":
-        return arn.split(":")[-1]  # Lambda function name
-    elif resource_type == "aws_db_instance":
-        return arn.split(":")[-1]  # RDS instance ID
-    # Add more special cases as needed...
+    Determines the correct import ID for a Terraform resource based on its type and ARN.
 
-    # Default fallback (use full ARN)
-    return arn
+    Terraform requires a specific ID format for the `import` command, which often
+    differs from the full resource ARN. This function contains a mapping of
+    resource types to functions that extract the correct ID.
+
+    Args:
+        resource_type (str): The Terraform resource type (e.g., 'aws_instance').
+        arn (str): The full AWS ARN of the resource.
+
+    Returns:
+        str: The calculated import ID suitable for the `terraform import` command.
+             Returns the full ARN as a fallback if the type is not recognized.
+    """
+    if not resource_type:
+        # Fallback if resource type couldn't be determined
+        return arn
+
+    # A dictionary mapping Terraform resource types to a lambda function
+    # that extracts the correct import ID from the ARN parts.
+    ARN_IMPORT_ID_EXTRACTORS = {
+        # --- EC2 ---
+        'aws_instance': lambda parts, res: res.split('/')[-1],
+        'aws_vpc': lambda parts, res: res.split('/')[-1],
+        'aws_subnet': lambda parts, res: res.split('/')[-1],
+        'aws_security_group': lambda parts, res: res.split('/')[-1],
+        'aws_route_table': lambda parts, res: res.split('/')[-1],
+        'aws_internet_gateway': lambda parts, res: res.split('/')[-1],
+        'aws_key_pair': lambda parts, res: res.split('/')[-1],
+        'aws_ebs_volume': lambda parts, res: res.split('/')[-1],
+        'aws_ebs_snapshot': lambda parts, res: res.split('/')[-1],
+        'aws_network_interface': lambda parts, res: res.split('/')[-1],
+        'aws_ami': lambda parts, res: res.split('/')[-1],
+
+        # --- S3 ---
+        'aws_s3_bucket': lambda parts, res: res, # The resource part is the bucket name
+
+        # --- IAM ---
+        'aws_iam_role': lambda parts, res: res.split('/')[-1],
+        'aws_iam_user': lambda parts, res: res.split('/')[-1],
+        'aws_iam_group': lambda parts, res: res.split('/')[-1],
+        'aws_iam_policy': lambda parts, res: ':'.join(parts), # Requires full ARN
+
+        # --- Lambda, RDS, DynamoDB ---
+        'aws_lambda_function': lambda parts, res: res,
+        'aws_rds_cluster': lambda parts, res: res.split(':')[-1],
+        'aws_db_instance': lambda parts, res: res.split(':')[-1],
+        'aws_dynamodb_table': lambda parts, res: res.split('/')[-1],
+
+        # --- Networking & Content Delivery ---
+        'aws_route53_zone': lambda parts, res: res.split('/')[-1],
+        'aws_cloudfront_distribution': lambda parts, res: res.split('/')[-1],
+        'aws_elb': lambda parts, res: res.split('/')[-1], # Classic ELB
+        'aws_lb': lambda parts, res: ':'.join(parts), # v2 Load Balancers (ALB/NLB) use ARN
+        'aws_lb_target_group': lambda parts, res: ':'.join(parts), # Target Groups use ARN
+
+        # --- Containers (ECS, ECR, EKS) ---
+        'aws_ecr_repository': lambda parts, res: res.split('/')[-1],
+        'aws_ecs_cluster': lambda parts, res: res.split('/')[-1],
+        'aws_ecs_service': lambda parts, res: res, # Import ID is "cluster_name/service_name"
+        'aws_eks_cluster': lambda parts, res: res.split('/')[-1],
+
+        # --- Storage & Databases ---
+        'aws_efs_file_system': lambda parts, res: res.split('/')[-1],
+        'aws_elasticache_cluster': lambda parts, res: res.split(':')[-1],
+        'aws_redshift_cluster': lambda parts, res: res.split(':')[-1],
+
+        # --- Management & Governance ---
+        'aws_cloudformation_stack': lambda parts, res: res.split('/')[1],
+        'aws_cloudwatch_log_group': lambda parts, res: res.split(':')[-1],
+        'aws_cloudwatch_metric_alarm': lambda parts, res: res.split(':')[-1],
+        'aws_autoscaling_group': lambda parts, res: res.split(':')[-1].split('/')[-1],
+        'aws_config_configuration_recorder': lambda parts, res: res.split('/')[-1],
+        'aws_budgets_budget': lambda parts, res: f"{parts[4]}:{res.split(':')[-1]}", # "account_id:budget_name"
+
+        # --- Security, Identity, & Compliance ---
+        'aws_kms_key': lambda parts, res: res.split('/')[-1],
+        'aws_secretsmanager_secret': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_guardduty_detector': lambda parts, res: res.split('/')[-1],
+        'aws_inspector_assessment_template': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_securityhub_hub': lambda parts, res: res.split('/')[-1],
+        'aws_macie2_classification_job': lambda parts, res: res.split('/')[-1],
+
+        # --- Analytics ---
+        'aws_glue_crawler': lambda parts, res: res.split('/')[-1],
+        'aws_glue_job': lambda parts, res: res.split('/')[-1],
+        'aws_athena_workgroup': lambda parts, res: res.split('/')[-1],
+        'aws_emr_cluster': lambda parts, res: res.split('/')[-1],
+
+        # --- Application Integration ---
+        'aws_sqs_queue': lambda parts, res: res, # The resource part is the queue name
+        'aws_sns_topic': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_stepfunctions_state_machine': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_apigateway_rest_api': lambda parts, res: res.split('/')[-1],
+        'aws_appsync_graphql_api': lambda parts, res: res.split('/')[-1],
+        'aws_cloudwatch_event_rule': lambda parts, res: res.split('/')[-1],
+
+        # --- Developer Tools & Beanstalk ---
+        'aws_elastic_beanstalk_application': lambda parts, res: res,
+        'aws_elastic_beanstalk_environment': lambda parts, res: res,
+    }
+
+    # Split the ARN into its components
+    parts = arn.split(':')
+    if len(parts) < 6:
+        return arn  # Return the original string if it's not a valid ARN
+
+    resource_part = parts[5]
+
+    # Find the extractor function for the given resource type
+    extractor = ARN_IMPORT_ID_EXTRACTORS.get(resource_type)
+
+    if extractor:
+        return extractor(parts, resource_part)
+    else:
+        # As a safe default, return the full ARN. Some resources use it, and
+        # for others, it will provide a clear error message during import.
+        print(f"⚠️ Warning: No specific import ID rule for '{resource_type}'. Defaulting to full ARN.")
+        return arn
 
 
 
