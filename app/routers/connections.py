@@ -5,9 +5,10 @@ from app.auth.utils import SECRET_KEY, ALGORITHM
 from app.database import get_db
 from app.models.connection import Connection
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import json
 from fastapi.security import OAuth2PasswordBearer
+import uuid
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -25,17 +26,18 @@ class CredentialRequest(BaseModel):
     bucketName: str
     variables: List[CredentialVariable]
 
-# Save credentials
+class S3RemoteStateRequest(BaseModel):
+    bucket_name: str
+    region: str
+    prefix: Optional[str] = ""
+    connection_name: Optional[str] = "Terraform Remote State"
+
 @router.post("")
 async def save_credentials(
     request: CredentialRequest,
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme) # pass in your OAuth2 scheme here
+    token: str = Depends(oauth2_scheme)
 ):
-    from fastapi.security import OAuth2PasswordBearer
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-    token = await oauth2_scheme() if token is None else token
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("id")
@@ -63,17 +65,12 @@ async def save_credentials(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving credentials: {str(e)}")
 
-# Get credentials
 @router.get("/{serviceId}")
 async def get_connections(
     serviceId: str,
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme)  # pass in your OAuth2 scheme here
+    token: str = Depends(oauth2_scheme)
 ):
-    from fastapi.security import OAuth2PasswordBearer
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-    token = await oauth2_scheme() if token is None else token
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("id")
@@ -102,7 +99,6 @@ async def update_credentials(
     token: str = Depends(oauth2_scheme)
 ):
     try:
-        # Decode JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("id")
         if not user_id:
@@ -111,7 +107,6 @@ async def update_credentials(
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
     try:
-        # Look for the existing connection
         connection = db.query(Connection).filter(
             Connection.userid == user_id,
             Connection.type == serviceId
@@ -123,7 +118,6 @@ async def update_credentials(
                 detail=f"No existing credentials found for service ID '{serviceId}'"
             )
 
-        # Update fields
         connection.connection_bucket_name = request.bucketName
         connection.connection_json = json.dumps([var.dict() for var in request.variables])
 
@@ -139,114 +133,51 @@ async def update_credentials(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating credentials: {str(e)}")
 
-# class ConnectionWithRegionRequest(BaseModel):
-#     serviceId: str
-#     bucketName: str
-#     variables: List[CredentialVariable]
-#     resourceExplorerRegion: str
+@router.post("/s3-remote-state")
+async def create_s3_remote_state_connection(
+    request: S3RemoteStateRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
-# # Endpoint 1: Create connection with resource explorer region
-# @router.post("/createregion")
-# async def create_connection_with_region(
-#     request: ConnectionWithRegionRequest,
-#     db: Session = Depends(get_db),
-#     token: str = Depends(oauth2_scheme)
-# ):
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_id = payload.get("id")
-#         if not user_id:
-#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
-#     except JWTError as e:
-#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+    existing = db.query(Connection).filter_by(
+        userid=user_id,
+        type="aws_s3_remote_state",
+        connection_bucket_name=request.connection_name
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="S3 remote state connection already exists with this name.")
 
-#     new_connection = Connection(
-#         userid=user_id,
-#         type=request.serviceId,
-#         connection_bucket_name=request.bucketName,
-#         connection_json=json.dumps([var.dict() for var in request.variables]),
-#         connection_region=request.resourceExplorerRegion
-#     )
+    connection_json = [
+        {"key": "BUCKET_NAME", "value": request.bucket_name},
+        {"key": "AWS_REGION", "value": request.region}
+    ]
+    if request.prefix:
+        connection_json.append({"key": "PREFIX", "value": request.prefix})
 
-#     try:
-#         db.add(new_connection)
-#         db.commit()
-#         db.refresh(new_connection)
-#         return {
-#             "message": "Connection created successfully",
-#             "connection_id": new_connection.connid
-#         }
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail=f"Error creating connection: {str(e)}")
+    new_connection = Connection(
+        connid=str(uuid.uuid4()),
+        userid=user_id,
+        type="aws_s3_remote_state",
+        connection_json=json.dumps(connection_json),
+        connection_bucket_name=request.connection_name
+    )
 
-# #to update existing one
-# class UpdateRegionRequest(BaseModel):
-#     resourceExplorerRegion: str
-
-# @router.put("/update-region/{serviceId}")
-# async def update_resource_explorer_region(
-#     serviceId: str,
-#     region_request: UpdateRegionRequest,
-#     db: Session = Depends(get_db),
-#     token: str = Depends(oauth2_scheme)
-# ):
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_id = payload.get("id")
-#         if not user_id:
-#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
-#     except JWTError as e:
-#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
-
-#     connection = db.query(Connection).filter(
-#         Connection.userid == user_id,
-#         Connection.type == serviceId
-#     ).first()
-
-#     if not connection:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=f"No existing credentials found for service ID '{serviceId}'"
-#         )
-
-#     try:
-#         connection.connection_region = region_request.resourceExplorerRegion
-#         db.commit()
-#         db.refresh(connection)
-#         return {
-#             "message": f"Resource Explorer Region updated successfully for service ID '{serviceId}'",
-#             "connection_id": connection.connid
-#         }
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(status_code=500, detail=f"Error updating resource explorer region: {str(e)}")
-
-# @router.get("/region/{serviceId}")
-# async def get_resource_explorer_region(
-#     serviceId: str,
-#     db: Session = Depends(get_db),
-#     token: str = Depends(oauth2_scheme)
-# ):
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         user_id = payload.get("id")
-#         if not user_id:
-#             raise HTTPException(status_code=401, detail="Invalid token: No user ID found")
-#     except JWTError as e:
-#         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
-
-#     connection = db.query(Connection).filter(
-#         Connection.userid == user_id,
-#         Connection.type == serviceId
-#     ).first()
-
-#     if not connection:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=f"No existing connection found for service ID '{serviceId}'"
-#         )
-
-#     return {
-#         "resourceExplorerRegion": getattr(connection, "connection_region", None)
-#     }
+    try:
+        db.add(new_connection)
+        db.commit()
+        db.refresh(new_connection)
+        return {
+            "message": "✅ S3 remote state connection saved successfully",
+            "connection_id": new_connection.connid
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error saving connection: {str(e)}")
