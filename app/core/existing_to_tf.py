@@ -368,6 +368,7 @@ class DynamicAWSResourceInspector:
         # Enhanced special handling for services
         self.special_handlers = {
             's3': self._handle_s3,
+            'lambda': self._handle_lambda,
             'sns': self._handle_sns,
             'sqs': self._handle_sqs,
             'iam': self._handle_iam,
@@ -405,7 +406,7 @@ class DynamicAWSResourceInspector:
     def parse_arn(self, arn):
         """Parse ARN into components"""
         try:
-            parts = arn.split(':')
+            parts = arn.split(':',5)
             if len(parts) < 6:
                 return None
             
@@ -560,6 +561,48 @@ class DynamicAWSResourceInspector:
             result = self.call_operation_safely(client, op_name, **params)
             details[op_name] = result
         
+        return details
+
+    def _handle_lambda(self, client, resource_info):
+        """Special handler for AWS Lambda functions"""
+        function_name = resource_info['id']
+        details = {}
+
+        # The full ARN is required for many related API calls
+        # We get it from the main get_resource_details method's initial parsing
+        arn_info = self.parse_arn(resource_info.get('full_arn'))
+        if not arn_info:
+            # Fallback if the full ARN isn't passed in resource_info
+            # This requires an extra API call and might fail if permissions are missing
+            try:
+                account_id = self.session.client('sts').get_caller_identity().get('Account')
+                function_arn = f"arn:aws:lambda:{self.region}:{account_id}:function:{function_name}"
+            except Exception as e:
+                details['arn_construction_error'] = str(e)
+                function_arn = None # Cannot proceed with ARN-based calls
+        else:
+            function_arn = arn_info['full_arn']
+
+
+        # List of operations to try for the Lambda function
+        lambda_operations = [
+            ('get_function', {'FunctionName': function_name}),
+            ('get_policy', {'FunctionName': function_name}),
+            ('list_function_event_invoke_configs', {'FunctionName': function_name}),
+            ('list_event_source_mappings', {'FunctionName': function_name}),
+            ('list_aliases', {'FunctionName': function_name}),
+            ('list_versions_by_function', {'FunctionName': function_name})
+        ]
+
+        # Add operations that require a full ARN
+        if function_arn:
+            lambda_operations.append(('list_tags', {'Resource': function_arn}))
+
+        # Execute all operations
+        for op_name, params in lambda_operations:
+            result = self.call_operation_safely(client, op_name, **params)
+            details[op_name] = result
+
         return details
     
     def _handle_sns(self, client, resource_info):
@@ -1274,14 +1317,9 @@ def generate_terraform_from_resource_details(arns: list[str], inspector: Dynamic
 
         ### 🔒 STRICT INSTRUCTIONS:
         - Only generate a single valid Terraform `resource` block for the AWS resource.
+        - Include provider block that is must needed.
+        - Include comments if necessary.
         - Do **NOT** include:
-        - provider blocks
-        - outputs
-        - data blocks
-        - locals
-        - variable declarations
-        - modules
-        - comments
         - explanations
         - Do **NOT** add default values unless they are explicitly present in the input.
         - Do **NOT** guess or infer missing fields.
@@ -1591,6 +1629,130 @@ def run_terraform_import_for_arn(main_tf_path: str, arn: str) -> str:
 
 
 
+# def get_import_id(resource_type: str, arn: str) -> str:
+#     """
+#     Determines the correct import ID for a Terraform resource based on its type and ARN.
+
+#     Terraform requires a specific ID format for the `import` command, which often
+#     differs from the full resource ARN. This function contains a mapping of
+#     resource types to functions that extract the correct ID.
+
+#     Args:
+#         resource_type (str): The Terraform resource type (e.g., 'aws_instance').
+#         arn (str): The full AWS ARN of the resource.
+
+#     Returns:
+#         str: The calculated import ID suitable for the `terraform import` command.
+#              Returns the full ARN as a fallback if the type is not recognized.
+#     """
+#     if not resource_type:
+#         # Fallback if resource type couldn't be determined
+#         return arn
+
+#     # A dictionary mapping Terraform resource types to a lambda function
+#     # that extracts the correct import ID from the ARN parts.
+#     ARN_IMPORT_ID_EXTRACTORS = {
+#         # --- EC2 ---
+#         'aws_instance': lambda parts, res: res.split('/')[-1],
+#         'aws_vpc': lambda parts, res: res.split('/')[-1],
+#         'aws_subnet': lambda parts, res: res.split('/')[-1],
+#         'aws_security_group': lambda parts, res: res.split('/')[-1],
+#         'aws_route_table': lambda parts, res: res.split('/')[-1],
+#         'aws_internet_gateway': lambda parts, res: res.split('/')[-1],
+#         'aws_key_pair': lambda parts, res: res.split('/')[-1],
+#         'aws_ebs_volume': lambda parts, res: res.split('/')[-1],
+#         'aws_ebs_snapshot': lambda parts, res: res.split('/')[-1],
+#         'aws_network_interface': lambda parts, res: res.split('/')[-1],
+#         'aws_ami': lambda parts, res: res.split('/')[-1],
+
+#         # --- S3 ---
+#         'aws_s3_bucket': lambda parts, res: res, # The resource part is the bucket name
+
+#         # --- IAM ---
+#         'aws_iam_role': lambda parts, res: res.split('/')[-1],
+#         'aws_iam_user': lambda parts, res: res.split('/')[-1],
+#         'aws_iam_group': lambda parts, res: res.split('/')[-1],
+#         'aws_iam_policy': lambda parts, res: ':'.join(parts), # Requires full ARN
+
+#         # --- Lambda, RDS, DynamoDB ---
+#         'aws_lambda_function': lambda parts, res: res.split(':')[-1],
+#         'aws_rds_cluster': lambda parts, res: res.split(':')[-1],
+#         'aws_db_instance': lambda parts, res: res.split(':')[-1],
+#         'aws_dynamodb_table': lambda parts, res: res.split('/')[-1],
+
+#         # --- Networking & Content Delivery ---
+#         'aws_route53_zone': lambda parts, res: res.split('/')[-1],
+#         'aws_cloudfront_distribution': lambda parts, res: res.split('/')[-1],
+#         'aws_elb': lambda parts, res: res.split('/')[-1], # Classic ELB
+#         'aws_lb': lambda parts, res: ':'.join(parts), # v2 Load Balancers (ALB/NLB) use ARN
+#         'aws_lb_target_group': lambda parts, res: ':'.join(parts), # Target Groups use ARN
+
+#         # --- Containers (ECS, ECR, EKS) ---
+#         'aws_ecr_repository': lambda parts, res: res.split('/')[-1],
+#         'aws_ecs_cluster': lambda parts, res: res.split('/')[-1],
+#         'aws_ecs_service': lambda parts, res: res, # Import ID is "cluster_name/service_name"
+#         'aws_eks_cluster': lambda parts, res: res.split('/')[-1],
+
+#         # --- Storage & Databases ---
+#         'aws_efs_file_system': lambda parts, res: res.split('/')[-1],
+#         'aws_elasticache_cluster': lambda parts, res: res.split(':')[-1],
+#         'aws_redshift_cluster': lambda parts, res: res.split(':')[-1],
+
+#         # --- Management & Governance ---
+#         'aws_cloudformation_stack': lambda parts, res: res.split('/')[1],
+#         'aws_cloudwatch_log_group': lambda parts, res: res.split(':')[-1],
+#         'aws_cloudwatch_metric_alarm': lambda parts, res: res.split(':')[-1],
+#         'aws_autoscaling_group': lambda parts, res: res.split(':')[-1].split('/')[-1],
+#         'aws_config_configuration_recorder': lambda parts, res: res.split('/')[-1],
+#         'aws_budgets_budget': lambda parts, res: f"{parts[4]}:{res.split(':')[-1]}", # "account_id:budget_name"
+
+#         # --- Security, Identity, & Compliance ---
+#         'aws_kms_key': lambda parts, res: res.split('/')[-1],
+#         'aws_secretsmanager_secret': lambda parts, res: ':'.join(parts), # Uses ARN
+#         'aws_guardduty_detector': lambda parts, res: res.split('/')[-1],
+#         'aws_inspector_assessment_template': lambda parts, res: ':'.join(parts), # Uses ARN
+#         'aws_securityhub_hub': lambda parts, res: res.split('/')[-1],
+#         'aws_macie2_classification_job': lambda parts, res: res.split('/')[-1],
+
+#         # --- Analytics ---
+#         'aws_glue_crawler': lambda parts, res: res.split('/')[-1],
+#         'aws_glue_job': lambda parts, res: res.split('/')[-1],
+#         'aws_athena_workgroup': lambda parts, res: res.split('/')[-1],
+#         'aws_emr_cluster': lambda parts, res: res.split('/')[-1],
+
+#         # --- Application Integration ---
+#         'aws_sqs_queue': lambda parts, res: res, # The resource part is the queue name
+#         'aws_sns_topic': lambda parts, res: ':'.join(parts), # Uses ARN
+#         'aws_stepfunctions_state_machine': lambda parts, res: ':'.join(parts), # Uses ARN
+#         'aws_apigateway_rest_api': lambda parts, res: res.split('/')[-1],
+#         'aws_appsync_graphql_api': lambda parts, res: res.split('/')[-1],
+#         'aws_cloudwatch_event_rule': lambda parts, res: res.split('/')[-1],
+
+#         # --- Developer Tools & Beanstalk ---
+#         'aws_elastic_beanstalk_application': lambda parts, res: res,
+#         'aws_elastic_beanstalk_environment': lambda parts, res: res,
+#     }
+
+#     # Split the ARN into its components
+#     parts = arn.split(':')
+#     if len(parts) < 6:
+#         return arn  # Return the original string if it's not a valid ARN
+
+#     resource_part = parts[5]
+
+#     # Find the extractor function for the given resource type
+#     extractor = ARN_IMPORT_ID_EXTRACTORS.get(resource_type)
+
+#     if extractor:
+#         return extractor(parts, resource_part)
+#     else:
+#         # As a safe default, return the full ARN. Some resources use it, and
+#         # for others, it will provide a clear error message during import.
+#         print(f"⚠️ Warning: No specific import ID rule for '{resource_type}'. Defaulting to full ARN.")
+#         return arn
+
+
+
 def get_import_id(resource_type: str, arn: str) -> str:
     """
     Determines the correct import ID for a Terraform resource based on its type and ARN.
@@ -1634,10 +1796,10 @@ def get_import_id(resource_type: str, arn: str) -> str:
         'aws_iam_role': lambda parts, res: res.split('/')[-1],
         'aws_iam_user': lambda parts, res: res.split('/')[-1],
         'aws_iam_group': lambda parts, res: res.split('/')[-1],
-        'aws_iam_policy': lambda parts, res: ':'.join(parts), # Requires full ARN
+        'aws_iam_policy': lambda parts, res: arn, # Requires full ARN
 
         # --- Lambda, RDS, DynamoDB ---
-        'aws_lambda_function': lambda parts, res: res,
+        'aws_lambda_function': lambda parts, res: res.split(':')[-1],
         'aws_rds_cluster': lambda parts, res: res.split(':')[-1],
         'aws_db_instance': lambda parts, res: res.split(':')[-1],
         'aws_dynamodb_table': lambda parts, res: res.split('/')[-1],
@@ -1646,8 +1808,8 @@ def get_import_id(resource_type: str, arn: str) -> str:
         'aws_route53_zone': lambda parts, res: res.split('/')[-1],
         'aws_cloudfront_distribution': lambda parts, res: res.split('/')[-1],
         'aws_elb': lambda parts, res: res.split('/')[-1], # Classic ELB
-        'aws_lb': lambda parts, res: ':'.join(parts), # v2 Load Balancers (ALB/NLB) use ARN
-        'aws_lb_target_group': lambda parts, res: ':'.join(parts), # Target Groups use ARN
+        'aws_lb': lambda parts, res: arn, # v2 Load Balancers (ALB/NLB) use ARN
+        'aws_lb_target_group': lambda parts, res: arn, # Target Groups use ARN
 
         # --- Containers (ECS, ECR, EKS) ---
         'aws_ecr_repository': lambda parts, res: res.split('/')[-1],
@@ -1670,9 +1832,9 @@ def get_import_id(resource_type: str, arn: str) -> str:
 
         # --- Security, Identity, & Compliance ---
         'aws_kms_key': lambda parts, res: res.split('/')[-1],
-        'aws_secretsmanager_secret': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_secretsmanager_secret': lambda parts, res: arn, # Uses ARN
         'aws_guardduty_detector': lambda parts, res: res.split('/')[-1],
-        'aws_inspector_assessment_template': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_inspector_assessment_template': lambda parts, res: arn, # Uses ARN
         'aws_securityhub_hub': lambda parts, res: res.split('/')[-1],
         'aws_macie2_classification_job': lambda parts, res: res.split('/')[-1],
 
@@ -1684,8 +1846,8 @@ def get_import_id(resource_type: str, arn: str) -> str:
 
         # --- Application Integration ---
         'aws_sqs_queue': lambda parts, res: res, # The resource part is the queue name
-        'aws_sns_topic': lambda parts, res: ':'.join(parts), # Uses ARN
-        'aws_stepfunctions_state_machine': lambda parts, res: ':'.join(parts), # Uses ARN
+        'aws_sns_topic': lambda parts, res: arn, # Uses ARN
+        'aws_stepfunctions_state_machine': lambda parts, res: arn, # Uses ARN
         'aws_apigateway_rest_api': lambda parts, res: res.split('/')[-1],
         'aws_appsync_graphql_api': lambda parts, res: res.split('/')[-1],
         'aws_cloudwatch_event_rule': lambda parts, res: res.split('/')[-1],
@@ -1695,21 +1857,26 @@ def get_import_id(resource_type: str, arn: str) -> str:
         'aws_elastic_beanstalk_environment': lambda parts, res: res,
     }
 
-    # Split the ARN into its components
-    parts = arn.split(':')
-    if len(parts) < 6:
-        return arn  # Return the original string if it's not a valid ARN
-
-    resource_part = parts[5]
+    # === CORRECTED PARSING LOGIC ===
+    try:
+        # Split the ARN only 5 times to correctly isolate the full resource part
+        arn_components = arn.split(':', 5)
+        resource_part = arn_components[5]
+        # 'parts' now refers to the standard 5-part ARN prefix + the resource part itself
+        parts = arn_components 
+    except IndexError:
+        # Not a standard ARN format, return the original string
+        return arn
+    # ================================
 
     # Find the extractor function for the given resource type
     extractor = ARN_IMPORT_ID_EXTRACTORS.get(resource_type)
 
     if extractor:
+        # The extractor lambda takes the ARN components and the resource_part
         return extractor(parts, resource_part)
     else:
-        # As a safe default, return the full ARN. Some resources use it, and
-        # for others, it will provide a clear error message during import.
+        # As a safe default, return the full ARN.
         print(f"⚠️ Warning: No specific import ID rule for '{resource_type}'. Defaulting to full ARN.")
         return arn
 
