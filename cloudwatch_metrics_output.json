@@ -1,0 +1,105 @@
+{
+  "5": {
+    "arn:aws:s3:::tests3-s3-logs": {},
+    "arn:aws:s3:::tests3-s3": {},
+    "arn:aws:s3:::june12ec2s3-bucket": {},
+    "arn:aws:s3:::s3buckettestingshreyas-s3": {},
+    "arn:aws:s3:::june6test2-s3": {},
+    "arn:aws:ec2:us-east-1:975050343511:instance/i-03cbe328770031fff": {
+      "CPUUtilization": [],
+      "MemoryUtilization": []
+    }
+  },
+  "3": {
+    "arn:aws:ec2:us-east-1:536697269301:instance/i-0be0f815877eca644": {
+      "CPUUtilization": [],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::roadiestest-s3-bucket": {},
+    "arn:aws:rds:us-east-1:536697269301:db:rds-optimization-rds-instance": {
+      "CPUUtilization": [],
+      "FreeableMemory": [],
+      "ReadIOPS": []
+    },
+    "arn:aws:ec2:us-east-1:536697269301:instance/i-0302c48397c8853fb": {
+      "CPUUtilization": [],
+      "MemoryUtilization": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-07afd478d75a74630": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-26 12:29:00+00:00",
+          "Average": 2.3171443178281605,
+          "Maximum": 25.426242895951734,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-02a02c539e76e0090": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-29 12:29:00+00:00",
+          "Average": 0.09184380890591592,
+          "Maximum": 9.5,
+          "Unit": "Percent"
+        },
+        {
+          "Timestamp": "2025-07-30 12:29:00+00:00",
+          "Average": 0.0730653549001687,
+          "Maximum": 2.20338983050849,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::smile-test-bucket": {},
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-080df76d8b01c37de": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-25 12:29:00+00:00",
+          "Average": 2.4526098527104185,
+          "Maximum": 6.562838344299158,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-0f7b896f4ce2f0b92": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-26 12:29:00+00:00",
+          "Average": 1.9071977595208154,
+          "Maximum": 2.818310681230718,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-0500881de5a5f5041": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-25 12:29:00+00:00",
+          "Average": 2.274387291743325,
+          "Maximum": 13.307762861669305,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::test-migration-bucket-clouvix": {}
+  },
+  "7": {
+    "arn:aws:rds:us-east-1:666553928522:db:rds-dev-rds-instance": {
+      "CPUUtilization": [],
+      "FreeableMemory": [],
+      "ReadIOPS": []
+    },
+    "arn:aws:ec2:us-east-1:666553928522:instance/i-065b8d1cc3c029f70": {
+      "CPUUtilization": [],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::s3-dev-bucket-nu7ndd": {},
+    "arn:aws:s3:::s3-dev-bucket-i5nsed": {}
+  }
+}

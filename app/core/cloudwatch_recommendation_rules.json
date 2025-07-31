@@ -1,0 +1,215 @@
+{
+    "EC2": {
+      "CPUUtilization": [
+        {
+          "stat": "Average",
+          "condition": "<=20",
+          "duration": "7d",
+          "recommendation": "Downsize"
+        },
+        {
+          "stat": "Maximum",
+          "condition": ">=80",
+          "duration": "1h",
+          "recommendation": "Upgrade"
+        }
+      ],
+      "MemoryUtilization": [
+        {
+          "stat": "Average",
+          "condition": ">=90",
+          "duration": "1h",
+          "recommendation": "Switch to instance type with more RAM"
+        }
+      ]
+    },
+    "Lambda": {
+      "Invocations": [
+        {
+          "stat": "Sum",
+          "condition": ">=95% of concurrent limit",
+          "duration": "1h",
+          "recommendation": "Request concurrency increase or add provisioned concurrency"
+        }
+      ],
+      "Duration": [
+        {
+          "stat": "Maximum",
+          "condition": ">=90% of timeout",
+          "duration": "3 of 5 executions",
+          "recommendation": "Increase memory allocation or optimize code"
+        }
+      ],
+      "MaxMemoryUsed": [
+        {
+          "stat": "Maximum",
+          "condition": ">=90% of MemorySize",
+          "duration": "1h",
+          "recommendation": "Right-size memory via Power Tuning"
+        }
+      ],
+      "Throttles": [
+        {
+          "stat": "Sum",
+          "condition": ">=1% of invocations",
+          "duration": "1h",
+          "recommendation": "Request concurrency increase or enable provisioned concurrency"
+        }
+      ],
+      "ConcurrentExecutions": [
+        {
+          "stat": "Maximum",
+          "condition": ">=95% of limit",
+          "duration": "1h",
+          "recommendation": "Enable provisioned concurrency"
+        }
+      ]
+    },
+    "EKS": {
+      "Node CPUUtilization": [
+        {
+          "stat": "Average",
+          "condition": ">=80",
+          "duration": "5m",
+          "recommendation": "Scale node group or use larger instance types"
+        }
+      ],
+      "Pod memory usage": [
+        {
+          "stat": "Average",
+          "condition": "Any OOM evictions",
+          "duration": "real-time",
+          "recommendation": "Increase pod memory request/limits"
+        }
+      ],
+      "Pod restart count": [
+        {
+          "stat": "Sum",
+          "condition": ">5 restarts per hour",
+          "duration": "1h",
+          "recommendation": "Investigate errors and adjust resources"
+        }
+      ]
+    },
+    "SQS": {
+      "ApproximateNumberOfMessagesVisible": [
+        {
+          "stat": "Sum",
+          "condition": ">=100 messages for 5 minutes",
+          "duration": "5m",
+          "recommendation": "Increase consumer capacity or parallelization"
+        }
+      ],
+      "ApproximateAgeOfOldestMessage": [
+        {
+          "stat": "Maximum",
+          "condition": ">=300 seconds",
+          "duration": "5m",
+          "recommendation": "Scale up consumers or add processing threads"
+        }
+      ],
+      "ApproximateNumberOfMessagesNotVisible": [
+        {
+          "stat": "Maximum",
+          "condition": ">=Available concurrency",
+          "duration": "5m",
+          "recommendation": "Route to DLQ or increase processing capacity"
+        }
+      ]
+    },
+    "SNS": {
+      "NumberOfNotificationsFailed": [
+        {
+          "stat": "Sum",
+          "condition": ">=5 failures in any 1-minute period",
+          "duration": "1m",
+          "recommendation": "Investigate endpoint health or misconfigured filters"
+        }
+      ],
+      "NumberOfNotificationsFilteredOut": [
+        {
+          "stat": "Sum",
+          "condition": ">=5% of published messages",
+          "duration": "1h",
+          "recommendation": "Review filter policies and message attributes"
+        }
+      ],
+      "SMSMonthToDateSpentUSD": [
+        {
+          "stat": "Sum",
+          "condition": ">=80% of monthly budget",
+          "duration": "monthly",
+          "recommendation": "Adjust spend quota or switch channel"
+        }
+      ]
+    },
+    "RDS": {
+      "CPUUtilization": [
+        {
+          "stat": "Average",
+          "condition": ">=80",
+          "duration": "5m",
+          "recommendation": "Upgrade instance type"
+        }
+      ],
+      "MemoryUsedPercent": [
+        {
+          "stat": "Average",
+          "condition": ">=90",
+          "duration": "5m",
+          "recommendation": "Increase instance memory or scale cluster"
+        }
+      ],
+      "DiskQueueDepth": [
+        {
+          "stat": "Maximum",
+          "condition": ">5 for >5 minutes",
+          "duration": "5m",
+          "recommendation": "Switch to Provisioned IOPS or move to Multi-AZ"
+        }
+      ],
+      "FreeableMemory (MB)": [
+        {
+          "stat": "Minimum",
+          "condition": "<20% of instance memory",
+          "duration": "5m",
+          "recommendation": "Optimize queries or increase instance memory"
+        }
+      ]
+    },
+    "API Gateway": {
+      "Latency (P95)": [
+        {
+          "stat": "Average",
+          "condition": ">=2500 ms over 2 minutes",
+          "duration": "2m",
+          "recommendation": "Enable caching or optimize backend integration"
+        }
+      ],
+      "IntegrationLatency (P95)": [
+        {
+          "stat": "Average",
+          "condition": ">=2500 ms over 2 minutes",
+          "duration": "2m",
+          "recommendation": "Tune Lambda or backend service"
+        }
+      ],
+      "5XXErrorRate": [
+        {
+          "stat": "Sum",
+          "condition": ">=5% of total requests over 1 hour",
+          "duration": "1h",
+          "recommendation": "Investigate service limits or backend issues"
+        }
+      ],
+      "4XXErrorRate": [
+        {
+          "stat": "Sum",
+          "condition": ">=5% of total requests over 1 hour",
+          "duration": "1h",
+          "recommendation": "Validate client request and authentication"
+        }
+      ]
+    }
+  }
+  

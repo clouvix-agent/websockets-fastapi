@@ -1,0 +1,107 @@
+{
+    "EC2": {
+      "ArnPattern": "arn:aws:ec2:[^:]*:[^:]*:instance/(?P<InstanceId>[^:]*)",
+      "metrics": [
+        {
+          "MetricName": "CPUUtilization",
+          "Namespace": "AWS/EC2",
+          "Dimensions": ["InstanceId"],
+          "Statistics": ["Average", "Maximum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "MemoryUtilization",
+          "Namespace": "CWAgent",
+          "Dimensions": ["InstanceId"],
+          "Statistics": ["Average"],
+          "Period": 86400
+        }
+      ]
+    },
+    "Lambda": {
+      "ArnPattern": "arn:aws:lambda:[^:]*:[^:]*:function:(?P<FunctionName>[^:]*)",
+      "metrics": [
+        {
+          "MetricName": "Invocations",
+          "Namespace": "AWS/Lambda",
+          "Dimensions": ["FunctionName"],
+          "Statistics": ["Sum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "Duration",
+          "Namespace": "AWS/Lambda",
+          "Dimensions": ["FunctionName"],
+          "Statistics": ["Average", "Maximum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "Throttles",
+          "Namespace": "AWS/Lambda",
+          "Dimensions": ["FunctionName"],
+          "Statistics": ["Sum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "ConcurrentExecutions",
+          "Namespace": "AWS/Lambda",
+          "Dimensions": ["FunctionName"],
+          "Statistics": ["Maximum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "MaxMemoryUsed",
+          "Namespace": "AWS/Lambda",
+          "Dimensions": ["FunctionName"],
+          "Statistics": ["Maximum"],
+          "Period": 86400
+        }
+      ]
+    },
+    "RDS": {
+      "ArnPattern": "arn:aws:rds:[^:]*:[^:]*:db:(?P<DBInstanceIdentifier>[^:]*)",
+      "metrics": [
+        {
+          "MetricName": "CPUUtilization",
+          "Namespace": "AWS/RDS",
+          "Dimensions": ["DBInstanceIdentifier"],
+          "Statistics": ["Average", "Maximum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "FreeableMemory",
+          "Namespace": "AWS/RDS",
+          "Dimensions": ["DBInstanceIdentifier"],
+          "Statistics": ["Minimum"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "ReadIOPS",
+          "Namespace": "AWS/RDS",
+          "Dimensions": ["DBInstanceIdentifier"],
+          "Statistics": ["Average"],
+          "Period": 86400
+        }
+      ]
+    },
+    "S3": {
+      "ArnPattern": "arn:aws:s3:::(?P<BucketName>[^/]*)",
+      "metrics": [
+        {
+          "MetricName": "NumberOfObjects",
+          "Namespace": "AWS/S3",
+          "Dimensions": ["BucketName", "StorageType"],
+          "Statistics": ["Average"],
+          "Period": 86400
+        },
+        {
+          "MetricName": "BucketSizeBytes",
+          "Namespace": "AWS/S3",
+          "Dimensions": ["BucketName", "StorageType"],
+          "Statistics": ["Average"],
+          "Period": 86400
+        }
+      ]
+    }
+  }
+  
