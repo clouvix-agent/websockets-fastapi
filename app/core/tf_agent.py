@@ -1812,32 +1812,53 @@ def _generate_terraform_hcl(
 
         # === Prompt to guide the LLM ===
         prompt = """
-You are a Terraform code generator. Use the following rules:
-ONLY output valid HCL Terraform code. Never apologize or mention error handling.
-Avoid all explanatory or fallback language.
-Follow below rules compulsorily:
-- Focus on the **Argument Reference** section for required arguments.
-- Add optional arguments only if they're mentioned or implied in the user query.
-- Strictly ignore the **Example Usage** section.
-- From user query and docs, understand the requirement of the user and service interconnections.
-- Take care of roles, policies, networking, IAM, security groups, etc.
-- Return only Terraform HCL code, no explanation.
-- Do not use deprecated input parameters strictly.
-- Assume AWS region is 'us-east-1' unless otherwise stated.
-- Always include provider block.
-- For RDS database terraform code always take engine version as "8.0.mysql_aurora.3.08.1" .
-- For RDS Database terraform code always first creates subnets and then uses that subnets in the RDS database resource.
-- Follow the connections in services_json.
-- Use unique resource names derived from the project name.
-- While creating the terraform code for any resource checks its stable recent versions. Like for database resource check its latest version and use it.
-- Ensure all required IAM roles, policies, and connectivity resources are included.
-        """
+                You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
+
+                **CORE DIRECTIVES (NON-NEGOTIABLE):**
+                1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
+                2.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
+                3.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
+                4.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
+                5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
+                6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
+                7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
+
+
+                **RESOURCE CONFIGURATION RULES:**
+                1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
+                    - Example: `tags = { Name = "main-vpc", Project = "my-awesome-app", ManagedBy = "Terraform" }`
+                2.  **Resource Naming:** Use the `project_name` as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "my_project_vpc" {}`).
+                3.  **User Variables & Comments:** For any values that a user is likely to customize (e.g., `instance_type`, CIDR blocks, specific AMI IDs), add a prominent comment on the same line.
+                    - Example: `instance_type = "t3.micro" # USER_VARIABLE: You can change the instance size here.`
+                4.  **Outputs:** For critical resources, generate `output` blocks. This is essential for resources like EC2 instance public IPs, RDS endpoint addresses, S3 bucket names, and Load Balancer DNS names.
+
+                **SERVICE-SPECIFIC INSTRUCTIONS:**
+                1.  **EC2 Instances:**
+                    - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+                    - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
+                2.  **RDS Databases:**
+                    - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
+                    - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
+                    - **Credentials:** Do not hardcode `username` and `password`. Use a comment to instruct the user to use a secrets management solution. Example: `# IMPORTANT: Do not hardcode credentials. Use Terraform variables or a secrets manager.`
+                3.  **IAM (CRITICAL):**
+                    - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
+                    - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
+
+                **INPUT INTERPRETATION:**
+                - **User Query:** This is the primary goal.
+                - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
+                - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
+                """
 
         context = f"User Request: {query}\n\n"
 
         if project_name:
-            context += f"Project Name: {project_name}\n"
-            context += f"- Use the project name `{project_name}` for naming resources.\n\n"
+            context += f"Architecture JSON:\n{json.dumps(services_json, indent=2)}\n\n"
+            context += (
+                "IMPORTANT: Use the connections defined in the JSON to properly link services "
+                "(e.g., IAM permissions, networking, security groups, triggers, etc.).\n"
+                f"Use the project name '{project_name}' to generate unique and consistent resource names and tags.\n\n"
+            )
 
         # === Append all documentation ===
         if ec2_docs:
@@ -1897,21 +1918,131 @@ Follow below rules compulsorily:
 
 
 
+# def validate_terraform_with_openai(terraform_code, architecture_json):
+#     """ Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
+#     The function will loop 3 times to progressively refine the code."""
+#     try:
+#         # Ensure architecture_json is a dictionary
+#         if isinstance(architecture_json, str):
+#             try:
+#                 architecture_json = json.loads(architecture_json)
+#             except json.JSONDecodeError:
+#                 print("Error parsing architecture_json as JSON string")
+#                 return terraform_code
+                
+#         services = architecture_json.get("services", [])
+#         connections = architecture_json.get("connections", [])
+
+#         # Convert services and connections to dict if they're not already
+#         services_dict = []
+#         for service in services:
+#             if hasattr(service, 'dict'):
+#                 services_dict.append(service.dict())
+#             elif isinstance(service, dict):
+#                 services_dict.append(service)
+#             else:
+#                 services_dict.append(str(service))
+
+#         connections_dict = []
+#         for conn in connections:
+#             if hasattr(conn, 'dict'):
+#                 connections_dict.append(conn.dict())
+#             elif isinstance(conn, dict):
+#                 connections_dict.append(conn)
+#             else:
+#                 connections_dict.append(str(conn))
+
+#         llm = ChatOpenAI(model="gpt-4o", temperature=0.1, api_key=OPENAI_API_KEY)
+#         max_validations = 3
+#         current_code = terraform_code
+#         for i in range(max_validations):
+#             print(f"🔎 Starting Validation Loop: Iteration {i + 1}/{max_validations}")
+#         messages = [
+#             SystemMessage(content="You are a senior DevOps engineer specializing in Terraform. Validate the configuration for production-ready deployment, checking syntax, dependencies, security, and best practices. Confirm it can execute `terraform apply` successfully without errors or additional manual steps.."),
+#             HumanMessage(content=f"""
+#             The user wants to deploy the following AWS infrastructure:
+
+#             **Services:**
+#             ```json
+#             {json.dumps(services_dict, indent=2)}
+#             ```
+
+#             **Connections:**
+#             ```json
+#             {json.dumps(connections_dict, indent=2)}
+#             ```
+#             Check if each connection is being handled properly, including IAM roles, policies, security groups, and networking for connecting required services.
+#             Check if user run terraform apply then it should able to apply in one go . So validate the terraform code in deep and make sure it is correct and complete.
+#             **Terraform Configuration:**
+#             ```hcl
+#             {terraform_code}
+#             ```
+
+#             **Validation Request:**
+#             - Does this Terraform file achieve the user's intended goal?
+#             - If yes, return the entire Terraform file as is.
+#             - If no, update it to align with the user's infrastructure requirements and return the complete corrected Terraform configuration.
+#             - Ensure: Do NOT include function code, Docker image URLs, or any deployment-related configuration.
+#             - The response should only contain valid Terraform HCL code, without explanations.
+#             """)
+#         ]
+
+#         response = llm.invoke(messages)
+#         validated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+#         print("🔎 Running OpenAI validation for missing connections...")
+#         messages = [
+#             SystemMessage(content="You are an expert Terraform engineer. Validate that the Terraform file includes all required service connections."),
+#             HumanMessage(content=f"""
+#             The user wants the following service connections:
+
+#             **Connections:**
+#             ```json
+#             {json.dumps(connections_dict, indent=2)}
+#             ```
+
+#             **Current Terraform Configuration:**
+#             ```hcl
+#             {validated_code}
+#             ```
+
+#             **Validation Request:**
+#             - Ensure all the required connections between services are properly handled in the Terraform file.
+#             - If any connection is missing, **ONLY add the missing connection** (e.g., security groups, IAM roles, networking rules, etc.).
+#             - **DO NOT remove or modify any existing connections**.
+#             - If all required connections are already present, return the Terraform file as it is.
+#             - The response should contain only the entire valid Terraform HCL file without explanations.
+#             """)
+#         ]
+
+#         response = llm.invoke(messages)
+#         final_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+#         return final_code
+
+#     except Exception as e:
+#         print(f"Error in validate_terraform_with_openai: {e}")
+#         return terraform_code  # Return original code if validation fails
+
+
 def validate_terraform_with_openai(terraform_code, architecture_json):
-    """Validate and fix Terraform code using OpenAI."""
+    """
+    Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
+    The function will loop 3 times to progressively refine the code.
+    """
     try:
-        # Ensure architecture_json is a dictionary
+        # --- Data Preparation (Restored from your original code) ---
         if isinstance(architecture_json, str):
             try:
                 architecture_json = json.loads(architecture_json)
             except json.JSONDecodeError:
                 print("Error parsing architecture_json as JSON string")
                 return terraform_code
-                
+        
         services = architecture_json.get("services", [])
         connections = architecture_json.get("connections", [])
 
-        # Convert services and connections to dict if they're not already
+        # Convert services to a dictionary list
         services_dict = []
         for service in services:
             if hasattr(service, 'dict'):
@@ -1921,6 +2052,7 @@ def validate_terraform_with_openai(terraform_code, architecture_json):
             else:
                 services_dict.append(str(service))
 
+        # Convert connections to a dictionary list
         connections_dict = []
         for conn in connections:
             if hasattr(conn, 'dict'):
@@ -1930,48 +2062,69 @@ def validate_terraform_with_openai(terraform_code, architecture_json):
             else:
                 connections_dict.append(str(conn))
 
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.1, api_key=OPENAI_API_KEY)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.0, api_key=OPENAI_API_KEY)
+        
+        # --- New Iterative Validation Loop ---
+        max_validations = 3
+        current_code = terraform_code
+        
+        for i in range(max_validations):
+            print(f"🔎 Starting Validation Loop: Iteration {i + 1}/{max_validations}")
 
-        messages = [
-            SystemMessage(content="You are a senior DevOps engineer specializing in Terraform. Validate the configuration for production-ready deployment, checking syntax, dependencies, security, and best practices. Confirm it can execute `terraform apply` successfully without errors or additional manual steps.."),
-            HumanMessage(content=f"""
-            The user wants to deploy the following AWS infrastructure:
+            # === STAGE 1: Deep Validation and Correction Prompt ===
+            system_prompt_1 = """
+You are an automated Terraform validation and correction engine. Your single purpose is to meticulously analyze, correct, and finalize a given Terraform configuration to guarantee it passes `terraform apply` on the first attempt without any errors.
 
-            **Services:**
+**YOUR CORRECTION CHECKLIST (NON-NEGOTIABLE):**
+1.  **Fix All Syntax Errors:** Correct any and all HCL syntax violations, including missing brackets, incorrect operators, or invalid expressions.
+2.  **Replace Deprecated Arguments:** Identify and replace any deprecated resource arguments or attributes with their modern equivalents. For example, if you see `security_groups` used with a `subnet_id` on an `aws_instance`, you MUST replace it with `vpc_security_group_ids`.
+3.  **Resolve Logical Errors & Dependencies:** Add missing `depends_on` attributes where implicit dependency is not enough. Correct invalid resource references. Ensure the order of resources is logical for creation.
+4.  **Ensure Completeness:** Add any missing mandatory resources required for the configuration to be functional (e.g., an `aws_internet_gateway` and `aws_route_table` for a public EC2 instance).
+5.  **Adhere to Best Practices:** Ensure the code follows modern security and AWS best practices, including the principle of least privilege for IAM policies.
+
+**RESPONSE FORMAT:**
+- If the code is already perfect, return it unchanged.
+- If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code.
+- DO NOT include explanations, apologies, or any text outside of the HCL code.
+"""
+            
+            human_message_1 = f"""
+            **Architecture to Achieve:**
             ```json
-            {json.dumps(services_dict, indent=2)}
+            {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
             ```
 
-            **Connections:**
-            ```json
-            {json.dumps(connections_dict, indent=2)}
-            ```
-            Check if each connection is being handled properly, including IAM roles, policies, security groups, and networking for connecting required services.
-            Check if user run terraform apply then it should able to apply in one go . So validate the terraform code in deep and make sure it is correct and complete.
-            **Terraform Configuration:**
+            **Terraform Code to Validate and Fix:**
             ```hcl
-            {terraform_code}
+            {current_code}
             ```
+            Please perform a strict validation and correction on the code above based on all your rules. The final output must be perfect and ready for an immediate `terraform apply`.
+            """
+            
+            messages_1 = [
+                SystemMessage(content=system_prompt_1),
+                HumanMessage(content=human_message_1)
+            ]
 
-            **Validation Request:**
-            - Does this Terraform file achieve the user's intended goal?
-            - If yes, return the entire Terraform file as is.
-            - If no, update it to align with the user's infrastructure requirements and return the complete corrected Terraform configuration.
-            - Ensure: Do NOT include function code, Docker image URLs, or any deployment-related configuration.
-            - The response should only contain valid Terraform HCL code, without explanations.
-            """)
-        ]
+            response_1 = llm.invoke(messages_1)
+            validated_code = re.sub(r"```hcl|```", "", response_1.content.strip()).strip()
+            print(f"  [Iteration {i + 1}] Stage 1 (Correction) Complete.")
 
-        response = llm.invoke(messages)
-        validated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+            # === STAGE 2: Connection Integrity Check ===
+            system_prompt_2 = """
+You are an expert Terraform connection validator. Your task is to ensure a Terraform file correctly implements all required service-to-service connections as defined in a JSON object.
 
-        print("🔎 Running OpenAI validation for missing connections...")
-        messages = [
-            SystemMessage(content="You are an expert Terraform engineer. Validate that the Terraform file includes all required service connections."),
-            HumanMessage(content=f"""
-            The user wants the following service connections:
+**VALIDATION RULES:**
+1.  **Check Connections:** Review the `connections` JSON and verify that each link is correctly implemented in the Terraform code (e.g., via security group rules, IAM policies, subnet associations, etc.).
+2.  **Add Missing Connections Only:** If a connection is missing, add the necessary, syntactically correct resource or attribute to fix it.
+3.  **Do Not Modify Other Code:** Do not remove or change any other part of the configuration that is not directly related to fixing a missing connection.
+4.  If all connections are present, return the file as is.
 
-            **Connections:**
+**RESPONSE FORMAT:**
+- Return ONLY the complete, valid Terraform HCL file. No explanations.
+"""
+            human_message_2 = f"""
+            **Required Connections:**
             ```json
             {json.dumps(connections_dict, indent=2)}
             ```
@@ -1980,25 +2133,28 @@ def validate_terraform_with_openai(terraform_code, architecture_json):
             ```hcl
             {validated_code}
             ```
+            Please validate that all required service connections are implemented. Add any missing connection logic and return the complete file.
+            """
+            
+            messages_2 = [
+                SystemMessage(content=system_prompt_2),
+                HumanMessage(content=human_message_2)
+            ]
 
-            **Validation Request:**
-            - Ensure all the required connections between services are properly handled in the Terraform file.
-            - If any connection is missing, **ONLY add the missing connection** (e.g., security groups, IAM roles, networking rules, etc.).
-            - **DO NOT remove or modify any existing connections**.
-            - If all required connections are already present, return the Terraform file as it is.
-            - The response should contain only the entire valid Terraform HCL file without explanations.
-            """)
-        ]
+            response_2 = llm.invoke(messages_2)
+            final_code_for_iteration = re.sub(r"```hcl|```", "", response_2.content.strip()).strip()
+            
+            # Prepare for the next loop by updating the code to be validated.
+            current_code = final_code_for_iteration
+            print(f"  [Iteration {i + 1}] Stage 2 (Connections) Complete.")
 
-        response = llm.invoke(messages)
-        final_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
-
-        return final_code
+        # After the loop, `current_code` holds the final, thrice-validated code.
+        print("✅ Validation process complete.")
+        return current_code
 
     except Exception as e:
-        print(f"Error in validate_terraform_with_openai: {e}")
+        print(f"❌ Error during the validation loop: {e}")
         return terraform_code  # Return original code if validation fails
-
 
 # def _create_services_summary(services_json: dict) -> str:
 #     """Create a human-readable summary of the services and connections."""
