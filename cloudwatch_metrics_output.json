@@ -15,7 +15,7 @@
       "CPUUtilization": [],
       "MemoryUtilization": []
     },
-    "arn:aws:s3:::roadiestest-s3-bucket": {},
+    "arn:aws:s3:::terraform-20250731133123231900000001": {},
     "arn:aws:rds:us-east-1:536697269301:db:rds-optimization-rds-instance": {
       "CPUUtilization": [],
       "FreeableMemory": [],
@@ -28,47 +28,96 @@
     "arn:aws:ec2:us-east-1:010909987020:instance/i-07afd478d75a74630": {
       "CPUUtilization": [
         {
-          "Timestamp": "2025-07-26 12:29:00+00:00",
-          "Average": 2.3171443178281605,
+          "Timestamp": "2025-07-25 16:27:00+00:00",
+          "Average": 2.3297216332785777,
           "Maximum": 25.426242895951734,
-          "Unit": "Percent"
-        }
-      ],
-      "MemoryUtilization": []
-    },
-    "arn:aws:ec2:us-east-1:010909987020:instance/i-02a02c539e76e0090": {
-      "CPUUtilization": [
-        {
-          "Timestamp": "2025-07-29 12:29:00+00:00",
-          "Average": 0.09184380890591592,
-          "Maximum": 9.5,
           "Unit": "Percent"
         },
         {
-          "Timestamp": "2025-07-30 12:29:00+00:00",
-          "Average": 0.0730653549001687,
-          "Maximum": 2.20338983050849,
+          "Timestamp": "2025-07-26 16:27:00+00:00",
+          "Average": 2.2260845539671434,
+          "Maximum": 2.3833333333333337,
           "Unit": "Percent"
         }
       ],
       "MemoryUtilization": []
     },
     "arn:aws:s3:::smile-test-bucket": {},
-    "arn:aws:ec2:us-east-1:010909987020:instance/i-080df76d8b01c37de": {
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-02a02c539e76e0090": {
       "CPUUtilization": [
         {
-          "Timestamp": "2025-07-25 12:29:00+00:00",
-          "Average": 2.4526098527104185,
-          "Maximum": 6.562838344299158,
+          "Timestamp": "2025-07-29 16:28:00+00:00",
+          "Average": 0.09039165272662336,
+          "Maximum": 9.5,
+          "Unit": "Percent"
+        },
+        {
+          "Timestamp": "2025-07-30 16:28:00+00:00",
+          "Average": 0.07092429491148484,
+          "Maximum": 2.16666666666666,
           "Unit": "Percent"
         }
       ],
       "MemoryUtilization": []
     },
+    "arn:aws:s3:::july30test7-bucket": {},
+    "arn:aws:lambda:us-east-1:010909987020:function:myfuncshreyastest": {
+      "Invocations": [],
+      "Duration": [],
+      "Throttles": [],
+      "ConcurrentExecutions": [],
+      "MaxMemoryUsed": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-07f517338fe5d7bff": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-29 16:28:00+00:00",
+          "Average": 0.18347232603735772,
+          "Maximum": 0.338983050847459,
+          "Unit": "Percent"
+        },
+        {
+          "Timestamp": "2025-07-30 16:28:00+00:00",
+          "Average": 0.1906180869056735,
+          "Maximum": 13.1147540983607,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::roadiestest-s3-bucket": {},
+    "arn:aws:s3:::terraform-20250731125755684300000001": {},
+    "arn:aws:s3:::shreyastest31": {},
+    "arn:aws:s3:::testshreyastest": {},
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-07337d5a05e7c050f": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-30 16:28:00+00:00",
+          "Average": 0.2105634311509854,
+          "Maximum": 5.229968470046544,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-011e637448126ed1e": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-30 16:28:00+00:00",
+          "Average": 0.2822890429911584,
+          "Maximum": 38.8524590163934,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    },
+    "arn:aws:s3:::terraform-20250731132709635100000001": {},
+    "arn:aws:s3:::test-migration-bucket-clouvix": {},
+    "arn:aws:s3:::terraform-20250731130747459600000001": {},
     "arn:aws:ec2:us-east-1:010909987020:instance/i-0f7b896f4ce2f0b92": {
       "CPUUtilization": [
         {
-          "Timestamp": "2025-07-26 12:29:00+00:00",
+          "Timestamp": "2025-07-25 16:28:00+00:00",
           "Average": 1.9071977595208154,
           "Maximum": 2.818310681230718,
           "Unit": "Percent"
@@ -79,7 +128,7 @@
     "arn:aws:ec2:us-east-1:010909987020:instance/i-0500881de5a5f5041": {
       "CPUUtilization": [
         {
-          "Timestamp": "2025-07-25 12:29:00+00:00",
+          "Timestamp": "2025-07-25 16:28:00+00:00",
           "Average": 2.274387291743325,
           "Maximum": 13.307762861669305,
           "Unit": "Percent"
@@ -87,7 +136,18 @@
       ],
       "MemoryUtilization": []
     },
-    "arn:aws:s3:::test-migration-bucket-clouvix": {}
+    "arn:aws:s3:::terraform-20250731135558485100000001": {},
+    "arn:aws:ec2:us-east-1:010909987020:instance/i-080df76d8b01c37de": {
+      "CPUUtilization": [
+        {
+          "Timestamp": "2025-07-25 16:29:00+00:00",
+          "Average": 2.4526098527104185,
+          "Maximum": 6.562838344299158,
+          "Unit": "Percent"
+        }
+      ],
+      "MemoryUtilization": []
+    }
   },
   "7": {
     "arn:aws:rds:us-east-1:666553928522:db:rds-dev-rds-instance": {

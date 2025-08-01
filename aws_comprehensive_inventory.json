@@ -22,6 +22,36 @@
             "ACL": [
                 {
                     "Grantee": {
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "migrations3testing",
+            "CreationDate": "2025-07-31 12:15:06",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "shreyastest31",
+            "CreationDate": "2025-07-31 12:51:02",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -37,6 +67,79 @@
                 {
                     "Grantee": {
                         "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "terraform-20250731125755684300000001",
+            "CreationDate": "2025-07-31 12:57:58",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "terraform-20250731130747459600000001",
+            "CreationDate": "2025-07-31 13:07:50",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "terraform-20250731132709635100000001",
+            "CreationDate": "2025-07-31 13:27:12",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "terraform-20250731133123231900000001",
+            "CreationDate": "2025-07-31 13:31:25",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
+                        "DisplayName": "clouvixdevops",
+                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "Type": "CanonicalUser"
+                    },
+                    "Permission": "FULL_CONTROL"
+                }
+            ]
+        },
+        {
+            "Name": "terraform-20250731135558485100000001",
+            "CreationDate": "2025-07-31 13:56:01",
+            "Location": null,
+            "ACL": [
+                {
+                    "Grantee": {
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -92,33 +195,33 @@
     ],
     "EC2": [
         {
-            "InstanceId": "i-0fdad6670e834c2d9",
+            "InstanceId": "i-03660635190f6b5cf",
             "State": "running",
             "PublicIP": null,
-            "PrivateIP": "10.0.1.186",
-            "InstanceType": "t3.micro",
-            "LaunchTime": "2025-07-31 05:16:24",
+            "PrivateIP": "10.0.1.69",
+            "InstanceType": "t3.large",
+            "LaunchTime": "2025-07-31 17:59:42",
             "Tags": [
+                {
+                    "Key": "Project",
+                    "Value": "vedshreyas"
+                },
                 {
                     "Key": "ManagedBy",
                     "Value": "Terraform"
                 },
                 {
                     "Key": "Name",
-                    "Value": "july31test1-instance"
-                },
-                {
-                    "Key": "Project",
-                    "Value": "july31test1"
+                    "Value": "vedshreyas-ec2"
                 }
             ],
             "SecurityGroups": [
                 {
-                    "GroupId": "sg-0c2f7b5d05cb44c4d",
-                    "GroupName": "terraform-20250731051617878800000001"
+                    "GroupId": "sg-008ad97a05081a363",
+                    "GroupName": "terraform-20250731175935977000000001"
                 }
             ],
-            "CPUUtilization": 0.15834886076345003
+            "CPUUtilization": 0.12668893054078165
         },
         {
             "InstanceId": "i-02a02c539e76e0090",
@@ -139,18 +242,7 @@
                     "GroupName": "terraform-20250729171938849600000001"
                 }
             ],
-            "CPUUtilization": 0.0672696438665874
-        },
-        {
-            "InstanceId": "i-0597eca32bedd2c96",
-            "State": "terminated",
-            "PublicIP": null,
-            "PrivateIP": null,
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-07-31 05:10:04",
-            "Tags": [],
-            "SecurityGroups": [],
-            "CPUUtilization": 2.103721961380981
+            "CPUUtilization": 0.0672316384180752
         },
         {
             "InstanceId": "i-07f517338fe5d7bff",
@@ -171,7 +263,28 @@
                     "GroupName": "default"
                 }
             ],
-            "CPUUtilization": 0.1666666666666666
+            "CPUUtilization": 0.1344632768361694
+        },
+        {
+            "InstanceId": "i-0b0a745d02187bacd",
+            "State": "running",
+            "PublicIP": "3.83.225.13",
+            "PrivateIP": "172.31.81.163",
+            "InstanceType": "t3.2xlarge",
+            "LaunchTime": "2025-07-31 12:12:42",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "migration_ec2"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-0ffe83b6976e6cb62",
+                    "GroupName": "launch-wizard-8"
+                }
+            ],
+            "CPUUtilization": 0.04765558740946933
         },
         {
             "InstanceId": "i-0500881de5a5f5041",
@@ -234,13 +347,75 @@
                     "GroupName": "july30test8-sg"
                 }
             ],
-            "CPUUtilization": 0.06666666666666761
+            "CPUUtilization": 0.0677966101694876
+        },
+        {
+            "InstanceId": "i-07337d5a05e7c050f",
+            "State": "running",
+            "PublicIP": "54.225.40.150",
+            "PrivateIP": "172.31.35.198",
+            "InstanceType": "t3.micro",
+            "LaunchTime": "2025-07-31 13:00:54",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test1234test"
+                }
+            ],
+            "SecurityGroups": [
+                {
+                    "GroupId": "sg-07e5d47566dee5a5b",
+                    "GroupName": "launch-wizard-10"
+                }
+            ],
+            "CPUUtilization": 0.1383167068238143
         }
     ],
     "DynamoDB": [],
     "ECS": [],
-    "RDS": [],
+    "RDS": [
+        {
+            "DBInstanceIdentifier": "vedshreyas-rds",
+            "DBInstanceClass": "db.t3.micro",
+            "Engine": "mysql",
+            "EngineVersion": "8.0.41",
+            "Status": "available",
+            "Endpoint": "vedshreyas-rds.c29ywsyo6yth.us-east-1.rds.amazonaws.com",
+            "AllocatedStorage": 20,
+            "AvailabilityZone": "us-east-1b",
+            "MultiAZ": false,
+            "CPUUtilization": 3.113409066966825
+        }
+    ],
     "ECR": [],
     "EKS": [],
-    "Lambda": []
+    "Lambda": [
+        {
+            "FunctionName": "shreyastest31",
+            "Runtime": "nodejs22.x",
+            "Handler": "index.handler",
+            "MemorySize": 128,
+            "Timeout": 3,
+            "LastModified": "2025-07-31T12:52:02.823+0000",
+            "Environment": null
+        },
+        {
+            "FunctionName": "migration_test",
+            "Runtime": "python3.13",
+            "Handler": "lambda_function.lambda_handler",
+            "MemorySize": 128,
+            "Timeout": 3,
+            "LastModified": "2025-07-31T12:16:16.921+0000",
+            "Environment": null
+        },
+        {
+            "FunctionName": "myfuncshreyastest",
+            "Runtime": "nodejs22.x",
+            "Handler": "index.handler",
+            "MemorySize": 128,
+            "Timeout": 3,
+            "LastModified": "2025-07-31T14:08:06.729+0000",
+            "Environment": null
+        }
+    ]
 }

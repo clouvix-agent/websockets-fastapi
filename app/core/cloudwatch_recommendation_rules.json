@@ -149,7 +149,13 @@
           "stat": "Average",
           "condition": ">=80",
           "duration": "5m",
-          "recommendation": "Upgrade instance type"
+          "recommendation": "Upgrade"
+        },
+        {
+          "stat": "Average",
+          "condition": "<=20",
+          "duration": "5m",
+          "recommendation": "Downsize"
         }
       ],
       "MemoryUsedPercent": [

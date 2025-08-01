@@ -1,0 +1,1964 @@
+[
+  {
+    "instanceType": "db.c6gd.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.908,
+    "sku": "2P9THURBPJ5RQRCJ"
+  },
+  {
+    "instanceType": "db.m4.16xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 11.2,
+    "sku": "2VSZ8JHKSR49CRPP"
+  },
+  {
+    "instanceType": "db.m4.4xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.401,
+    "sku": "22ANV4NNQP3UUCWY"
+  },
+  {
+    "instanceType": "db.m4.large",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.182,
+    "sku": "2BB2TR73QFS5SKTU"
+  },
+  {
+    "instanceType": "db.m4.large",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.175,
+    "sku": "2X8EUSKR59JEJMA3"
+  },
+  {
+    "instanceType": "db.m5.12xlarge",
+    "databaseEngine": "SQL Server (on-premise for Outpost)",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 25.728,
+    "sku": "22E8N6HMR4M7XQBD"
+  },
+  {
+    "instanceType": "db.m5.12xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 7.2,
+    "sku": "266CAY2KWHT99H89"
+  },
+  {
+    "instanceType": "db.m5.16xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 9.6,
+    "sku": "2AD6MGNHG87D4Y7G"
+  },
+  {
+    "instanceType": "db.m5.16xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.696,
+    "sku": "2BC2GKBK53HA34F5"
+  },
+  {
+    "instanceType": "db.m5.24xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.544,
+    "sku": "23E778R3M3XS2Z8T"
+  },
+  {
+    "instanceType": "db.m5.24xlarge",
+    "databaseEngine": "MySQL (on-premise for Outpost)",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 3.6,
+    "sku": "23PJXH9B59Z2HHUM"
+  },
+  {
+    "instanceType": "db.m5.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.821,
+    "sku": "2VBSKSYJTXWTTYEV"
+  },
+  {
+    "instanceType": "db.m5.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 4.8,
+    "sku": "2FVDP6ERX3RPGP76"
+  },
+  {
+    "instanceType": "db.m5.8xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 11.4752,
+    "sku": "2DUVJGGWCAM5G6BY"
+  },
+  {
+    "instanceType": "db.m5.8xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.47,
+    "sku": "2N5S93GW3HV44B6W"
+  },
+  {
+    "instanceType": "db.m5.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 0.6,
+    "sku": "2P4CJH3MH8YVN5D3"
+  },
+  {
+    "instanceType": "db.m5.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.684,
+    "sku": "2B9VU863TKC6PMNU"
+  },
+  {
+    "instanceType": "db.m5.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.821,
+    "sku": "2R5RXXSNG3VHW962"
+  },
+  {
+    "instanceType": "db.m5d.12xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 30.972,
+    "sku": "2PPAWFFVJE9GHFX9"
+  },
+  {
+    "instanceType": "db.m5d.12xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 10.057,
+    "sku": "2UAN6SU76BBPH5MQ"
+  },
+  {
+    "instanceType": "db.m5d.16xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 12.881,
+    "sku": "29EXU6N3R9ME3K8F"
+  },
+  {
+    "instanceType": "db.m5d.24xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 10.057,
+    "sku": "2GF4PVDJDJPY9HPV"
+  },
+  {
+    "instanceType": "db.m5d.24xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 57.3,
+    "sku": "2U2WPFPC5M6V38KU"
+  },
+  {
+    "instanceType": "db.m5d.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 2.388,
+    "sku": "242P5C9BQGC3PEPU"
+  },
+  {
+    "instanceType": "db.m5d.large",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.201,
+    "sku": "2NYABX5RGKWNC9M4"
+  },
+  {
+    "instanceType": "db.m5d.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.805,
+    "sku": "2276USMT8KU9SEAJ"
+  },
+  {
+    "instanceType": "db.m5d.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.403,
+    "sku": "2N4WAJKCWV6DXY5K"
+  },
+  {
+    "instanceType": "db.m6gd.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.747,
+    "sku": "2VC9HC7XSVDB6ENN"
+  },
+  {
+    "instanceType": "db.m6gd.large",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.373,
+    "sku": "2JSECAA8EMNDB9V3"
+  },
+  {
+    "instanceType": "db.m6i.12xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.272,
+    "sku": "25RQCE77UEU3VKEP"
+  },
+  {
+    "instanceType": "db.m6i.12xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.104,
+    "sku": "2VHYBKKPUU642BWK"
+  },
+  {
+    "instanceType": "db.m6i.24xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 8.544,
+    "sku": "2F4M48E85JM6DV8T"
+  },
+  {
+    "instanceType": "db.m6i.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.684,
+    "sku": "29AGQD929JP4XS5Z"
+  },
+  {
+    "instanceType": "db.m6i.32xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 106.51,
+    "sku": "25UJ7RGWKR6PZC34"
+  },
+  {
+    "instanceType": "db.m6i.4xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.736,
+    "sku": "2JREGSYMCH28MFK8"
+  },
+  {
+    "instanceType": "db.m6i.8xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 26.627,
+    "sku": "24D9F28MCV5JJQVM"
+  },
+  {
+    "instanceType": "db.m6i.8xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 18.688,
+    "sku": "2RNNYHWFB8UH4J6U"
+  },
+  {
+    "instanceType": "db.m6i.large",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.342,
+    "sku": "2KD5VK9Q862FUQYW"
+  },
+  {
+    "instanceType": "db.m6i.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 1.954,
+    "sku": "2UCTB7MR2FWD6953"
+  },
+  {
+    "instanceType": "db.m6i.large",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.171,
+    "sku": "2VFJD85YF32CX8M9"
+  },
+  {
+    "instanceType": "db.m6i.xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 2.448,
+    "sku": "25A65BHSWR9FU667"
+  },
+  {
+    "instanceType": "db.m6i.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.684,
+    "sku": "2HBV9KVNRGZUJV7V"
+  },
+  {
+    "instanceType": "db.m6id.24xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 10.761,
+    "sku": "2DN526Y7NE8R4V45"
+  },
+  {
+    "instanceType": "db.m6id.8xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 7.174,
+    "sku": "2QA7M3MMA33BQR66"
+  },
+  {
+    "instanceType": "db.m6id.8xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 3.584,
+    "sku": "2UYVB96842GZC3U4"
+  },
+  {
+    "instanceType": "db.m6id.large",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.448,
+    "sku": "2QDXBD67N5C6RMH4"
+  },
+  {
+    "instanceType": "db.m6idn.16xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 28.32,
+    "sku": "2CSNSHCJ3K5WUT56"
+  },
+  {
+    "instanceType": "db.m6idn.16xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 9.44,
+    "sku": "2PDRKE37EJD83VWM"
+  },
+  {
+    "instanceType": "db.m6idn.4xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.36,
+    "sku": "2G9Z5XGZN4THR8J6"
+  },
+  {
+    "instanceType": "db.m6idn.8xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 9.44,
+    "sku": "22W9449R2GNFE9V4"
+  },
+  {
+    "instanceType": "db.m6idn.8xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 9.44,
+    "sku": "2R9MWBYXY2J6NPST"
+  },
+  {
+    "instanceType": "db.m6idn.xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.18,
+    "sku": "2FPSH95XPZ2WEHBK"
+  },
+  {
+    "instanceType": "db.m6idn.xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.59,
+    "sku": "2GQK86WCR4B2PRST"
+  },
+  {
+    "instanceType": "db.m6in.2xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 2.066,
+    "sku": "27ZCXV3XH27BVHXZ"
+  },
+  {
+    "instanceType": "db.m6in.2xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 1.032,
+    "sku": "2S4RW52GBCN8FKJZ"
+  },
+  {
+    "instanceType": "db.m6in.4xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.066,
+    "sku": "23UJPMVQB978EYSJ"
+  },
+  {
+    "instanceType": "db.m6in.8xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.262,
+    "sku": "27HTMMEGUWN4GQEX"
+  },
+  {
+    "instanceType": "db.m6in.8xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.131,
+    "sku": "29Q9JDSWSGNBBRY2"
+  },
+  {
+    "instanceType": "db.m6in.8xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.131,
+    "sku": "2QMUHQNNP5SAUYVG"
+  },
+  {
+    "instanceType": "db.m6in.8xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.262,
+    "sku": "2VBV4HNUPRGTR8BN"
+  },
+  {
+    "instanceType": "db.m6in.large",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.258,
+    "sku": "2DESP7TDEC43696Z"
+  },
+  {
+    "instanceType": "db.m6in.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.033,
+    "sku": "2KRT235UEAQU8R83"
+  },
+  {
+    "instanceType": "db.m7g.16xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 10.784,
+    "sku": "24M45AT2CC5Z58JC"
+  },
+  {
+    "instanceType": "db.m7i.16xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 11.392,
+    "sku": "23SAW9KSK7EZTN7R"
+  },
+  {
+    "instanceType": "db.m7i.16xlarge",
+    "databaseEngine": "PostgreSQL (on-premise for Outpost)",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.248,
+    "sku": "2DF64TJCQE7FMVB3"
+  },
+  {
+    "instanceType": "db.m7i.16xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 11.392,
+    "sku": "2HEKW8HD9RGP393W"
+  },
+  {
+    "instanceType": "db.m7i.24xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.544,
+    "sku": "2N54V5CAX9YPUZWU"
+  },
+  {
+    "instanceType": "db.m7i.2xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 1.424,
+    "sku": "25CSM7WBC8M3RXTA"
+  },
+  {
+    "instanceType": "db.m7i.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.712,
+    "sku": "2H3YZHZMVWG6Z8YU"
+  },
+  {
+    "instanceType": "db.m7i.2xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 0.712,
+    "sku": "2MKW5DZ963HSMT3H"
+  },
+  {
+    "instanceType": "db.m7i.48xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 34.176,
+    "sku": "2CFUNSNHT32WRFFJ"
+  },
+  {
+    "instanceType": "db.m7i.8xlarge",
+    "databaseEngine": "MySQL (on-premise for Outpost)",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.312,
+    "sku": "22DV6YD7JGWAAX5T"
+  },
+  {
+    "instanceType": "db.m7i.8xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 5.696,
+    "sku": "2RBREAZXWSMVPZR8"
+  },
+  {
+    "instanceType": "db.m7i.large",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 0.178,
+    "sku": "2H3UKMUHYZZM3NPM"
+  },
+  {
+    "instanceType": "db.m8g.2xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.672,
+    "sku": "2BS8Z7FQU5VEQDVW"
+  },
+  {
+    "instanceType": "db.r3.large",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 0.978,
+    "sku": "22KMMQTN726EMD99"
+  },
+  {
+    "instanceType": "db.r3.large",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.48,
+    "sku": "27PXRWSEWF3YQ4SB"
+  },
+  {
+    "instanceType": "db.r4.16xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 16.0,
+    "sku": "2KJGYMGMCKYVGAQX"
+  },
+  {
+    "instanceType": "db.r4.2xlarge",
+    "databaseEngine": "Aurora PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.16,
+    "sku": "2T29JNAWXVKJ4G6Z"
+  },
+  {
+    "instanceType": "db.r4.4xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 3.84,
+    "sku": "22B7QWEU4TMM2JAS"
+  },
+  {
+    "instanceType": "db.r4.large",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.25,
+    "sku": "2NVRQGEJQXVNKESH"
+  },
+  {
+    "instanceType": "db.r4.large",
+    "databaseEngine": "Aurora PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.29,
+    "sku": "2UW5BF6GTAAKC8EW"
+  },
+  {
+    "instanceType": "db.r5.12xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 11.184,
+    "sku": "2798BP27JH22RC49"
+  },
+  {
+    "instanceType": "db.r5.24xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 17.856,
+    "sku": "2CKK3QMQT6JS26YB"
+  },
+  {
+    "instanceType": "db.r5.24xlarge",
+    "databaseEngine": "MySQL (on-premise for Outpost)",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.472,
+    "sku": "2SFE2PUK22Y338AH"
+  },
+  {
+    "instanceType": "db.r5.2xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 2.0,
+    "sku": "2Q6M98WU36CW6JRP"
+  },
+  {
+    "instanceType": "db.r5.4xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 3.84,
+    "sku": "24AZRKNAPZE4TJBB"
+  },
+  {
+    "instanceType": "db.r5.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 2.976,
+    "sku": "2963JQQHD8U7BPF6"
+  },
+  {
+    "instanceType": "db.r5.4xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 3.856,
+    "sku": "2XDTSXXR93HZ3WWT"
+  },
+  {
+    "instanceType": "db.r5.4xlarge.tpc2.mem4x",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 7.456,
+    "sku": "2NZ6FRY8T6AZ9XHG"
+  },
+  {
+    "instanceType": "db.r5.8xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 25.8176,
+    "sku": "2BUBAE5HRKS4AC3W"
+  },
+  {
+    "instanceType": "db.r5.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 1.1832,
+    "sku": "2NCRA8ST4PHV753C"
+  },
+  {
+    "instanceType": "db.r5.large.tpc1.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.466,
+    "sku": "2549S72DBN54CPZW"
+  },
+  {
+    "instanceType": "db.r5.large.tpc1.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.932,
+    "sku": "2WJWAKHJFPJPTCB8"
+  },
+  {
+    "instanceType": "db.r5b.12xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 14.208,
+    "sku": "2F4PT6H54NCW9EVA"
+  },
+  {
+    "instanceType": "db.r5b.12xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 7.104,
+    "sku": "2ND7SUNXWDJRA8SV"
+  },
+  {
+    "instanceType": "db.r5b.12xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 14.208,
+    "sku": "2UCDM3CMUDPDK2ZJ"
+  },
+  {
+    "instanceType": "db.r5b.16xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 61.014,
+    "sku": "2CVQEUBK9VS9FZCB"
+  },
+  {
+    "instanceType": "db.r5b.24xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 38.095,
+    "sku": "25R775F47M5SWE86"
+  },
+  {
+    "instanceType": "db.r5b.24xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 13.231,
+    "sku": "2JNNSP7Q5TQQ4H7F"
+  },
+  {
+    "instanceType": "db.r5b.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.104,
+    "sku": "2BE3R84EYYF2EGWE"
+  },
+  {
+    "instanceType": "db.r5b.2xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 1.672,
+    "sku": "2FJX7NJBVHXKNJJ6"
+  },
+  {
+    "instanceType": "db.r5b.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.184,
+    "sku": "2W87ARJT9Z37J5WE"
+  },
+  {
+    "instanceType": "db.r5b.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 3.344,
+    "sku": "2463785DQ39AGVZ8"
+  },
+  {
+    "instanceType": "db.r5b.4xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.736,
+    "sku": "2N4DNUQ9577YHR4D"
+  },
+  {
+    "instanceType": "db.r5b.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 15.253,
+    "sku": "2NMCRPSWEGATRM58"
+  },
+  {
+    "instanceType": "db.r5b.4xlarge.tpc2.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 4.41,
+    "sku": "2G4UHJ9KPRH67U79"
+  },
+  {
+    "instanceType": "db.r5b.8xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 9.472,
+    "sku": "2UMZFNTPHGWCZW37"
+  },
+  {
+    "instanceType": "db.r5b.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 2.379,
+    "sku": "298WJPA5H2R67XG6"
+  },
+  {
+    "instanceType": "db.r5b.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.551,
+    "sku": "265T3DH55EAMVBHP"
+  },
+  {
+    "instanceType": "db.r5b.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.104,
+    "sku": "2H8P6XG7GA5VS4JT"
+  },
+  {
+    "instanceType": "db.r5b.xlarge.tpc2.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.205,
+    "sku": "2AJF8CCJ2XXCYAWV"
+  },
+  {
+    "instanceType": "db.r5d.16xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 41.018,
+    "sku": "2M5NRT7PRQY9JAFK"
+  },
+  {
+    "instanceType": "db.r5d.16xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 9.143,
+    "sku": "2R6RYVDU48VRT2DH"
+  },
+  {
+    "instanceType": "db.r5d.24xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 38.592,
+    "sku": "2P9VF7NTNTANKV9M"
+  },
+  {
+    "instanceType": "db.r5d.24xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 13.714,
+    "sku": "2T88VJ5ZFAERFNSJ"
+  },
+  {
+    "instanceType": "db.r5d.2xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 6.283,
+    "sku": "2BGCRYY885KKVWGB"
+  },
+  {
+    "instanceType": "db.r5d.4xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.571,
+    "sku": "22CAH59RQKS7CUQY"
+  },
+  {
+    "instanceType": "db.r5d.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 6.283,
+    "sku": "2JBV6RRBR5H5PQK3"
+  },
+  {
+    "instanceType": "db.r5d.8xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 4.261,
+    "sku": "285Z8AYHHJF8X25C"
+  },
+  {
+    "instanceType": "db.r5d.8xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 31.276,
+    "sku": "2GJUUDQ3AA8AKXG9"
+  },
+  {
+    "instanceType": "db.r5d.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 0.532,
+    "sku": "24MHU6XWV3DYFM6Y"
+  },
+  {
+    "instanceType": "db.r5d.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.143,
+    "sku": "2AX2M5NUTR2SG6TB"
+  },
+  {
+    "instanceType": "db.r5d.xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.571,
+    "sku": "2G6ANDMSWBZ824PR"
+  },
+  {
+    "instanceType": "db.r5d.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.608,
+    "sku": "2MJN9D644F9GRBFK"
+  },
+  {
+    "instanceType": "db.r5d.xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.571,
+    "sku": "2NAMG46GF5DC2QHA"
+  },
+  {
+    "instanceType": "db.r6g.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.859,
+    "sku": "22MG58FZRUPY8UDY"
+  },
+  {
+    "instanceType": "db.r6g.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.718,
+    "sku": "2AGBV58MJF2437DD"
+  },
+  {
+    "instanceType": "db.r6g.2xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.038,
+    "sku": "2FQZTQZJ8ZKFVN79"
+  },
+  {
+    "instanceType": "db.r6g.large",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.215,
+    "sku": "2U4TBYX4HYBTA99D"
+  },
+  {
+    "instanceType": "db.r6gd.2xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 2.89,
+    "sku": "2SGEY3FX635AS647"
+  },
+  {
+    "instanceType": "db.r6gd.8xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.114,
+    "sku": "2PMY3RJ225J5WC75"
+  },
+  {
+    "instanceType": "db.r6gd.xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.514,
+    "sku": "2P7QU9ZY7MQBAAAT"
+  },
+  {
+    "instanceType": "db.r6i.12xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 17.856,
+    "sku": "2446F9WBB5AWXQXY"
+  },
+  {
+    "instanceType": "db.r6i.12xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 12.0,
+    "sku": "2Q7VPTEHVWG5D249"
+  },
+  {
+    "instanceType": "db.r6i.16xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 7.456,
+    "sku": "28EM8T4K9KUZ2KK8"
+  },
+  {
+    "instanceType": "db.r6i.16xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 15.36,
+    "sku": "2RGVKU5DJ7C3U8K6"
+  },
+  {
+    "instanceType": "db.r6i.24xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 35.712,
+    "sku": "2D7QSE93AHGAPZ33"
+  },
+  {
+    "instanceType": "db.r6i.24xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 11.52,
+    "sku": "2H9X7YKM4RWRHWES"
+  },
+  {
+    "instanceType": "db.r6i.24xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 24.0,
+    "sku": "2QD4USMJ5XEYP5DP"
+  },
+  {
+    "instanceType": "db.r6i.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.96,
+    "sku": "29E3FWFFR3HR6XQQ"
+  },
+  {
+    "instanceType": "db.r6i.2xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 2.0,
+    "sku": "2QYYGGGEUPEFAACW"
+  },
+  {
+    "instanceType": "db.r6i.2xlarge.tpc1.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.864,
+    "sku": "2QVE2FRZ6AWQTU4Z"
+  },
+  {
+    "instanceType": "db.r6i.32xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 47.616,
+    "sku": "2RV76C9SZV4H33CB"
+  },
+  {
+    "instanceType": "db.r6i.4xlarge.tpc2.mem2x",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 3.728,
+    "sku": "2WK2HK3TCNEZUTG7"
+  },
+  {
+    "instanceType": "db.r6i.8xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 8.0,
+    "sku": "23FSZ4Q3AQ6XY5Q3"
+  },
+  {
+    "instanceType": "db.r6i.8xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.64,
+    "sku": "2UQWZEDD8BKGPK2Z"
+  },
+  {
+    "instanceType": "db.r6i.large",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 0.25,
+    "sku": "2VJPYNEFEWTB4QP6"
+  },
+  {
+    "instanceType": "db.r6i.xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 0.5,
+    "sku": "226YF2WMNRE7P67X"
+  },
+  {
+    "instanceType": "db.r6i.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.932,
+    "sku": "23YZJUADFGQREMU6"
+  },
+  {
+    "instanceType": "db.r6i.xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.96,
+    "sku": "2B49K84PXDXVNJDQ"
+  },
+  {
+    "instanceType": "db.r6id.16xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 19.086,
+    "sku": "2BTZ37DBU42FUU2T"
+  },
+  {
+    "instanceType": "db.r6id.24xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 14.314,
+    "sku": "24DMZ4AX5AQVYP5B"
+  },
+  {
+    "instanceType": "db.r6id.2xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.193,
+    "sku": "2EHEDFEHJRA9UBSN"
+  },
+  {
+    "instanceType": "db.r6id.4xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.384,
+    "sku": "27KBJSV22FCZNZVN"
+  },
+  {
+    "instanceType": "db.r6id.large",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ (readable standbys)",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.895,
+    "sku": "2B57TEE64ZKSKS4K"
+  },
+  {
+    "instanceType": "db.r6idn.2xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.552,
+    "sku": "2W498TJTAHYUEGVS"
+  },
+  {
+    "instanceType": "db.r6idn.32xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 49.62,
+    "sku": "2SW2NJ845Z2UYSVB"
+  },
+  {
+    "instanceType": "db.r6idn.8xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 12.405,
+    "sku": "2DZV2FSE96WC4NBR"
+  },
+  {
+    "instanceType": "db.r6idn.large",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 0.388,
+    "sku": "2DQBEYXB6W3ZBMJU"
+  },
+  {
+    "instanceType": "db.r6in.32xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 44.275,
+    "sku": "26CT97FJ4WBTKQP4"
+  },
+  {
+    "instanceType": "db.r6in.4xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.768,
+    "sku": "2JQ9J2GZ29SQ56ZZ"
+  },
+  {
+    "instanceType": "db.r6in.4xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.534,
+    "sku": "2UBP39MTG9QSFMAB"
+  },
+  {
+    "instanceType": "db.r6in.large",
+    "databaseEngine": "Db2",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.346,
+    "sku": "2KM9SZT8Y659Z3JB"
+  },
+  {
+    "instanceType": "db.r6in.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.692,
+    "sku": "28YEFJCP2YBQNHGD"
+  },
+  {
+    "instanceType": "db.r6in.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.384,
+    "sku": "2EMB6R8YQ3FKDKRA"
+  },
+  {
+    "instanceType": "db.r6in.xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.384,
+    "sku": "2UG2ETMPWQSBQPRV"
+  },
+  {
+    "instanceType": "db.r7g.12xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.623,
+    "sku": "258HS3AJCGPMVJWM"
+  },
+  {
+    "instanceType": "db.r7g.16xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.844,
+    "sku": "2TJEQ5KCQNT97BA8"
+  },
+  {
+    "instanceType": "db.r7g.large",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.478,
+    "sku": "2K57C6GAZJQSX88Z"
+  },
+  {
+    "instanceType": "db.r7g.large",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.478,
+    "sku": "2PYM2DGZDW4MZVA9"
+  },
+  {
+    "instanceType": "db.r7i.12xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 12.0,
+    "sku": "2DAPFZ9MTSU93G9J"
+  },
+  {
+    "instanceType": "db.r7i.16xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 16.0,
+    "sku": "2VRR6Y2X85P9BHMR"
+  },
+  {
+    "instanceType": "db.r7i.24xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 24.0,
+    "sku": "28N3D3N9TGV2MXTU"
+  },
+  {
+    "instanceType": "db.r7i.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.0,
+    "sku": "26NKMCSS2ZXZ5X4H"
+  },
+  {
+    "instanceType": "db.r7i.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 2.0,
+    "sku": "2G4HRY7FB2HQRUWT"
+  },
+  {
+    "instanceType": "db.r7i.2xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 1.0,
+    "sku": "2WGCSE7V8M84RYDU"
+  },
+  {
+    "instanceType": "db.r7i.48xlarge",
+    "databaseEngine": "Aurora PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 36.192,
+    "sku": "2RJQWFXCTR6G45N9"
+  },
+  {
+    "instanceType": "db.r7i.4xlarge",
+    "databaseEngine": "Aurora PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 3.016,
+    "sku": "2B27EQ8N63RAZU5D"
+  },
+  {
+    "instanceType": "db.r7i.4xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.0,
+    "sku": "2VCCESKAR8ZHNS4Y"
+  },
+  {
+    "instanceType": "db.r7i.8xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 4.0,
+    "sku": "2KFRDH23VZC22VCD"
+  },
+  {
+    "instanceType": "db.r7i.8xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 4.0,
+    "sku": "2P36MA78KFZN5HT2"
+  },
+  {
+    "instanceType": "db.r7i.8xlarge",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 8.0,
+    "sku": "2V6DZSF4RBNXA2N7"
+  },
+  {
+    "instanceType": "db.r7i.large",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.5,
+    "sku": "2E6MRZP47363TGBQ"
+  },
+  {
+    "instanceType": "db.r7i.xlarge",
+    "databaseEngine": "MySQL (on-premise for Outpost)",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.248,
+    "sku": "262TUBCCTJNX9X5J"
+  },
+  {
+    "instanceType": "db.r7i.xlarge",
+    "databaseEngine": "Aurora PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.754,
+    "sku": "2B86KJT6MN3ADH25"
+  },
+  {
+    "instanceType": "db.r8g.12xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 11.472,
+    "sku": "2E7BXDMFHNNACBG2"
+  },
+  {
+    "instanceType": "db.r8g.12xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 6.624,
+    "sku": "2W7YJ98TB47PMS8N"
+  },
+  {
+    "instanceType": "db.r8g.16xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 15.296,
+    "sku": "2B4H25H72C5898XF"
+  },
+  {
+    "instanceType": "db.r8g.48xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 22.944,
+    "sku": "2FDEYCS4NQ9AWVZ3"
+  },
+  {
+    "instanceType": "db.r8g.8xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 5.744,
+    "sku": "2DEP6Q3NEHW35KRT"
+  },
+  {
+    "instanceType": "db.r8g.large",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.478,
+    "sku": "2E6CZPKG28ZNMATR"
+  },
+  {
+    "instanceType": "db.t2.micro",
+    "databaseEngine": "MariaDB",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.017,
+    "sku": "24M5TMX6VGEG9PK2"
+  },
+  {
+    "instanceType": "db.t2.micro",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.018,
+    "sku": "2GFSG277C32CNTMM"
+  },
+  {
+    "instanceType": "db.t2.small",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.068,
+    "sku": "2SR95R2XK9GED2KF"
+  },
+  {
+    "instanceType": "db.t3.2xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.088,
+    "sku": "23456WPDQMMG5BJB"
+  },
+  {
+    "instanceType": "db.t3.medium",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 0.068,
+    "sku": "28VBZQEFE6A3833F"
+  },
+  {
+    "instanceType": "db.t3.medium",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.072,
+    "sku": "2V4Z46C2HCZPQCUW"
+  },
+  {
+    "instanceType": "db.t3.micro",
+    "databaseEngine": "MariaDB",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.034,
+    "sku": "2J7ZW7YN7HQR5JTY"
+  },
+  {
+    "instanceType": "db.t3.xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 1.044,
+    "sku": "23Q5PJHJKGSCUVFH"
+  },
+  {
+    "instanceType": "db.t3.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 1.2,
+    "sku": "2EC8SPCZ9YF3EGJU"
+  },
+  {
+    "instanceType": "db.x1e.32xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 44.8358,
+    "sku": "2QJRFZSK952H7ZZZ"
+  },
+  {
+    "instanceType": "db.x1e.xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 5.871,
+    "sku": "2W92ZTMPK5HXW5B4"
+  },
+  {
+    "instanceType": "db.x2g.12xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 9.048,
+    "sku": "2QSJ4J35J9UPSNVX"
+  },
+  {
+    "instanceType": "db.x2g.2xlarge",
+    "databaseEngine": "Aurora MySQL",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 1.508,
+    "sku": "2ABCP6C8729USNVX"
+  },
+  {
+    "instanceType": "db.x2g.xlarge",
+    "databaseEngine": "PostgreSQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 0.652,
+    "sku": "2W55CYP3KP869UBG"
+  },
+  {
+    "instanceType": "db.x2idn.16xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 22.4,
+    "sku": "2MRHJEB7JND94K7S"
+  },
+  {
+    "instanceType": "db.x2idn.32xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 44.8,
+    "sku": "23C9TC5CHQHRYBDV"
+  },
+  {
+    "instanceType": "db.x2iedn.16xlarge",
+    "databaseEngine": "MySQL",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "No license required",
+    "hourlyPriceUSD": 30.432,
+    "sku": "27PKY2MXXUA3BASS"
+  },
+  {
+    "instanceType": "db.x2iedn.16xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 60.864,
+    "sku": "2DD5T2H63H2CCVGJ"
+  },
+  {
+    "instanceType": "db.x2iedn.32xlarge",
+    "databaseEngine": "Db2",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Marketplace",
+    "hourlyPriceUSD": 60.864,
+    "sku": "2CUEX3FUJA6G3HXM"
+  },
+  {
+    "instanceType": "db.x2iedn.4xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "NA",
+    "hourlyPriceUSD": 10.527,
+    "sku": "2H8WPHX2RUE7PDEU"
+  },
+  {
+    "instanceType": "db.x2iedn.8xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 30.432,
+    "sku": "2V2B373YRUZUKYRA"
+  },
+  {
+    "instanceType": "db.x2iedn.xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 3.804,
+    "sku": "2M9YPSYCUV4M3KDQ"
+  },
+  {
+    "instanceType": "db.x2iedn.xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (Ohio)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 6.1006,
+    "sku": "2XCTRHCSYZVTZTR7"
+  },
+  {
+    "instanceType": "db.x2iezn.8xlarge",
+    "databaseEngine": "Oracle",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "Bring your own license",
+    "hourlyPriceUSD": 12.143,
+    "sku": "2HH4RH27CNVZCNBM"
+  },
+  {
+    "instanceType": "db.z1d.12xlarge",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Single-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 20.513,
+    "sku": "234C7ZGQQ62EWCJ8"
+  },
+  {
+    "instanceType": "db.z1d.large",
+    "databaseEngine": "SQL Server",
+    "region": "US East (N. Virginia)",
+    "deploymentOption": "Multi-AZ",
+    "licenseModel": "License included",
+    "hourlyPriceUSD": 2.501,
+    "sku": "2UX6JAZBAHSBW9YU"
+  }
+]

@@ -1822,6 +1822,7 @@ def _generate_terraform_hcl(
                 5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
                 6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
                 7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
+                8.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
 
 
                 **RESOURCE CONFIGURATION RULES:**
@@ -1840,6 +1841,7 @@ def _generate_terraform_hcl(
                     - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
                     - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
                     - **Credentials:** Do not hardcode `username` and `password`. Use a comment to instruct the user to use a secrets management solution. Example: `# IMPORTANT: Do not hardcode credentials. Use Terraform variables or a secrets manager.`
+                    -Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
                 3.  **IAM (CRITICAL):**
                     - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
                     - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
@@ -2081,10 +2083,12 @@ You are an automated Terraform validation and correction engine. Your single pur
 3.  **Resolve Logical Errors & Dependencies:** Add missing `depends_on` attributes where implicit dependency is not enough. Correct invalid resource references. Ensure the order of resources is logical for creation.
 4.  **Ensure Completeness:** Add any missing mandatory resources required for the configuration to be functional (e.g., an `aws_internet_gateway` and `aws_route_table` for a public EC2 instance).
 5.  **Adhere to Best Practices:** Ensure the code follows modern security and AWS best practices, including the principle of least privilege for IAM policies.
+6.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
 
 **RESPONSE FORMAT:**
 - If the code is already perfect, return it unchanged.
 - If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code.
+- If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code in three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions).
 - DO NOT include explanations, apologies, or any text outside of the HCL code.
 """
             
@@ -2119,6 +2123,8 @@ You are an expert Terraform connection validator. Your task is to ensure a Terra
 2.  **Add Missing Connections Only:** If a connection is missing, add the necessary, syntactically correct resource or attribute to fix it.
 3.  **Do Not Modify Other Code:** Do not remove or change any other part of the configuration that is not directly related to fixing a missing connection.
 4.  If all connections are present, return the file as is.
+5.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+6.  When writing Terraform code for AWS resources, always use lowercase letters, numbers, hyphens, underscores, and periods only for resource names and identifiers, as AWS services have strict naming restrictions that don't allow uppercase letters.
 
 **RESPONSE FORMAT:**
 - Return ONLY the complete, valid Terraform HCL file. No explanations.
