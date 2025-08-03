@@ -941,9 +941,9 @@ def main():
                             try:
                                 match = re.search(r"\d*\.*\s*Action:\s*(.+?)\n+\d*\.*\s*Impact:\s*(.+?)\n+\d*\.*\s*Savings:\s*(.+)", llm_text, re.DOTALL | re.IGNORECASE)
                                 if match:
-                                    action_text = {"text": match.group(1).strip()}
-                                    impact_text = {"text": match.group(2).strip()}
-                                    savings_text = {"text": match.group(3).strip()}
+                                    action_text =match.group(1).strip()
+                                    impact_text = match.group(2).strip()
+                                    savings_text = match.group(3).strip()
                             except Exception as e:
                                 print(f"⚠️ Failed to parse LLM response: {e}")
 

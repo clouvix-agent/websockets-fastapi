@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.recommendation import Recommendation
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
-from typing import Optional, Dict
+from typing import Optional
 
 def insert_or_update(
     db: Session,
@@ -10,13 +10,13 @@ def insert_or_update(
     resource_type: str,
     arn: str,
     recommendation_text: str,
-    action: Optional[Dict] = None,
-    impact: Optional[Dict] = None,
-    savings: Optional[Dict] = None
+    action: Optional[str] = None,
+    impact: Optional[str] = None,
+    savings: Optional[str] = None
 ):
     """
     Inserts a new recommendation or updates an existing one based on unique constraint
-    (userid, resource_type, arn). Supports updating action, impact, and savings (all JSON fields).
+    (userid, resource_type, arn). Supports updating action, impact, and savings (as TEXT fields).
     """
     try:
         # Check if recommendation exists

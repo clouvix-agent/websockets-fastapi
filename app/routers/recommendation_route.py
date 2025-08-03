@@ -44,7 +44,6 @@ async def get_recommendations(
                     "resource_type": rec.resource_type,
                     "arn": rec.arn,
                     "recommendation_text": rec.recommendation_text,
-                    "updated_timestamp": rec.updated_timestamp,
                     "action": rec.action,
                     "impact": rec.impact,
                     "savings": rec.savings
