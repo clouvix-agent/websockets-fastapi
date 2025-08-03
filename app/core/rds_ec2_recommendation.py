@@ -12,9 +12,19 @@ from statistics import mean
 # --- Database Imports ---
 from app.database import SessionLocal
 from app.models.infrastructure_inventory import InfrastructureInventory
+from app.db.metrics_collector import create_or_update_metrics
+from app.db.recommendation import insert_or_update
 
-# --- Load Environment and Configuration Files ---
+
+from openai import OpenAI
+
 load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key:
+    openai_client = OpenAI(api_key=openai_api_key)
+else:
+    print("⚠️ OpenAI API key not found. LLM recommendations will be disabled.")
+    openai_client = None
 
 try:
     with open("app/core/cloudwatch_metrics_config.json", 'r') as f:
@@ -529,6 +539,53 @@ RDS_UPSIZE_MAP = {
     "db.x2g.12xlarge": "db.x2g.16xlarge",
 }
 
+
+
+
+
+def generate_llm_recommendation(resource_display_name, instance_type, suggested_instance, cost_hourly, cost_saving, percent_saving):
+    """Generates a concise recommendation using an LLM."""
+    if not openai_client:
+        return "⚠️ LLM client not initialized. Cannot generate recommendation."
+
+    prompt = f"""
+You are a cloud cost optimization advisor.
+The current resource is a {resource_display_name}:
+- Type: {instance_type}
+
+A cost-saving change is recommended:
+- Suggested New Type: {suggested_instance}
+- New Hourly Cost: ${cost_hourly:.4f}
+- Estimated Annual Savings: ${cost_saving:.2f} ({percent_saving:.1f}%)
+
+**CRITICAL**
+-If the pricing data is not available then do not say i do not have have that data , Generate general action, impact and savings.
+-**Do NOT**-use sentence like "but pricing information is not available." instead say a general sentence based on above info.
+
+Generate a brief recommendation with these sections:
+1. Action: The specific change to make.
+2. Impact: Why this change is beneficial.
+3. Savings: The financial benefit.
+
+Be concise and clear. Do not use emojis or markdown formatting.
+"""
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a cloud cost optimization advisor."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=200,
+            temperature=0.5
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"❌ LLM Error: {e}")
+        return f"⚠️ Unable to generate LLM recommendation: {e}"
+
+
+
 def get_boto3_session():
     """Create a boto3 session. Boto3 will automatically find credentials."""
     try:
@@ -806,6 +863,7 @@ def display_results(details, current_pricing, recommendation=None):
         else:
             print(f"  - ⚠️ Estimated Annual Cost Increase: ${abs(annual_savings):,.2f}")
 
+
 def main():
     """Main function to fetch ARNs, get metrics, and provide cost/rightsizing recommendations."""
     try:
@@ -825,25 +883,86 @@ def main():
                 try:
                     print(f"\n🔍 Processing ARN: {arn}")
                     instance_id, region, service_type = extract_instance_info_from_arn(arn)
-                    
+
                     describe_func = describe_ec2_instance if service_type == 'EC2' else describe_rds_instance
                     instance_details = describe_func(instance_id, region, session)
-                    
+
                     current_pricing = get_pricing_info(session, instance_details)
                     if not current_pricing:
                         print(f"  - Skipping {arn} as current pricing could not be determined.")
                         continue
 
                     collected_metrics = get_configured_cloudwatch_metrics(session, region, service_type, instance_id)
+
+                    # ✅ Save to metrics_collection
+                    if collected_metrics:
+                        db = SessionLocal()
+                        try:
+                            create_or_update_metrics(
+                                db=db,
+                                userid=user_id,
+                                arn=arn,
+                                resource_type=service_type,
+                                metrics_data=collected_metrics,
+                                additional_info=instance_details
+                            )
+                        finally:
+                            db.close()
+
+                    # Proceed with recommendation
                     action, new_type = generate_recommendations(instance_details, collected_metrics)
-                    
+
                     recommendation_package = None
                     if action and new_type:
                         new_instance_details = instance_details.copy()
                         new_instance_details['InstanceType'] = new_type
                         new_pricing = get_pricing_info(session, new_instance_details)
+
                         if new_pricing:
                             recommendation_package = (action, new_type, new_pricing)
+
+                            # 💡 LLM Recommendation Generation
+                            current_total_annual = (current_pricing["compute_hourly"] * 24 * 365) + (current_pricing.get("storage_monthly", 0) * 12)
+                            new_total_annual = (new_pricing["compute_hourly"] * 24 * 365) + (new_pricing.get("storage_monthly", 0) * 12)
+                            savings = max(current_total_annual - new_total_annual, 0)
+                            percent_savings = (savings / current_total_annual) * 100 if current_total_annual > 0 else 0
+
+                            llm_text = generate_llm_recommendation(
+                                resource_display_name=f"AWS {service_type}",
+                                instance_type=instance_details["InstanceType"],
+                                suggested_instance=new_type,
+                                cost_hourly=new_pricing["compute_hourly"],
+                                cost_saving=savings,
+                                percent_saving=percent_savings
+                            )
+
+                            
+                            action_text = impact_text = savings_text = None
+                            try:
+                                match = re.search(r"\d*\.*\s*Action:\s*(.+?)\n+\d*\.*\s*Impact:\s*(.+?)\n+\d*\.*\s*Savings:\s*(.+)", llm_text, re.DOTALL | re.IGNORECASE)
+                                if match:
+                                    action_text = {"text": match.group(1).strip()}
+                                    impact_text = {"text": match.group(2).strip()}
+                                    savings_text = {"text": match.group(3).strip()}
+                            except Exception as e:
+                                print(f"⚠️ Failed to parse LLM response: {e}")
+
+
+                            # 📝 Save to recommendation table
+                            db = SessionLocal()
+                            try:
+                                insert_or_update(
+                                    db=db,
+                                    userid=user_id,
+                                    resource_type=service_type,
+                                    arn=arn,
+                                    recommendation_text=llm_text,
+                                    action=action_text,
+                                    impact=impact_text,
+                                    savings=savings_text
+                                )
+                            finally:
+                                db.close()
 
                     display_results(instance_details, current_pricing, recommendation_package)
 
@@ -856,6 +975,7 @@ def main():
         print(f"\n❌ AWS Credentials Error: {e}")
     except Exception as e:
         print(f"\n❌ An unexpected error occurred in the main process: {e}")
+
 
 
 if __name__ == "__main__":

@@ -37,17 +37,22 @@ async def get_recommendations(
             return {"message": "No recommendations found for this user", "recommendations": []}
 
         # Format response
+        
         return {
             "recommendations": [
                 {
                     "resource_type": rec.resource_type,
                     "arn": rec.arn,
                     "recommendation_text": rec.recommendation_text,
-                    "updated_timestamp": rec.updated_timestamp
+                    "updated_timestamp": rec.updated_timestamp,
+                    "action": rec.action,
+                    "impact": rec.impact,
+                    "savings": rec.savings
                 }
                 for rec in recommendations
             ]
         }
+
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching recommendations: {str(e)}")

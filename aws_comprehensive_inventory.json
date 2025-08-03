@@ -22,7 +22,6 @@
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -37,7 +36,6 @@
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -52,6 +50,7 @@
             "ACL": [
                 {
                     "Grantee": {
+                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -81,6 +80,7 @@
             "ACL": [
                 {
                     "Grantee": {
+                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -125,7 +125,6 @@
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
                         "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
                         "Type": "CanonicalUser"
                     },
@@ -195,35 +194,6 @@
     ],
     "EC2": [
         {
-            "InstanceId": "i-03660635190f6b5cf",
-            "State": "running",
-            "PublicIP": null,
-            "PrivateIP": "10.0.1.69",
-            "InstanceType": "t3.large",
-            "LaunchTime": "2025-07-31 17:59:42",
-            "Tags": [
-                {
-                    "Key": "Project",
-                    "Value": "vedshreyas"
-                },
-                {
-                    "Key": "ManagedBy",
-                    "Value": "Terraform"
-                },
-                {
-                    "Key": "Name",
-                    "Value": "vedshreyas-ec2"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-008ad97a05081a363",
-                    "GroupName": "terraform-20250731175935977000000001"
-                }
-            ],
-            "CPUUtilization": 0.12668893054078165
-        },
-        {
             "InstanceId": "i-02a02c539e76e0090",
             "State": "running",
             "PublicIP": null,
@@ -242,7 +212,7 @@
                     "GroupName": "terraform-20250729171938849600000001"
                 }
             ],
-            "CPUUtilization": 0.0672316384180752
+            "CPUUtilization": 0.066666666666663
         },
         {
             "InstanceId": "i-07f517338fe5d7bff",
@@ -263,49 +233,7 @@
                     "GroupName": "default"
                 }
             ],
-            "CPUUtilization": 0.1344632768361694
-        },
-        {
-            "InstanceId": "i-0b0a745d02187bacd",
-            "State": "running",
-            "PublicIP": "3.83.225.13",
-            "PrivateIP": "172.31.81.163",
-            "InstanceType": "t3.2xlarge",
-            "LaunchTime": "2025-07-31 12:12:42",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "migration_ec2"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-0ffe83b6976e6cb62",
-                    "GroupName": "launch-wizard-8"
-                }
-            ],
-            "CPUUtilization": 0.04765558740946933
-        },
-        {
-            "InstanceId": "i-0500881de5a5f5041",
-            "State": "stopped",
-            "PublicIP": null,
-            "PrivateIP": "172.31.27.138",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-26 07:47:47",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "test_migration-clouvix2"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-02a7e966630bef063",
-                    "GroupName": "launch-wizard-3"
-                }
-            ],
-            "CPUUtilization": null
+            "CPUUtilization": 0.16557377049180316
         },
         {
             "InstanceId": "i-080df76d8b01c37de",
@@ -347,7 +275,7 @@
                     "GroupName": "july30test8-sg"
                 }
             ],
-            "CPUUtilization": 0.0677966101694876
+            "CPUUtilization": 0.0672316384180752
         },
         {
             "InstanceId": "i-07337d5a05e7c050f",
@@ -368,7 +296,7 @@
                     "GroupName": "launch-wizard-10"
                 }
             ],
-            "CPUUtilization": 0.1383167068238143
+            "CPUUtilization": 0.1617323886157728
         }
     ],
     "DynamoDB": [],
@@ -384,7 +312,7 @@
             "AllocatedStorage": 20,
             "AvailabilityZone": "us-east-1b",
             "MultiAZ": false,
-            "CPUUtilization": 3.113409066966825
+            "CPUUtilization": 2.9900304455713203
         }
     ],
     "ECR": [],
