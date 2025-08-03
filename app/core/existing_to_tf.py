@@ -1896,75 +1896,12 @@ def clean_terraform_code(raw_code: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-# def import_and_apply_for_resource(main_tf_path: str, arn: str) -> str:
+# def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: int, project_name: str) -> str:
 #     """
-#     Loads an existing .tfstate file (if available), runs `terraform import`, then `terraform apply`.
+#     Imports each resource from ARNs into Terraform state, applies the configuration,
+#     and updates workspace status in the DB if apply is successful.
 #     """
 
-#     working_dir = os.path.dirname(os.path.abspath(main_tf_path)) or os.getcwd()
-#     terraform_tfstate_path = os.path.join(working_dir, "terraform.tfstate")
-
-#     # Read resource type and name from main.tf
-#     with open(main_tf_path, "r") as f:
-#         tf_content = f.read()
-
-#     # Try to detect resource block
-#     match = re.search(r'resource\s+"([\w_]+)"\s+"([\w\-]+)"\s*{', tf_content)
-#     if not match:
-#         return "❌ Could not detect a resource block in main.tf"
-
-#     resource_type, resource_name = match.group(1), match.group(2)
-#     print(f"📦 Found resource: {resource_type}.{resource_name}")
-
-#     # Determine proper import ID
-#     import_id = get_import_id(resource_type, arn)
-#     print(f"📥 Importing with ID: {import_id}")
-
-#     try:
-#         # Run terraform init
-#         print("🔨 Running terraform init...")
-#         subprocess.run(["terraform", "init"], cwd=working_dir, check=True)
-
-#         # Run terraform import
-#         print(f"📥 Running terraform import...")
-#         subprocess.run(
-#             ["terraform", "import", f"{resource_type}.{resource_name}", import_id],
-#             cwd=working_dir,
-#             check=True
-#         )
-
-#         # Run terraform apply
-#         print("🚀 Running terraform apply...")
-#         result = subprocess.run(
-#             ["terraform", "apply", "-auto-approve"],
-#             cwd=working_dir,
-#             capture_output=True,
-#             text=True
-#         )
-
-#         # Success check
-#         if result.returncode == 0:
-#             return f"""✅ Terraform Import & Apply Successful for `{resource_type}.{resource_name}`
-# 📄 State file: `{terraform_tfstate_path}`
-
-# ```bash
-# {result.stdout}
-# ```"""
-#         else:
-#             return f"""❌ Terraform Apply Failed
-# ```bash
-# {result.stderr}
-# ```"""
-
-#     except subprocess.CalledProcessError as e:
-#         return f"❌ Terraform Command Error:\n{e.stderr or str(e)}"
-
-
-
-# def import_and_apply_for_resource(main_tf_path: str, arns: list[str]) -> str:
-#     """
-#     Imports each resource from ARNs into Terraform state and applies the configuration.
-#     """
 #     logs = []
 #     working_dir = os.path.dirname(os.path.abspath(main_tf_path)) or os.getcwd()
 #     terraform_tfstate_path = os.path.join(working_dir, "terraform.tfstate")
@@ -1988,7 +1925,6 @@ def clean_terraform_code(raw_code: str) -> str:
 #         resource_type = get_aws_resource_type_from_arn(arn)
 #         import_id = get_import_id(resource_type, arn)
 
-#         # Dynamically find the matching resource name
 #         pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*{{')
 #         match = pattern.search(tf_content)
 #         if not match:
@@ -2010,7 +1946,7 @@ def clean_terraform_code(raw_code: str) -> str:
 #         except subprocess.CalledProcessError as e:
 #             logs.append(f"❌ Import failed for {resource_type}.{resource_name}\n{e.stderr or str(e)}")
 
-#     # Run terraform apply once after all imports
+#     # Apply Terraform
 #     try:
 #         logs.append("🚀 Running terraform apply...")
 #         apply_proc = subprocess.run(
@@ -2023,6 +1959,35 @@ def clean_terraform_code(raw_code: str) -> str:
 #         if apply_proc.returncode == 0:
 #             logs.append("✅ Terraform Apply Successful")
 #             logs.append(f"```bash\n{apply_proc.stdout}\n```")
+
+#             # ✅ Update DB status only on success
+#             try:
+#                 with get_db_session() as db:
+#                     status_payload = WorkspaceStatusCreate(
+#                         userid=user_id,
+#                         project_name=project_name,
+#                         status=apply_proc.stdout.strip()
+#                     )
+#                     print("📝 Updating workspace status...")
+#                     assert create_or_update_workspace_status(db=db, status_data=status_payload)
+#                     print("✅ Workspace status updated.")
+
+#                     minio_file_path = f"{project_name}_terraform/main.tf"
+#                     # Update Workspace (filelocation to MinIO path)
+            
+#                     workspace_payload = WorkspaceCreate(
+#                             userid=user_id,
+#                             wsname=project_name,
+#                             filetype="terraform",
+#                             filelocation=minio_file_path,
+#                             diagramjson=None
+#                         )
+#                     print("📁 Updating workspace record...")
+#                     assert create_or_update_workspace(db=db, workspace_data=workspace_payload)
+#                     print("✅ Workspace table updated.")
+#             except Exception as db_err:
+#                 logs.append(f"❌ Failed to update workspace status: {str(db_err)}")
+
 #         else:
 #             logs.append("❌ Terraform Apply Failed")
 #             logs.append(f"```bash\n{apply_proc.stderr}\n```")
@@ -2032,37 +1997,62 @@ def clean_terraform_code(raw_code: str) -> str:
 
 #     return "\n".join(logs)
 
-def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: int, project_name: str) -> str:
+def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int,project_name: str,aws_access_key: str,aws_secret_key: str,region: str = "us-east-1") -> str:
     """
-    Imports each resource from ARNs into Terraform state, applies the configuration,
-    and updates workspace status in the DB if apply is successful.
+    Imports resources from ARNs, applies Terraform configuration,
+    injects AWS credentials into provider block temporarily,
+    and restores original main.tf afterward.
     """
-
     logs = []
     working_dir = os.path.dirname(os.path.abspath(main_tf_path)) or os.getcwd()
-    terraform_tfstate_path = os.path.join(working_dir, "terraform.tfstate")
 
     if not os.path.exists(main_tf_path):
         return "❌ main.tf file not found."
 
-    with open(main_tf_path, "r") as f:
-        tf_content = f.read()
+    # Step 1: Read original file
+    with open(main_tf_path, "r", encoding="utf-8") as f:
+        original_tf_content = f.read()
 
-    # Run terraform init once
+    # Step 2: Remove any existing provider "aws" block (safely)
+    cleaned_tf_content = re.sub(
+        r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
+        '',
+        original_tf_content,
+        flags=re.DOTALL
+    ).strip()
+
+    # Step 3: Inject temporary provider block with credentials
+    provider_block = f'''
+            provider "aws" {{
+            access_key = "{aws_access_key}"
+            secret_key = "{aws_secret_key}"
+            region     = "{region}"
+            }}
+            '''.strip()
+
+    final_tf_content = provider_block + "\n\n" + cleaned_tf_content
+
+    # Step 4: Save updated main.tf
+    with open(main_tf_path, "w", encoding="utf-8") as f:
+        f.write(final_tf_content)
+
+    # Step 5: Terraform Init
     try:
         logs.append("🔨 Running terraform init...")
         subprocess.run(["terraform", "init"], cwd=working_dir, check=True)
     except subprocess.CalledProcessError as e:
         logs.append(f"❌ Terraform init failed:\n{e.stderr or str(e)}")
+        with open(main_tf_path, "w", encoding="utf-8") as f:
+            f.write(original_tf_content)
         return "\n".join(logs)
 
-    # Process each ARN separately
+    # Step 6: Import each resource
     for arn in arns:
         resource_type = get_aws_resource_type_from_arn(arn)
         import_id = get_import_id(resource_type, arn)
 
-        pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*{{')
-        match = pattern.search(tf_content)
+        pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*\{{')
+        match = pattern.search(final_tf_content)
         if not match:
             logs.append(f"❌ Could not find Terraform resource for type: {resource_type} (ARN: {arn})")
             continue
@@ -2082,7 +2072,7 @@ def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: i
         except subprocess.CalledProcessError as e:
             logs.append(f"❌ Import failed for {resource_type}.{resource_name}\n{e.stderr or str(e)}")
 
-    # Apply Terraform
+    # Step 7: Terraform Apply
     try:
         logs.append("🚀 Running terraform apply...")
         apply_proc = subprocess.run(
@@ -2096,7 +2086,6 @@ def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: i
             logs.append("✅ Terraform Apply Successful")
             logs.append(f"```bash\n{apply_proc.stdout}\n```")
 
-            # ✅ Update DB status only on success
             try:
                 with get_db_session() as db:
                     status_payload = WorkspaceStatusCreate(
@@ -2104,25 +2093,19 @@ def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: i
                         project_name=project_name,
                         status=apply_proc.stdout.strip()
                     )
-                    print("📝 Updating workspace status...")
-                    assert create_or_update_workspace_status(db=db, status_data=status_payload)
-                    print("✅ Workspace status updated.")
+                    create_or_update_workspace_status(db=db, status_data=status_payload)
 
-                    minio_file_path = f"{project_name}_terraform/main.tf"
-                    # Update Workspace (filelocation to MinIO path)
-            
                     workspace_payload = WorkspaceCreate(
-                            userid=user_id,
-                            wsname=project_name,
-                            filetype="terraform",
-                            filelocation=minio_file_path,
-                            diagramjson=None
-                        )
-                    print("📁 Updating workspace record...")
-                    assert create_or_update_workspace(db=db, workspace_data=workspace_payload)
-                    print("✅ Workspace table updated.")
+                        userid=user_id,
+                        wsname=project_name,
+                        filetype="terraform",
+                        filelocation=f"{project_name}_terraform/main.tf",
+                        diagramjson=None
+                    )
+                    create_or_update_workspace(db=db, workspace_data=workspace_payload)
+                    logs.append("✅ Workspace status and record updated in DB.")
             except Exception as db_err:
-                logs.append(f"❌ Failed to update workspace status: {str(db_err)}")
+                logs.append(f"❌ Failed to update DB: {str(db_err)}")
 
         else:
             logs.append("❌ Terraform Apply Failed")
@@ -2131,9 +2114,12 @@ def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: i
     except subprocess.CalledProcessError as e:
         logs.append(f"❌ Terraform apply error:\n{e.stderr or str(e)}")
 
+    # Step 8: Restore original main.tf
+    with open(main_tf_path, "w", encoding="utf-8") as f:
+        f.write(original_tf_content)
+    logs.append("🧼 Restored original main.tf (without injected credentials).")
+
     return "\n".join(logs)
-
-
 
 
 # def validate_and_fix_terraform_code(code: str, working_dir: str = ".") -> str:
