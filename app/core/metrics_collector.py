@@ -41,52 +41,6 @@ REGION_NAME_MAP = {
     "sa-east-1": "South America (São Paulo)",
 }
 
-# # --- EC2 Instance Sizing Maps ---
-# INSTANCE_DOWNSIZE_MAP = {
-#     # T3 family
-#     "t3.2xlarge": "t3.xlarge", "t3.xlarge": "t3.large", "t3.large": "t3.medium",
-#     "t3.medium": "t3.small", "t3.small": "t3.micro", "t3.micro": "t3.nano",
-#     # T2 family
-#     "t2.2xlarge": "t2.xlarge", "t2.xlarge": "t2.large", "t2.large": "t2.medium",
-#     "t2.medium": "t2.small", "t2.small": "t2.micro", "t2.micro": "t3.nano",
-#     # M5 family
-#     "m5.24xlarge": "m5.12xlarge", "m5.12xlarge": "m5.4xlarge", "m5.4xlarge": "m5.2xlarge",
-#     "m5.2xlarge": "m5.xlarge", "m5.xlarge": "m5.large", "m5.large": "t3.large",
-# }
-
-# INSTANCE_UPSIZE_MAP = {
-#     # T3 family
-#     "t3.nano": "t3.micro", "t3.micro": "t3.small", "t3.small": "t3.medium",
-#     "t3.medium": "t3.large", "t3.large": "t3.xlarge", "t3.xlarge": "t3.2xlarge",
-#     # T2 family
-#     "t2.nano": "t2.micro", "t2.micro": "t2.small", "t2.small": "t2.medium",
-#     "t2.medium": "t2.large", "t2.large": "t2.xlarge", "t2.xlarge": "t2.2xlarge",
-#     # M5 family
-#     "m5.large": "m5.xlarge", "m5.xlarge": "m5.2xlarge", "m5.2xlarge": "m5.4xlarge",
-#     "m5.4xlarge": "m5.12xlarge", "m5.12xlarge": "m5.24xlarge",
-# }
-
-# # --- RDS Instance Sizing Maps (New) ---
-# RDS_INSTANCE_DOWNSIZE_MAP = {
-#     # T3 DB Instances
-#     "db.t3.2xlarge": "db.t3.xlarge", "db.t3.xlarge": "db.t3.large",
-#     "db.t3.large": "db.t3.medium", "db.t3.medium": "db.t3.small", "db.t3.small": "db.t3.micro",
-#     # M5 DB Instances
-#     "db.m5.24xlarge": "db.m5.12xlarge", "db.m5.12xlarge": "db.m5.8xlarge",
-#     "db.m5.8xlarge": "db.m5.4xlarge", "db.m5.4xlarge": "db.m5.2xlarge",
-#     "db.m5.2xlarge": "db.m5.xlarge", "db.m5.xlarge": "db.m5.large",
-# }
-
-# RDS_INSTANCE_UPSIZE_MAP = {
-#     # T3 DB Instances
-#     "db.t3.micro": "db.t3.small", "db.t3.small": "db.t3.medium", "db.t3.medium": "db.t3.large",
-#     "db.t3.large": "db.t3.xlarge", "db.t3.xlarge": "db.t3.2xlarge",
-#     # M5 DB Instances
-#     "db.m5.large": "db.m5.xlarge", "db.m5.xlarge": "db.m5.2xlarge",
-#     "db.m5.2xlarge": "db.m5.4xlarge", "db.m5.4xlarge": "db.m5.8xlarge",
-#     "db.m5.8xlarge": "db.m5.12xlarge", "db.m5.12xlarge": "db.m5.24xlarge",
-# }
-
 # --- Enhanced EC2 Instance Sizing Maps ---
 INSTANCE_DOWNSIZE_MAP = {
     # T3 Family (Intel)
@@ -224,87 +178,6 @@ def get_location_from_region(region_code: str) -> str:
     """Maps an AWS region code to a human-readable location name."""
     return REGION_NAME_MAP.get(region_code, "US East (N. Virginia)")
 
-# def get_resource_hourly_price(service: str, resource_info: dict) -> float:
-#     """
-#     Fetches the on-demand hourly price for an AWS resource with multiple fallbacks.
-#     Returns -1.0 if pricing cannot be found.
-#     """
-#     try:
-#         pricing_client = boto3.client("pricing", region_name="us-east-1")
-#         location = resource_info.get("location", "US East (N. Virginia)")
-#         instance_type = resource_info.get("instance_type")
-
-#         if not all([service, instance_type, location]):
-#             print("❌ Missing service, instance_type, or location for pricing.")
-#             return -1.0
-
-#         base_filters = [
-#             {"Type": "TERM_MATCH", "Field": "location", "Value": location},
-#             {"Type": "TERM_MATCH", "Field": "instanceType", "Value": instance_type},
-#         ]
-        
-#         service_code = ""
-#         initial_filters = []
-#         if service == "EC2":
-#             service_code = "AmazonEC2"
-#             initial_filters = base_filters + [
-#                 {"Type": "TERM_MATCH", "Field": "operatingSystem", "Value": resource_info.get("operatingSystem", "Linux")},
-#                 {"Type": "TERM_MATCH", "Field": "preInstalledSw", "Value": "NA"},
-#                 {"Type": "TERM_MATCH", "Field": "tenancy", "Value": resource_info.get("tenancy", "Shared")},
-#                 {"Type": "TERM_MATCH", "Field": "capacitystatus", "Value": "Used"}
-#             ]
-#         elif service == "RDS":
-#             service_code = "AmazonRDS"
-#             engine_map = {"postgres": "PostgreSQL", "mysql": "MySQL"}
-#             db_engine = engine_map.get(resource_info.get("engine"), "MySQL")
-            
-#             initial_filters = base_filters + [
-#                 {"Type": "TERM_MATCH", "Field": "databaseEngine", "Value": db_engine},
-#                 {"Type": "TERM_MATCH", "Field": "deploymentOption", "Value": "Single-AZ"}
-#             ]
-#         else:
-#             print(f"⚠️ Pricing not implemented for service: {service}")
-#             return -1.0
-
-#         # Try the full filter set first
-#         print(f"🔎 Fetching pricing for {service} {instance_type} in {location}")
-#         response = pricing_client.get_products(ServiceCode=service_code, Filters=initial_filters, MaxResults=1)
-
-#         # Fallback 1: For EC2, remove 'capacitystatus'
-#         if not response.get("PriceList") and service == "EC2":
-#             print(f"⚠️ No pricing data with 'capacitystatus' for {instance_type}. Retrying without it...")
-#             fallback_filters_1 = [f for f in initial_filters if f["Field"] != "capacitystatus"]
-#             response = pricing_client.get_products(ServiceCode=service_code, Filters=fallback_filters_1, MaxResults=1)
-
-#         # Fallback 2: For EC2, also remove 'preInstalledSw'
-#         if not response.get("PriceList") and service == "EC2":
-#             print(f"⚠️ Still no pricing data. Retrying without 'preInstalledSw' as well...")
-#             fallback_filters_2 = [f for f in initial_filters if f["Field"] not in ["capacitystatus", "preInstalledSw"]]
-#             response = pricing_client.get_products(ServiceCode=service_code, Filters=fallback_filters_2, MaxResults=1)
-            
-#         # Fallback 3: For EC2, use only the most basic filters as a last resort
-#         if not response.get("PriceList") and service == "EC2":
-#             print(f"⚠️ Last resort. Retrying with only location and instance type for {instance_type}...")
-#             response = pricing_client.get_products(ServiceCode=service_code, Filters=base_filters, MaxResults=1)
-
-#         if not response.get("PriceList"):
-#             print(f"❌ All fallbacks failed. No pricing data found for {instance_type} in {location}.")
-#             return -1.0
-
-#         price_item = json.loads(response["PriceList"][0])
-#         terms = price_item.get("terms", {}).get("OnDemand", {})
-#         for term in terms.values():
-#             for dim in term.get("priceDimensions", {}).values():
-#                 price = float(dim["pricePerUnit"]["USD"])
-#                 print(f"✅ Found price for {instance_type}: ${price:.4f}/hour")
-#                 return price
-
-#         print(f"⚠️ Price dimensions not found for {instance_type}.")
-#         return -1.0
-
-#     except Exception as e:
-#         print(f"❌ Failed to fetch pricing for {resource_info.get('instance_type')}: {e}")
-#         return -1.0
 
 def get_resource_hourly_price(service: str, resource_info: dict) -> float:
     """
@@ -659,18 +532,40 @@ def generate_recommendations(rules_path="app/core/cloudwatch_recommendation_rule
                 print(full_rec_console)
                 
                 # --- Assemble clean recommendation for database ---
+                # --- Parse LLM response into Action, Impact, Savings ---
+                parsed_action = parsed_impact = parsed_savings = None
+                try:
+                    pattern = r"Action:\s*(.+?)\n+Impact:\s*(.+?)\n+Savings:\s*(.+)"
+                    match = re.search(pattern, llm_text, re.DOTALL | re.IGNORECASE)
+                    if match:
+                        parsed_action = {"text": match.group(1).strip()}
+                        parsed_impact = {"text": match.group(2).strip()}
+                        parsed_savings = {"text": match.group(3).strip()}
+                    else:
+                        print(f"⚠️ Could not parse LLM response for action/impact/savings. Storing entire text as recommendation only.")
+                except Exception as e:
+                    print(f"❌ Error parsing LLM text: {e}")
+
+                # --- Assemble clean recommendation for database ---
                 db_recommendation_text = f"Metric: {metric_name}\n\n{llm_text}"
-                
+
                 db_rec_session = SessionLocal()
                 try:
                     insert_or_update(
-                        db=db_rec_session, userid=userid, resource_type=resource_type, arn=arn,
-                        recommendation_text=db_recommendation_text
+                        db=db_rec_session,
+                        userid=userid,
+                        resource_type=resource_type,
+                        arn=arn,
+                        recommendation_text=db_recommendation_text,
+                        action=parsed_action,
+                        impact=parsed_impact,
+                        savings=parsed_savings
                     )
                 except Exception as e:
-                    print(f"❌ Error saving recommendation to database: {e}")
+                    print(f"❌ Error inserting recommendation: {e}")
                 finally:
                     db_rec_session.close()
+
 
 
 # --- Execution ---

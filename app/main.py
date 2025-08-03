@@ -13,6 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.scheduled_jobs.terraform_inventory import fetch_all_state_files
 from app.routers.cost_schedular_code import run_cost_scheduler
 from app.scheduled_jobs.drift_detection import run_daily_drift_detection_job
+from app.scheduled_jobs.recommendation_ec2_rds import run_ec2_rds_recommendation_scheduler
 
 Base.metadata.create_all(bind=engine)
 
@@ -49,6 +50,7 @@ async def startup_event():
     scheduler.add_job(fetch_all_state_files, 'cron', hour=19, minute=45)
     scheduler.add_job(run_cost_scheduler, 'cron', hour=19, minute=45)
     scheduler.add_job(run_daily_drift_detection_job, 'cron', hour=3,minute=0,id="daily_drift_detection",replace_existing=True)
+    scheduler.add_job(run_ec2_rds_recommendation_scheduler, 'cron', hour=19, minute=45)
 
     scheduler.start()
     # print("✅ Scheduler started. The job will run daily at 7:45PM UTC.")
