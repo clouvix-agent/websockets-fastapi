@@ -171,7 +171,10 @@ def migration_tool(project_name: str, config: RunnableConfig, listofarn: list[st
             main_tf_path=main_tf_path,
             arns=listofarn,
             user_id=user_id,
-            project_name=project_name
+            project_name=project_name,
+            aws_access_key=ACCESS_KEY,
+            aws_secret_key=SECRET_KEY,
+            region="us-east-1"
         )
 
         # 8. Upload to MinIO
