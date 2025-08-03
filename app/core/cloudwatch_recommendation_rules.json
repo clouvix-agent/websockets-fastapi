@@ -8,10 +8,10 @@
           "recommendation": "Downsize"
         },
         {
-          "stat": "Maximum",
-          "condition": ">=80",
-          "duration": "1h",
-          "recommendation": "Upgrade"
+          "stat": "Average",
+          "condition": ">=85",
+          "duration": "7d",
+          "recommendation": "Upsize"
         }
       ],
       "MemoryUtilization": [
