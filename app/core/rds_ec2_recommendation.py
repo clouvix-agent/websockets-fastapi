@@ -14,7 +14,7 @@ from app.database import SessionLocal
 from app.models.infrastructure_inventory import InfrastructureInventory
 from app.db.metrics_collector import create_or_update_metrics
 from app.db.recommendation import insert_or_update
-
+from app.core.existing_to_tf import get_aws_credentials_from_db
 
 from openai import OpenAI
 
@@ -543,10 +543,54 @@ RDS_UPSIZE_MAP = {
 
 
 
+# def generate_llm_recommendation(resource_display_name, instance_type, suggested_instance, cost_hourly, cost_saving, percent_saving):
+#     """Generates a concise recommendation using an LLM."""
+#     if not openai_client:
+#         return "⚠️ LLM client not initialized. Cannot generate recommendation."
+
+#     prompt = f"""
+# You are a cloud cost optimization advisor.
+# The current resource is a {resource_display_name}:
+# - Type: {instance_type}
+
+# A cost-saving change is recommended:
+# - Suggested New Type: {suggested_instance}
+# - New Hourly Cost: ${cost_hourly:.4f}
+# - Estimated Annual Savings: ${cost_saving:.2f} ({percent_saving:.1f}%)
+
+# **CRITICAL**
+# -If the pricing data is not available then do not say i do not have have that data , Generate general action, impact and savings.
+# -**Do NOT**-use sentence like "but pricing information is not available." instead say a general sentence based on above info.
+
+# Generate a brief recommendation with these sections:
+# 1. Action: The specific change to make.
+# 2. Impact: Why this change is beneficial.
+# 3. Savings: The financial benefit.
+
+# Be concise and clear. Do not use emojis or markdown formatting.
+# """
+#     try:
+#         response = openai_client.chat.completions.create(
+#             model="gpt-4",
+#             messages=[
+#                 {"role": "system", "content": "You are a cloud cost optimization advisor."},
+#                 {"role": "user", "content": prompt}
+#             ],
+#             max_tokens=200,
+#             temperature=0.5
+#         )
+#         return response.choices[0].message.content.strip()
+#     except Exception as e:
+#         print(f"❌ LLM Error: {e}")
+#         return f"⚠️ Unable to generate LLM recommendation: {e}"
 def generate_llm_recommendation(resource_display_name, instance_type, suggested_instance, cost_hourly, cost_saving, percent_saving):
-    """Generates a concise recommendation using an LLM."""
+    """
+    Generates a structured recommendation and a narrative summary using an LLM.
+    Returns the full text containing all parts for parsing.
+    """
     if not openai_client:
-        return "⚠️ LLM client not initialized. Cannot generate recommendation."
+        # Provide a default structured response on failure
+        return "Action: LLM client not initialized.\nImpact: Cannot generate recommendation.\nSavings: N/A\nSummary: LLM client not initialized."
 
     prompt = f"""
 You are a cloud cost optimization advisor.
@@ -558,31 +602,35 @@ A cost-saving change is recommended:
 - New Hourly Cost: ${cost_hourly:.4f}
 - Estimated Annual Savings: ${cost_saving:.2f} ({percent_saving:.1f}%)
 
-**CRITICAL**
--If the pricing data is not available then do not say i do not have have that data , Generate general action, impact and savings.
--**Do NOT**-use sentence like "but pricing information is not available." instead say a general sentence based on above info.
+**CRITICAL INSTRUCTIONS**
+Your output MUST contain four distinct sections in this exact order and format:
+1.  `Action:` (A brief, specific action to take)
+2.  `Impact:` (The benefit of this action)
+3.  `Savings:` (The financial benefit)
+4.  `Summary:` (A single, well-written paragraph that combines the key points from Action, Impact, and Savings into a concise, easy-to-read narrative recommendation.)
 
-Generate a brief recommendation with these sections:
-1. Action: The specific change to make.
-2. Impact: Why this change is beneficial.
-3. Savings: The financial benefit.
+Do not use emojis or any other markdown. If pricing data is not available, generate general information for the sections without mentioning the lack of data.
 
-Be concise and clear. Do not use emojis or markdown formatting.
+**EXAMPLE OF THE REQUIRED OUTPUT FORMAT:**
+Action: Downgrade the instance from t3.large to t3.medium.
+Impact: This change aligns the instance size with its actual usage, reducing waste without affecting performance for its current workload.
+Savings: You can save an estimated $150.00 annually (45.0%).
+Summary: We recommend downgrading the instance from t3.large to t3.medium. This action will better align the resource with its actual usage, reducing waste without impacting performance and resulting in an estimated annual savings of $150.00 (45.0%).
 """
     try:
         response = openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a cloud cost optimization advisor."},
+                {"role": "system", "content": "You are a cloud cost optimization advisor who provides structured data and a narrative summary."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=200,
+            max_tokens=250,
             temperature=0.5
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"❌ LLM Error: {e}")
-        return f"⚠️ Unable to generate LLM recommendation: {e}"
+        return f"Action: Error generating recommendation.\nImpact: {e}\nSavings: N/A\nSummary: An error occurred while generating the recommendation."
 
 
 
@@ -864,26 +912,59 @@ def display_results(details, current_pricing, recommendation=None):
             print(f"  - ⚠️ Estimated Annual Cost Increase: ${abs(annual_savings):,.2f}")
 
 
+
 def main():
     """Main function to fetch ARNs, get metrics, and provide cost/rightsizing recommendations."""
     try:
-        session = get_boto3_session()
         arns_by_user = fetch_arns_grouped_by_user_id()
         if not arns_by_user:
             print("\nNo processable ARNs found. Exiting.")
             return
 
         print("\n==================================================")
-        print("      STARTING AWS COST & RIGHTSIZING ADVISOR     ")
+        print("      STARTING AWS COST & RIGHTSIZING ADVISOR      ")
         print("==================================================")
 
+        # Loop over each user ID found in the database
         for user_id, arns in arns_by_user.items():
             print(f"\n\n--- Processing User ID: {user_id} ---")
+
+            # --- Step 1: Get credentials for this user from the DB ---
+            try:
+                # Assuming get_aws_credentials_from_db is imported correctly
+                aws_access_key, aws_secret_key = get_aws_credentials_from_db(user_id)
+            except ValueError as e:
+                print(f"❌ Could not get credentials for User ID {user_id}: {e}. Skipping this user.")
+                continue # Move to the next user
+            except Exception as e:
+                print(f"❌ An unexpected error occurred while fetching credentials for User ID {user_id}: {e}. Skipping.")
+                continue
+
+            # --- Step 2: Create a specific Boto3 session for this user ---
+            try:
+                session = boto3.Session(
+                    aws_access_key_id=aws_access_key,
+                    aws_secret_access_key=aws_secret_key,
+                )
+                # Validate credentials by making a simple, low-cost API call
+                sts_client = session.client('sts')
+                identity = sts_client.get_caller_identity()
+                print(f"✅ AWS session created successfully for User ID {user_id}. Authenticated as: {identity['Arn']}")
+            except ClientError as e:
+                # This catches errors like invalid keys, expired tokens, etc.
+                print(f"❌ AWS credentials for User ID {user_id} are invalid or expired: {e}. Skipping this user.")
+                continue
+            except Exception as e:
+                print(f"❌ Failed to create Boto3 session for User ID {user_id}: {e}. Skipping this user.")
+                continue
+
+            # --- Step 3: Process all ARNs for this user with their specific session ---
             for arn in arns:
                 try:
                     print(f"\n🔍 Processing ARN: {arn}")
                     instance_id, region, service_type = extract_instance_info_from_arn(arn)
 
+                    # Pass the user-specific session to all subsequent functions
                     describe_func = describe_ec2_instance if service_type == 'EC2' else describe_rds_instance
                     instance_details = describe_func(instance_id, region, session)
 
@@ -923,7 +1004,9 @@ def main():
 
                             # 💡 LLM Recommendation Generation
                             current_total_annual = (current_pricing["compute_hourly"] * 24 * 365) + (current_pricing.get("storage_monthly", 0) * 12)
-                            new_total_annual = (new_pricing["compute_hourly"] * 24 * 365) + (new_pricing.get("storage_monthly", 0) * 12)
+                            # Note: The original code had a potential bug here using new_pricing for storage.
+                            # Assuming storage cost doesn't change with instance type resize.
+                            new_total_annual = (new_pricing["compute_hourly"] * 24 * 365) + (current_pricing.get("storage_monthly", 0) * 12)
                             savings = max(current_total_annual - new_total_annual, 0)
                             percent_savings = (savings / current_total_annual) * 100 if current_total_annual > 0 else 0
 
@@ -936,17 +1019,18 @@ def main():
                                 percent_saving=percent_savings
                             )
 
-                            
-                            action_text = impact_text = savings_text = None
+                            action_text = impact_text = savings_text = summary_text = None
                             try:
-                                match = re.search(r"\d*\.*\s*Action:\s*(.+?)\n+\d*\.*\s*Impact:\s*(.+?)\n+\d*\.*\s*Savings:\s*(.+)", llm_text, re.DOTALL | re.IGNORECASE)
+                                # match = re.search(r"\d*\.*\s*Action:\s*(.+?)\n+\d*\.*\s*Impact:\s*(.+?)\n+\d*\.*\s*Savings:\s*(.+)", llm_text, re.DOTALL | re.IGNORECASE)
+                                match = re.search(r"Action:\s*(.*?)\n+Impact:\s*(.*?)\n+Savings:\s*(.*?)\n+Summary:\s*(.*)",llm_text,re.DOTALL | re.IGNORECASE)
                                 if match:
-                                    action_text =match.group(1).strip()
+                                    action_text = match.group(1).strip()
                                     impact_text = match.group(2).strip()
                                     savings_text = match.group(3).strip()
+                                    summary_text = match.group(4).strip()
                             except Exception as e:
                                 print(f"⚠️ Failed to parse LLM response: {e}")
-
+                                summary_text = llm_text
 
                             # 📝 Save to recommendation table
                             db = SessionLocal()
@@ -956,7 +1040,7 @@ def main():
                                     userid=user_id,
                                     resource_type=service_type,
                                     arn=arn,
-                                    recommendation_text=llm_text,
+                                    recommendation_text=summary_text,
                                     action=action_text,
                                     impact=impact_text,
                                     savings=savings_text
@@ -971,8 +1055,6 @@ def main():
                 finally:
                     print("--------------------------------------------------")
 
-    except NoCredentialsError as e:
-        print(f"\n❌ AWS Credentials Error: {e}")
     except Exception as e:
         print(f"\n❌ An unexpected error occurred in the main process: {e}")
 

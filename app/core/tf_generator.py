@@ -81,15 +81,15 @@ class Service(BaseModel):
     githubRepo: str
 
 
-class Connection(BaseModel):
-    from_: str  # Use from_ since 'from' is a reserved keyword
+class ServiceConnection(BaseModel):
+    from_: str
     to: str
-
 
 class TerraformRequest(BaseModel):
     project_name: str
     services: list[Service]
-    connections: list[Connection]
+    connections: list[ServiceConnection]  
+
 
 # **Hardcoded User Input JSON**
 # USER_INPUT_JSON = {
@@ -158,58 +158,52 @@ def get_s3_connection_info_with_credentials(user_id):
     }
 
     with get_db_session() as db:
-        # Fetch S3 remote state connection
+        # --- Fetch S3 remote state connection ---
         s3_conn = db.query(Connection).filter(
             Connection.userid == user_id,
             Connection.type == "aws_s3_remote_state"
         ).first()
 
         if not s3_conn:
-            raise Exception("No S3 remote state connection found for user")
+            raise Exception("❌ No S3 remote state connection found for user")
 
-        s3_json = s3_conn.connection_json
-        if isinstance(s3_json, str):
-            try:
-                s3_json = json.loads(s3_json)
-            except json.JSONDecodeError:
-                raise Exception("Invalid first-level JSON in S3 connection_json")
-        if isinstance(s3_json, str):
-            try:
-                s3_json = json.loads(s3_json)
-            except json.JSONDecodeError:
-                raise Exception("Invalid second-level JSON in S3 connection_json")
+        try:
+            s3_data = s3_conn.connection_json
+            if isinstance(s3_data, str):
+                s3_data = json.loads(s3_data)
+            if not isinstance(s3_data, list):
+                raise Exception("❌ S3 connection_json must be a list of key-value pairs")
+        except Exception as e:
+            raise Exception(f"❌ Error parsing S3 connection_json: {e}")
 
-        s3_info = {item["key"]: item["value"] for item in s3_json}
+        s3_info = {item["key"]: item["value"] for item in s3_data}
         result["bucket"] = s3_info.get("BUCKET_NAME")
         result["region"] = s3_info.get("AWS_REGION", result["region"])
         result["prefix"] = s3_info.get("PREFIX", result["prefix"])
 
-        # Fetch AWS credentials
+        # --- Fetch AWS credentials ---
         aws_conn = db.query(Connection).filter(
             Connection.userid == user_id,
             Connection.type == "aws"
         ).first()
 
         if aws_conn:
-            aws_json = aws_conn.connection_json
-            if isinstance(aws_json, str):
-                try:
-                    aws_json = json.loads(aws_json)
-                except json.JSONDecodeError:
-                    raise Exception("Invalid first-level JSON in AWS connection_json")
-            if isinstance(aws_json, str):
-                try:
-                    aws_json = json.loads(aws_json)
-                except json.JSONDecodeError:
-                    raise Exception("Invalid second-level JSON in AWS connection_json")
+            try:
+                aws_data = aws_conn.connection_json
+                if isinstance(aws_data, str):
+                    aws_data = json.loads(aws_data)
+                if not isinstance(aws_data, list):
+                    raise Exception("❌ AWS connection_json must be a list of key-value pairs")
+            except Exception as e:
+                raise Exception(f"❌ Error parsing AWS connection_json: {e}")
 
-            aws_info = {item["key"]: item["value"] for item in aws_json}
+            aws_info = {item["key"]: item["value"] for item in aws_data}
             result["aws_access_key_id"] = aws_info.get("AWS_ACCESS_KEY_ID")
             result["aws_secret_access_key"] = aws_info.get("AWS_SECRET_ACCESS_KEY")
-            # If region wasn't set in S3 config, take from credentials
             result["region"] = result["region"] or aws_info.get("AWS_REGION", result["region"])
 
     return result
+
 
 
 def query_knowledge_base(user_services):
@@ -401,36 +395,36 @@ def validate_terraform_with_openai(terraform_code, services, connections):
 #         print(f"Terraform execution failed: {e}")
 #         return False, str(e)
 
-def fix_terraform_with_openai(terraform_code, terraform_error):
-    """Send the incorrect Terraform code and error message to OpenAI to get a fixed version."""
-    messages = [
-        SystemMessage(content="You are an expert Terraform engineer. Your task is to fix any Terraform errors."),
-        HumanMessage(content=f"""
-        The following Terraform configuration has an error:
+# def fix_terraform_with_openai(terraform_code, terraform_error):
+#     """Send the incorrect Terraform code and error message to OpenAI to get a fixed version."""
+#     messages = [
+#         SystemMessage(content="You are an expert Terraform engineer. Your task is to fix any Terraform errors."),
+#         HumanMessage(content=f"""
+#         The following Terraform configuration has an error:
 
-        ```hcl
-        {terraform_code}
-        ```
+#         ```hcl
+#         {terraform_code}
+#         ```
 
-        The Terraform error message is:
+#         The Terraform error message is:
 
-        ```
-        {terraform_error}
-        ```
+#         ```
+#         {terraform_error}
+#         ```
 
-        Please correct the Terraform code and return the **entire** fixed configuration.
-        Ensure that:
-        - Do NOT include function code, Docker image URLs, s3_key, or any deployment-related configuration.
-        - The Terraform file is completely corrected.
-        - The configuration follows best practices.
-        - The output should only contain valid Terraform HCL code, without explanations.
-        """)
-    ]
+#         Please correct the Terraform code and return the **entire** fixed configuration.
+#         Ensure that:
+#         - Do NOT include function code, Docker image URLs, s3_key, or any deployment-related configuration.
+#         - The Terraform file is completely corrected.
+#         - The configuration follows best practices.
+#         - The output should only contain valid Terraform HCL code, without explanations.
+#         """)
+#     ]
 
-    response = llm.invoke(messages)
-    terraform_output = re.sub(r"```hcl|```", "", response.content.strip()).strip()
-    print(f"Terraform output: {terraform_output}")
-    return terraform_output
+#     response = llm.invoke(messages)
+#     terraform_output = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+#     print(f"Terraform output: {terraform_output}")
+#     return terraform_output
 
 # def run_terraform_apply_and_destroy():
 #     """Runs 'terraform apply' to provision the Terraform infrastructure and then runs 'terraform destroy'."""
@@ -475,53 +469,53 @@ def fix_terraform_with_openai(terraform_code, terraform_error):
 #         print(f"Terraform execution failed: {e}")
 #         return False, str(e)
 
-def validate_terraform_api(terraform_file_path):
-    """Validates Terraform configuration using the external API endpoint"""
-    try:
-        # Prepare the variables JSON
-        variables = {
-            "aws_access_key": AWS_ACCESS_KEY,
-            "aws_secret_key": AWS_SECRET_KEY
-        }
+# def validate_terraform_api(terraform_file_path):
+#     """Validates Terraform configuration using the external API endpoint"""
+#     try:
+#         # Prepare the variables JSON
+#         variables = {
+#             "aws_access_key": AWS_ACCESS_KEY,
+#             "aws_secret_key": AWS_SECRET_KEY
+#         }
 
-        # Prepare the API request
-        url = "https://terraform.clouvix.com/validate"
-        headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
-        }
+#         # Prepare the API request
+#         url = "https://terraform.clouvix.com/validate"
+#         headers = {
+#             "accept": "application/json",
+#             "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
+#         }
 
-        # Open and prepare the terraform file
-        with open(terraform_file_path, 'rb') as tf_file:
-            files = {
-                'terraform_file': ('main.tf', tf_file, 'text/plain'),
-                'variables': (None, json.dumps(variables))
-            }
+#         # Open and prepare the terraform file
+#         with open(terraform_file_path, 'rb') as tf_file:
+#             files = {
+#                 'terraform_file': ('main.tf', tf_file, 'text/plain'),
+#                 'variables': (None, json.dumps(variables))
+#             }
 
-            # Make the API request
-            response = requests.post(url, headers=headers, files=files)
-            response_data = response.json()
+#             # Make the API request
+#             response = requests.post(url, headers=headers, files=files)
+#             response_data = response.json()
 
-            # Check if the response indicates success
-            if response_data.get("success") is True:
-                return True, ""
-            else:
-                # Extract error message from the response
-                error_message = response_data.get("error", "")
-                print(f"Error message: {error_message}")
-                if not error_message and "details" in response_data:
-                    error_message = response_data["details"].get("message", "Unknown error occurred")
-                return False, error_message
+#             # Check if the response indicates success
+#             if response_data.get("success") is True:
+#                 return True, ""
+#             else:
+#                 # Extract error message from the response
+#                 error_message = response_data.get("error", "")
+#                 print(f"Error message: {error_message}")
+#                 if not error_message and "details" in response_data:
+#                     error_message = response_data["details"].get("message", "Unknown error occurred")
+#                 return False, error_message
 
-    except Exception as e:
-        return False, str(e)
+#     except Exception as e:
+#         return False, str(e)
 
-def validate_and_fix_terraform(terraform_code, services, connections):
-    """Runs OpenAI validation, then API validation, fixing errors in a loop until successful."""
+# def validate_and_fix_terraform(terraform_code, services, connections):
+#     """Runs OpenAI validation, then API validation, fixing errors in a loop until successful."""
     
-    print("🔎 Running OpenAI validation for completeness...")
-    terraform_code = validate_terraform_with_openai(terraform_code, services, connections)
-    return terraform_code
+#     print("🔎 Running OpenAI validation for completeness...")
+#     terraform_code = validate_terraform_with_openai(terraform_code, services, connections)
+#     return terraform_code
     # attempt = 0
     # while True:
     #     attempt += 1
@@ -555,40 +549,40 @@ def validate_and_fix_terraform(terraform_code, services, connections):
     # print("🔴 Terraform Validation Failed after 5 attempts")
     # return terraform_code
 
-def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
-    """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
-    if not terraform_output:
-        print("Error: No Terraform code generated.")
-        return
+# def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, request):
+#     """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
+#     if not terraform_output:
+#         print("Error: No Terraform code generated.")
+#         return
 
-    terraform_output = re.sub(r"```hcl|```", "", terraform_output).strip()
+#     terraform_output = re.sub(r"```hcl|```", "", terraform_output).strip()
 
-    # Create terraform directory if it doesn't exist
-    if not os.path.exists(TERRAFORM_DIR):
-        os.makedirs(TERRAFORM_DIR, exist_ok=True)
-        print(f"Created Terraform directory: {TERRAFORM_DIR}")
+#     # Create terraform directory if it doesn't exist
+#     if not os.path.exists(TERRAFORM_DIR):
+#         os.makedirs(TERRAFORM_DIR, exist_ok=True)
+#         print(f"Created Terraform directory: {TERRAFORM_DIR}")
 
-    # Validate and Fix Terraform Configuration
-    validated_code = validate_and_fix_terraform(terraform_output, services, connections)
+#     # Validate and Fix Terraform Configuration
+#     validated_code = validate_and_fix_terraform(terraform_output, services, connections)
 
-    # Save the final validated Terraform file
-    final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
-    with open(final_tf_path, "w") as tf_file:
-        tf_file.write(validated_code)
+#     # Save the final validated Terraform file
+#     final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
+#     with open(final_tf_path, "w") as tf_file:
+#         tf_file.write(validated_code)
 
-    print(request)
-    # Add an entry to workspace table
-    with get_db_session() as db:
-        new_workspace = WorkspaceCreate(
-            userid=user_id,
-            wsname=project_name,
-            filetype="terraform",
-            filelocation=final_tf_path,
-            diagramjson={},
-            githublocation=""
-        )
-        create_workspace(db=db, workspace=new_workspace)
-        print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
+#     print(request)
+#     # Add an entry to workspace table
+#     with get_db_session() as db:
+#         new_workspace = WorkspaceCreate(
+#             userid=user_id,
+#             wsname=project_name,
+#             filetype="terraform",
+#             filelocation=final_tf_path,
+#             diagramjson={},
+#             githublocation=""
+#         )
+#         create_workspace(db=db, workspace=new_workspace)
+#         print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
 
 # def generate_terraform_tool(state: InjectedState):
 #     """
@@ -613,274 +607,6 @@ def get_terraform_folder(project_name: str) -> str:
         
     os.makedirs(folder, exist_ok=True)
     return folder
-
-# @tool
-# def generate_terraform_tool(config: RunnableConfig) -> str:
-#     """Main function to orchestrate Terraform generation and file extraction.
-#     Reads the architecture JSON file and runs the terraform code generation and returns the terraform file content."""
-    
-#     print("Running generate_terraform_tool")
-    
-#     user_id = config['configurable'].get('user_id', 'unknown')
-#     # **Step 1: Check and create necessary directories**
-#     if not os.path.exists("architecture_json"):
-#         os.makedirs("architecture_json", exist_ok=True)
-#         print("Created architecture_json directory")
-    
-#     # **Step 2: Extract User Requirements**
-#     request = None
-#     architecture_file = "architecture_json/request.json"
-    
-#     if not os.path.exists(architecture_file):
-#         error_msg = f"Error: Architecture file not found at {architecture_file}"
-#         print(error_msg)
-#         raise FileNotFoundError(error_msg)
-    
-#     try:
-#         with open(architecture_file, "r") as f:
-#             request_data = json.loads(f.read())
-#             print(f"Successfully read architecture file: {request_data}")
-#             request = TerraformRequest(**request_data)
-#     except json.JSONDecodeError as e:
-#         error_msg = f"Error: Invalid JSON format in architecture file: {str(e)}"
-#         print(error_msg)
-#         raise ValueError(error_msg)
-#     except Exception as e:
-#         error_msg = f"Error reading or parsing architecture file: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-    
-#     print(f"Received request: {request}")
-    
-#     # Create numbered terraform folder
-#     terraform_dir = get_terraform_folder(request.project_name)
-    
-#     # Update global TERRAFORM_DIR for other functions
-#     global TERRAFORM_DIR
-#     TERRAFORM_DIR = terraform_dir
-    
-#     os.makedirs(TERRAFORM_DIR, exist_ok=True)
-#     print(f"Created Terraform directory: {TERRAFORM_DIR}")
-    
-#     project_name = request.project_name
-#     user_services = request.services
-#     user_connections = request.connections
-    
-#     # **Step 3: Query Knowledge Base**
-#     try:
-#         service_details = query_knowledge_base(user_services)
-#         print("Successfully queried knowledge base")
-#     except Exception as e:
-#         error_msg = f"Error querying knowledge base: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-
-#     # **Step 4: Build OpenAI Messages**
-#     try:
-#         openai_messages = build_openai_prompt(project_name, service_details, user_connections)
-#         print("Successfully built OpenAI messages")
-#     except Exception as e:
-#         error_msg = f"Error building OpenAI messages: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-
-#     # **Step 5: Call OpenAI API**
-#     try:
-#         terraform_output = generate_terraform(openai_messages)
-#         if not terraform_output:
-#             error_msg = "Error: No Terraform code was generated"
-#             print(error_msg)
-#             raise ValueError(error_msg)
-#         print("Successfully generated Terraform code")
-#     except Exception as e:
-#         error_msg = f"Error generating Terraform code: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-
-#     # **Step 6: Extract and Save Terraform File**
-#     try:
-#         extract_and_save_terraform(terraform_output, user_services, user_connections, user_id, project_name, request_data)
-#         print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
-#     except Exception as e:
-#         error_msg = f"Error saving Terraform file: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-    
-#     # Read the generated Terraform file and return its contents with a success message
-#     try:
-#         with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
-#             terraform_content = f.read()
-# #             return f"""
-# # ```hcl
-# # {terraform_content}
-# # ```
-
-# # You can now proceed with applying this Terraform configuration."""
-#     except Exception as e:
-#         error_msg = f"Error reading generated Terraform file: {str(e)}"
-#         print(error_msg)
-#         raise Exception(error_msg)
-    
-
-#     print("📤 Uploading Terraform directory to MinIO...")
-
-#     minio_client = Minio(
-#         "storage.clouvix.com",
-#         access_key="clouvix@gmail.com",
-#         secret_key="Clouvix@bangalore2025",
-#         secure=True
-#     )
-
-#     print(minio_client)
-
-#     bucket_name = f"terraform-workspaces-user-{user_id}"
-
-#     print(minio_client.bucket_exists(bucket_name))
-#         # Create bucket if it doesn't exist
-#     if not minio_client.bucket_exists(bucket_name):
-#         print("Inside Make bucket")
-#         minio_client.make_bucket(bucket_name)
-#         print(f"🪣 Created bucket: {bucket_name}")
-#     else:
-#         print(f"📦 Bucket exists: {bucket_name}")
-
-#     folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))  # Same as directory name
-
-#         # Upload each file with folder_name prefix
-#     for root, _, files in os.walk(TERRAFORM_DIR):
-#         for file in files:
-#             file_path = os.path.join(root, file)
-#             relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
-#             object_key = f"{folder_name}/{relative_path}"
-#             print(f"⬆️ Uploading: {file_path} -> {object_key}")
-#             minio_client.fput_object(bucket_name, object_key, file_path)
-
-#     print("✅ Terraform directory uploaded to MinIO!")
-
-#     try:
-#         shutil.rmtree(TERRAFORM_DIR)
-#         print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
-#     except Exception as e:
-#         print(f"⚠️ Failed to delete local Terraform directory: {e}")
-
-
-#     return f"""
-#         ```hcl
-#         {terraform_content}
-#         ```
-#         You can now proceed with adding user inputs required this Terraform configuration and then proceed with applying."""
-
-    
-    
-        
-# @tool    
-# def terraform_apply_tool(terraform_file_path, config: RunnableConfig):
-#     """Helps run terraform apply on terraform file"""
-#     print("Using apply tool")
-#     user_id = config['configurable'].get('user_id', 'unknown')
-#     print("User id")
-#     print(user_id)
-#     try:
-#         # Get the database session
-#         db: Session = next(get_db())
-#         print("Inside try")
-
-#         # Query the connections table to get the connection_json for the given user_id
-#         connections = db.query(Connection).filter(
-#             Connection.userid == user_id,
-#             Connection.type == "aws"
-#         ).all()
-        
-#         print("Found connections:", connections)
-#         if not connections:
-#             print("Errored here")
-#             raise ValueError(f"No AWS connection found for user_id: {user_id}")
-
-#         # Get the first connection (assuming there's only one AWS connection per user)
-#         connection = connections[0]
-#         print("Using connection:", connection)
-
-#         # Parse the connection_json to extract AWS_ACCESS_KEY and AWS_SECRET_KEY
-#         print("Iam here")
-#         connection_data = json.loads(connection.connection_json)
-#         print("Connection data:", connection_data)
-#         aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
-#         aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
-
-#         if not aws_access_key or not aws_secret_key:
-#             raise ValueError("AWS credentials not found in the connection data")
-        
-#         print("AWS Secret Key:", aws_secret_key)
-#         print("AWS Access Key:", aws_access_key)
-#         # Prepare the variables JSON
-#         variables = {
-#             "aws_access_key": aws_access_key,
-#             "aws_secret_key": aws_secret_key
-#         }
-
-#         # Prepare the API request
-#         url = "http://localhost:8001/execute"
-#         headers = {
-#             "accept": "application/json",
-#             "Authorization": f"Bearer {TERRAFORM_API_TOKEN}"
-#         }
-
-#         # Open and prepare the terraform file
-#         with open(terraform_file_path, 'rb') as tf_file:
-#             files = {
-#                 'terraform_file': ('main.tf', tf_file, 'text/plain'),
-#                 'variables': (None, json.dumps(variables))
-#             }
-
-#             # Make the API request
-#             response = requests.post(url, headers=headers, files=files)
-#             response_data = response.json()
-
-#             # Check if the response indicates success
-#             # if response_data.get("success") is True:
-#             #     return True, ""
-#             # else:
-#             #     # Extract error message from the response
-#             #     error_message = response_data.get("error", "")
-#             #     print(f"Error message: {error_message}")
-#             #     if not error_message and "details" in response_data:
-#             #         error_message = response_data["details"].get("message", "Unknown error occurred")
-#             #     return False, error_message
-#             print(response_data)
-#         return response_data
-
-#     except Exception as e:
-#         return False, str(e)
-
-# def main():
-#     """
-#     Main function to orchestrate Terraform generation and file extraction.
-#     """
-#     print("\n===== STARTING TERRAFORM GENERATION =====\n")
-
-#     # **Step 1: Extract User Requirements**
-#     user_services = USER_INPUT_JSON["services"]
-#     user_connections = USER_INPUT_JSON["connections"]
-
-#     # **Step 2: Query Knowledge Base**
-#     service_details = query_knowledge_base(user_services)
-
-#     # **Step 3: Build OpenAI Messages**
-#     openai_messages = build_openai_prompt(service_details, user_connections)
-
-#     print("===== OPENAI MESSAGE =====\n")
-#     for message in openai_messages:
-#         print(message.content)
-
-#     # **Step 4: Call OpenAI API**
-#     terraform_output = generate_terraform(openai_messages)
-#     print("===== TERRAFORM OUTPUT =====\n")
-#     print(terraform_output)
-
-#     # **Step 5: Extract and Save Terraform File**
-#     extract_and_save_terraform(terraform_output, user_services, user_connections)
-    # Rest of the existing implementation...
-    # Return content of terraform file
 
 
 @tool
@@ -1076,31 +802,160 @@ def fetch_metrics(config: RunnableConfig, resource_type: str = None) -> str:
         print(error_message)
         return error_message
 
+# @tool
+# def update_terraform_file(instructions: str, project_name: str, config: RunnableConfig) -> str:
+#     """
+#     Tool to update the existing Terraform configuration based on instructions.
+
+#     Args:
+#         instructions (str): Description of the changes user wants to make in the Terraform config.
+
+#     Returns:
+#         str: Updated Terraform code or error message.
+#     """
+#     print("🔧 Running update_terraform_file tool")
+
+
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     bucket_name = f"terraform-workspaces-user-{user_id}"
+#     folder_name = f"{project_name}_terraform"
+
+#     # Create a temporary local directory
+#     temp_dir = tempfile.mkdtemp()
+#     download_path = os.path.join(temp_dir, folder_name)
+#     os.makedirs(download_path, exist_ok=True)
+
+#     try:
+#         # Initialize MinIO client
+#         minio_client = Minio(
+#             "storage.clouvix.com",
+#             access_key="clouvix@gmail.com",
+#             secret_key="Clouvix@bangalore2025",
+#             secure=True
+#         )
+
+#         print(f"📥 Downloading `{folder_name}/` from `{bucket_name}`...")
+
+#         # Download files from MinIO
+#         objects = minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True)
+#         for obj in objects:
+#             object_key = obj.object_name
+#             relative_path = object_key[len(folder_name) + 1:]  # Remove prefix from object key
+#             local_path = os.path.join(download_path, relative_path)
+#             os.makedirs(os.path.dirname(local_path), exist_ok=True)
+#             minio_client.fget_object(bucket_name, object_key, local_path)
+#             print(f"⬇️  {object_key} -> {local_path}")
+
+#         # Locate main.tf
+#         terraform_file_path = os.path.join(download_path, "main.tf")
+#         if not os.path.exists(terraform_file_path):
+#             raise FileNotFoundError("❌ main.tf not found in the downloaded folder.")
+
+#         # Read current Terraform config
+#         with open(terraform_file_path, "r") as file:
+#             existing_code = file.read()
+
+#         # Compose messages for LLM
+#         messages = [
+#             SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
+#             HumanMessage(content=f"""Here is the current Terraform configuration:
+#                 ```hcl
+#                 {existing_code}
+#                 ```
+#                 The user wants the following changes:
+
+#                 Copy
+#                 Edit
+#                 {instructions}
+#                 Please update the configuration accordingly and return the entire updated Terraform code, using best practices.
+
+#                 Important:
+
+#                 Only include valid Terraform HCL, no explanation.
+
+#                 Do NOT remove unrelated infrastructure unless specified.
+
+#                 Do NOT include deployment or function code.""") ]
+
+#   # Call LLM to get updated code
+#         response = llm.invoke(messages)
+#         updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+#         # Write updated code to main.tf
+#         with open(terraform_file_path, "w") as file:
+#             file.write(updated_code)
+
+#         print("✅ main.tf updated")
+
+#     # Upload back to MinIO
+#         print("📤 Uploading updated folder to MinIO...")
+#         for root, _, files in os.walk(download_path):
+#             for file in files:
+#                 file_path = os.path.join(root, file)
+#                 relative_path = os.path.relpath(file_path, download_path)
+#                 object_key = f"{folder_name}/{relative_path}"
+#                 minio_client.fput_object(bucket_name, object_key, file_path)
+#                 print(f"⬆️  {file_path} -> {object_key}")
+
+#         print("✅ Upload complete")
+
+#         try:
+#             s3_info = get_s3_connection_info_with_credentials(user_id)
+#             if s3_info:
+#                 s3_client = boto3.client(
+#                     's3',
+#                     region_name=s3_info["region"],
+#                     aws_access_key_id=s3_info["aws_access_key_id"],
+#                     aws_secret_access_key=s3_info["aws_secret_access_key"]
+#                 )
+#                 s3_bucket = s3_info["bucket"]
+#                 s3_prefix = s3_info.get("prefix", "")
+#                 s3_folder = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+#                 print("📤 Uploading updated folder to S3...")
+#                 for root, _, files in os.walk(download_path):
+#                     for file in files:
+#                         file_path = os.path.join(root, file)
+#                         relative_path = os.path.relpath(file_path, download_path)
+#                         object_key = f"{s3_folder}{relative_path}".replace("\\", "/")
+#                         s3_client.upload_file(file_path, s3_bucket, object_key)
+#                         print(f"⬆️ S3: {file_path} -> {object_key}")
+#                 print("✅ S3 upload complete")
+#         except Exception as s3e:
+#             print(f"⚠️ S3 upload failed: {s3e}")
+
+#         return f"""
+#         ✅ Terraform file updated and synced to S3.
+#         {updated_code}
+#         """
+#     except S3Error as s3e:
+#         raise Exception(f"❌ MinIO error: {str(s3e)}")
+#     except Exception as e:
+#         raise Exception(f"❌ Update failed: {str(e)}")
+#     finally:
+#         # Cleanup temporary folder
+#         shutil.rmtree(temp_dir, ignore_errors=True)
+#         print(f"🧹 Deleted temp directory: {temp_dir}")
+
+
 @tool
 def update_terraform_file(instructions: str, project_name: str, config: RunnableConfig) -> str:
     """
-    Tool to update the existing Terraform configuration based on instructions.
-
-    Args:
-        instructions (str): Description of the changes user wants to make in the Terraform config.
-
-    Returns:
-        str: Updated Terraform code or error message.
+    Tool to update the entire Terraform configuration based on user instructions.
+    Supports updates across any .tf files (main.tf, variables.tf, outputs.tf, etc.).
     """
     print("🔧 Running update_terraform_file tool")
-
 
     user_id = config['configurable'].get('user_id', 'unknown')
     bucket_name = f"terraform-workspaces-user-{user_id}"
     folder_name = f"{project_name}_terraform"
 
-    # Create a temporary local directory
+    # Temp working directory
     temp_dir = tempfile.mkdtemp()
     download_path = os.path.join(temp_dir, folder_name)
     os.makedirs(download_path, exist_ok=True)
 
     try:
-        # Initialize MinIO client
         minio_client = Minio(
             "storage.clouvix.com",
             access_key="clouvix@gmail.com",
@@ -1108,71 +963,83 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
             secure=True
         )
 
-        print(f"📥 Downloading `{folder_name}/` from `{bucket_name}`...")
-
-        # Download files from MinIO
-        objects = minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True)
-        for obj in objects:
+        # Download all files ending with .tf
+        print(f"📥 Downloading all `.tf` files from `{bucket_name}/{folder_name}/`...")
+        tf_files = {}
+        for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
             object_key = obj.object_name
-            relative_path = object_key[len(folder_name) + 1:]  # Remove prefix from object key
+            if not object_key.endswith(".tf"):
+                continue
+            relative_path = object_key[len(folder_name) + 1:]
             local_path = os.path.join(download_path, relative_path)
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             minio_client.fget_object(bucket_name, object_key, local_path)
+            with open(local_path, "r") as f:
+                tf_files[relative_path] = f.read()
             print(f"⬇️  {object_key} -> {local_path}")
 
-        # Locate main.tf
-        terraform_file_path = os.path.join(download_path, "main.tf")
-        if not os.path.exists(terraform_file_path):
-            raise FileNotFoundError("❌ main.tf not found in the downloaded folder.")
+        if not tf_files:
+            raise Exception("❌ No .tf files found in project")
 
-        # Read current Terraform config
-        with open(terraform_file_path, "r") as file:
-            existing_code = file.read()
+        # Compose message for LLM with all files
+        combined_config = ""
+        for filename, content in tf_files.items():
+            combined_config += f"\n### File: {filename}\n```hcl\n{content.strip()}\n```\n"
 
-        # Compose messages for LLM
         messages = [
-            SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
-            HumanMessage(content=f"""Here is the current Terraform configuration:
-                ```hcl
-                {existing_code}
-                ```
-                The user wants the following changes:
+            SystemMessage(content="You are an expert Terraform engineer. Your job is to update a multi-file Terraform configuration."),
+            HumanMessage(content=f"""
+The current Terraform configuration consists of the following files:
 
-                Copy
-                Edit
-                {instructions}
-                Please update the configuration accordingly and return the entire updated Terraform code, using best practices.
+{combined_config}
 
-                Important:
+The user wants the following changes:
+{instructions.strip()}
 
-                Only include valid Terraform HCL, no explanation.
+👉 Please update the configuration accordingly and return **all updated files**, with each one clearly marked like:
 
-                Do NOT remove unrelated infrastructure unless specified.
+### File: variables.tf
+```hcl
+...updated content...
+```
 
-                Do NOT include deployment or function code.""") ]
+Guidelines:
+- Only include valid Terraform HCL.
+- Do NOT include deployment code or explanations.
+- Return all necessary files (even unchanged if needed for context).
+""")
+        ]
 
-  # Call LLM to get updated code
         response = llm.invoke(messages)
-        updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+        updated_output = response.content.strip()
 
-        # Write updated code to main.tf
-        with open(terraform_file_path, "w") as file:
-            file.write(updated_code)
+        # Parse response and update corresponding files
+        file_blocks = re.findall(r"### File: (.+?)\n```hcl\n(.*?)```", updated_output, re.DOTALL)
+        if not file_blocks:
+            raise Exception("❌ LLM response format incorrect or no updated files returned.")
 
-        print("✅ main.tf updated")
+        updated_files = []
+        for filename, content in file_blocks:
+            full_path = os.path.join(download_path, filename)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w") as f:
+                f.write(content.strip())
+            updated_files.append(filename)
+            print(f"✅ Updated {filename}")
 
-    # Upload back to MinIO
-        print("📤 Uploading updated folder to MinIO...")
+        # Upload back to MinIO
+        print("📤 Uploading updated files to MinIO...")
         for root, _, files in os.walk(download_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 relative_path = os.path.relpath(file_path, download_path)
+                if ".terraform" in file_path:
+                    continue
                 object_key = f"{folder_name}/{relative_path}"
                 minio_client.fput_object(bucket_name, object_key, file_path)
                 print(f"⬆️  {file_path} -> {object_key}")
 
-        print("✅ Upload complete")
-
+        # Upload to S3
         try:
             s3_info = get_s3_connection_info_with_credentials(user_id)
             if s3_info:
@@ -1186,10 +1053,12 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
                 s3_prefix = s3_info.get("prefix", "")
                 s3_folder = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
 
-                print("📤 Uploading updated folder to S3...")
+                print("📤 Uploading updated files to S3...")
                 for root, _, files in os.walk(download_path):
                     for file in files:
                         file_path = os.path.join(root, file)
+                        if ".terraform" in file_path:
+                            continue
                         relative_path = os.path.relpath(file_path, download_path)
                         object_key = f"{s3_folder}{relative_path}".replace("\\", "/")
                         s3_client.upload_file(file_path, s3_bucket, object_key)
@@ -1198,25 +1067,35 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
         except Exception as s3e:
             print(f"⚠️ S3 upload failed: {s3e}")
 
-        return f"""
-        ✅ Terraform file updated and synced to S3.
-        {updated_code}
-        """
-    except S3Error as s3e:
-        raise Exception(f"❌ MinIO error: {str(s3e)}")
+        return f"""✅ Terraform files updated successfully:
+
+Updated files: {', '.join(updated_files)}
+
+The following changes were made based on your instructions:
+{instructions}
+
+Files have been uploaded to both MinIO and S3 storage."""
+
     except Exception as e:
-        raise Exception(f"❌ Update failed: {str(e)}")
+        print(f"❌ Error updating Terraform files: {str(e)}")
+        return f"❌ Failed to update Terraform files: {str(e)}"
+    
     finally:
-        # Cleanup temporary folder
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        print(f"🧹 Deleted temp directory: {temp_dir}")
+        # Clean up temporary directory
+        import shutil
+        try:
+            shutil.rmtree(temp_dir)
+            print("🧹 Cleaned up temporary files")
+        except Exception as cleanup_error:
+            print(f"⚠️ Warning: Failed to clean up temporary files: {cleanup_error}")
+
 
 
 # @tool
 # def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str:
 #     """
 #     Downloads a Terraform project folder from MinIO, injects AWS credentials if needed,
-#     runs `terraform apply`, and uploads the updated folder back to MinIO.
+#     runs `terraform apply`, and uploads the updated folder back to MinIO and S3.
 #     """
 #     print("🚀 Running apply_terraform_tool_local with project:", project_name)
 
@@ -1224,13 +1103,11 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #     bucket_name = f"terraform-workspaces-user-{user_id}"
 #     folder_name = f"{project_name}_terraform"
 
-#     # Temporary local working directory
 #     temp_dir = tempfile.mkdtemp()
 #     local_tf_dir = os.path.join(temp_dir, folder_name)
 #     os.makedirs(local_tf_dir, exist_ok=True)
 
 #     try:
-#         # MinIO Client
 #         minio_client = Minio(
 #             "storage.clouvix.com",
 #             access_key="clouvix@gmail.com",
@@ -1253,7 +1130,10 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #         if not os.path.exists(terraform_file_path):
 #             raise FileNotFoundError("❌ Terraform file not found in downloaded folder")
 
-#         # Fetch AWS credentials from DB
+#         # Backup original file
+#         with open(terraform_file_path, "r", encoding="utf-8") as file:
+#             original_tf_content = file.read()
+
 #         with get_db_session() as db:
 #             connections = get_user_connections_by_type(db, user_id, "aws")
 #             if not connections:
@@ -1266,43 +1146,36 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 
 #             if not aws_access_key or not aws_secret_key:
 #                 raise ValueError("❌ AWS credentials are incomplete")
-#             print("State file exists or not")
-#             print(os.path.exists(os.path.join(local_tf_dir, "terraform.tfstate")))
+
 #             is_first_run = not os.path.exists(os.path.join(local_tf_dir, "terraform.tfstate"))
-#             print(is_first_run)
 #             if is_first_run:
-#                 with open(terraform_file_path, "r") as file:
-#                     tf_content = file.read()
+#                 # Remove old provider block
+#                 cleaned_content = re.sub(
+#                     r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
+#                     '',
+#                     original_tf_content,
+#                     flags=re.DOTALL
+#                 ).strip()
 
-#                 # Remove existing AWS provider block entirely
-#                 tf_content = re.sub(
-#                     r'provider\s+"aws"\s*{[^}]*}',  # match entire block
-#                     '', tf_content, flags=re.DOTALL
-#                 )
-
-#                 # Add fresh AWS provider block with credentials
+#                 # Inject temporary credentials
 #                 provider_block = f'''
-#                 provider "aws" {{
-#                 access_key = "{aws_access_key}"
-#                 secret_key = "{aws_secret_key}"
-#                 region     = "us-east-1"
-#                 }}
-#                 '''
+#                         provider "aws" {{
+#                         access_key = "{aws_access_key}"
+#                         secret_key = "{aws_secret_key}"
+#                         region     = "us-east-1"
+#                         }}'''.strip()
 
-#                 tf_content = provider_block.strip() + "\n\n" + tf_content.strip()
+#                 final_tf_content = provider_block + "\n\n" + cleaned_content
+#                 with open(terraform_file_path, "w", encoding="utf-8") as file:
+#                     file.write(final_tf_content)
 
-#                 with open(terraform_file_path, "w") as file:
-#                     file.write(tf_content)
-
-#                 print("🔧 Replaced/injected AWS provider block (first run)")
+#                 print("🔧 Injected temporary AWS provider block for apply")
 #             else:
 #                 print("🟡 Skipping provider block injection (not first run)")
 
-#             # Run terraform init
 #             print("🔨 Running terraform init")
 #             subprocess.run(["terraform", "init"], cwd=local_tf_dir, check=True)
 
-#             # Run terraform apply
 #             print("🚀 Running terraform apply")
 #             result = subprocess.run(
 #                 ["terraform", "apply", "-auto-approve"],
@@ -1310,10 +1183,14 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #                 capture_output=True,
 #                 text=True
 #             )
-#             print(result)
+
+#             # ✅ Restore original main.tf (removes AWS credentials)
+#             with open(terraform_file_path, "w", encoding="utf-8") as f:
+#                 f.write(original_tf_content)
+#             print("🧼 Restored original main.tf without credentials")
 
 #             # Upload updated files to MinIO
-#             print("📤 Uploading updated folder back to MinIO...")
+#             print("📤 Uploading cleaned files back to MinIO...")
 #             for root, _, files in os.walk(local_tf_dir):
 #                 for file in files:
 #                     if ".terraform" in root:
@@ -1323,7 +1200,8 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #                     object_key = f"{folder_name}/{relative_path}"
 #                     minio_client.fput_object(bucket_name, object_key, file_path)
 #                     print(f"⬆️  {file_path} -> {object_key}")
-#             print(result)
+
+#             # Upload to S3
 #             try:
 #                 s3_conn = get_s3_connection_info_with_credentials(user_id)
 #                 s3_bucket = s3_conn["bucket"]
@@ -1332,7 +1210,7 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #                 aws_access_key_id = s3_conn["aws_access_key_id"]
 #                 aws_secret_access_key = s3_conn["aws_secret_access_key"]
 
-#                 if s3_bucket and s3_region and aws_access_key_id and aws_secret_access_key:
+#                 if s3_bucket and aws_access_key_id and aws_secret_access_key:
 #                     s3 = boto3.client(
 #                         's3',
 #                         region_name=s3_region,
@@ -1340,7 +1218,6 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #                         aws_secret_access_key=aws_secret_access_key
 #                     )
 
-#                     folder_name = os.path.basename(local_tf_dir.rstrip("/"))
 #                     s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
 
 #                     for root, _, files in os.walk(local_tf_dir):
@@ -1355,18 +1232,11 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 
 #                     print("✅ Terraform directory uploaded to S3!")
 #                 else:
-#                     print("⚠️ Skipping S3 upload - missing S3 credentials or config")
+#                     print("⚠️ Skipping S3 upload - missing credentials or config")
 #             except Exception as e:
 #                 print(f"❌ Error uploading to S3: {e}")
 
-
-#             # 🌟 Update status in DB
-#             # apply_status = result
-
-
-#             print("Updating status table")
-#             # 🌟 Update workspace_status table
-
+#             # Update DB status
 #             apply_status = result.stdout if result.returncode == 0 else result.stderr
 
 #             status_payload = WorkspaceStatusCreate(
@@ -1375,24 +1245,13 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #                 status=apply_status
 #             )
 
-#             # create_or_update_workspace_status(db=db, status_data=status_payload)
-
-#             print(status_payload)
-
 #             assert create_or_update_workspace_status(db=db, status_data=status_payload)
-
-
 #             print("✅ Workspace status updated")
 
-#             # Format and return result
 #             if result.returncode == 0:
-#                 return f"""✅ Terraform Apply Successful for `{project_name}`
-#                 ```bash
-#                 {result.stdout}
-#                 """ 
-#             else: return f"""❌ Terraform Apply Failed for {project_name}
-#                 {result.stderr}
-#                 """
+#                 return f"""✅ Terraform Apply Successful for `{project_name}`\n```bash\n{result.stdout}\n```"""
+#             else:
+#                 return f"""❌ Terraform Apply Failed for `{project_name}`\n```bash\n{result.stderr}\n```"""
 
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Terraform apply failed: {str(e)}")
@@ -1400,15 +1259,12 @@ def update_terraform_file(instructions: str, project_name: str, config: Runnable
 #     finally:
 #         shutil.rmtree(temp_dir, ignore_errors=True)
 #         print(f"🧹 Deleted local working directory: {temp_dir}")
-#     # except subprocess.CalledProcessError as e:
-#     #     return f"❌ Terraform CLI Error:\n```\n{e.stderr}\n```"
-#     # except Exception as e:
-#     #     return f"❌ Unexpected Error:\n```\n{str(e)}\n```"
+
 
 @tool
 def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str:
     """
-    Downloads a Terraform project folder from MinIO, injects AWS credentials if needed,
+    Downloads a Terraform project folder from MinIO, injects AWS credentials into provider.tf if it exists,
     runs `terraform apply`, and uploads the updated folder back to MinIO and S3.
     """
     print("🚀 Running apply_terraform_tool_local with project:", project_name)
@@ -1417,9 +1273,13 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
     bucket_name = f"terraform-workspaces-user-{user_id}"
     folder_name = f"{project_name}_terraform"
 
+    # ✅ Always start with a clean temporary working directory
     temp_dir = tempfile.mkdtemp()
     local_tf_dir = os.path.join(temp_dir, folder_name)
     os.makedirs(local_tf_dir, exist_ok=True)
+
+    provider_tf_path = os.path.join(local_tf_dir, "provider.tf")
+    original_provider_content = None
 
     try:
         minio_client = Minio(
@@ -1429,7 +1289,6 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
             secure=True
         )
 
-        # Download all project files from MinIO
         print(f"📥 Downloading Terraform project `{folder_name}` from bucket `{bucket_name}`...")
         objects = minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True)
         for obj in objects:
@@ -1439,14 +1298,6 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             minio_client.fget_object(bucket_name, object_key, local_path)
             print(f"⬇️  {object_key} -> {local_path}")
-
-        terraform_file_path = os.path.join(local_tf_dir, "main.tf")
-        if not os.path.exists(terraform_file_path):
-            raise FileNotFoundError("❌ Terraform file not found in downloaded folder")
-
-        # Backup original file
-        with open(terraform_file_path, "r", encoding="utf-8") as file:
-            original_tf_content = file.read()
 
         with get_db_session() as db:
             connections = get_user_connections_by_type(db, user_id, "aws")
@@ -1461,31 +1312,26 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
             if not aws_access_key or not aws_secret_key:
                 raise ValueError("❌ AWS credentials are incomplete")
 
-            is_first_run = not os.path.exists(os.path.join(local_tf_dir, "terraform.tfstate"))
-            if is_first_run:
-                # Remove old provider block
-                cleaned_content = re.sub(
-                    r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
-                    '',
-                    original_tf_content,
+            # ✅ Inject credentials into provider.tf if it exists
+            if os.path.exists(provider_tf_path):
+                with open(provider_tf_path, "r", encoding="utf-8") as f:
+                    original_provider_content = f.read()
+
+                modified_provider = re.sub(
+                    r'provider\s+"aws"\s*\{[^}]*\}',
+                    f'''provider "aws" {{
+  access_key = "{aws_access_key}"
+  secret_key = "{aws_secret_key}"
+  region     = "us-east-1"
+}}''',
+                    original_provider_content,
                     flags=re.DOTALL
-                ).strip()
+                )
 
-                # Inject temporary credentials
-                provider_block = f'''
-                        provider "aws" {{
-                        access_key = "{aws_access_key}"
-                        secret_key = "{aws_secret_key}"
-                        region     = "us-east-1"
-                        }}'''.strip()
+                with open(provider_tf_path, "w", encoding="utf-8") as f:
+                    f.write(modified_provider)
 
-                final_tf_content = provider_block + "\n\n" + cleaned_content
-                with open(terraform_file_path, "w", encoding="utf-8") as file:
-                    file.write(final_tf_content)
-
-                print("🔧 Injected temporary AWS provider block for apply")
-            else:
-                print("🟡 Skipping provider block injection (not first run)")
+                print("🔐 Injected AWS credentials into provider.tf")
 
             print("🔨 Running terraform init")
             subprocess.run(["terraform", "init"], cwd=local_tf_dir, check=True)
@@ -1498,12 +1344,13 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
                 text=True
             )
 
-            # ✅ Restore original main.tf (removes AWS credentials)
-            with open(terraform_file_path, "w", encoding="utf-8") as f:
-                f.write(original_tf_content)
-            print("🧼 Restored original main.tf without credentials")
+            # ✅ Restore original provider.tf (removes injected credentials)
+            if original_provider_content:
+                with open(provider_tf_path, "w", encoding="utf-8") as f:
+                    f.write(original_provider_content)
+                print("🧼 Restored provider.tf without credentials")
 
-            # Upload updated files to MinIO
+            # ✅ Upload cleaned files back to MinIO
             print("📤 Uploading cleaned files back to MinIO...")
             for root, _, files in os.walk(local_tf_dir):
                 for file in files:
@@ -1515,7 +1362,7 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
                     minio_client.fput_object(bucket_name, object_key, file_path)
                     print(f"⬆️  {file_path} -> {object_key}")
 
-            # Upload to S3
+            # ✅ Upload to S3
             try:
                 s3_conn = get_s3_connection_info_with_credentials(user_id)
                 s3_bucket = s3_conn["bucket"]
@@ -1550,7 +1397,7 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
             except Exception as e:
                 print(f"❌ Error uploading to S3: {e}")
 
-            # Update DB status
+            # ✅ Update status in database
             apply_status = result.stdout if result.returncode == 0 else result.stderr
 
             status_payload = WorkspaceStatusCreate(
@@ -1573,6 +1420,7 @@ def apply_terraform_tool_local(project_name: str, config: RunnableConfig) -> str
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
         print(f"🧹 Deleted local working directory: {temp_dir}")
+
 
 
 
@@ -1654,12 +1502,167 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
         shutil.rmtree(temp_dir, ignore_errors=True)
         print(f"🧹 Deleted temp directory: {temp_dir}")
 
+@tool
+def destroy_terraform_tool_local(project_name: str, config: RunnableConfig) -> str:
+    """
+    Downloads a Terraform project folder from MinIO, injects AWS credentials into provider.tf if it exists,
+    runs `terraform destroy`, and uploads the updated folder back to MinIO and S3.
+    """
+    print("🧨 Running destroy_terraform_tool_local with project:", project_name)
+
+    user_id = config['configurable'].get('user_id', 'unknown')
+    bucket_name = f"terraform-workspaces-user-{user_id}"
+    folder_name = f"{project_name}_terraform"
+
+    temp_dir = tempfile.mkdtemp()
+    local_tf_dir = os.path.join(temp_dir, folder_name)
+    os.makedirs(local_tf_dir, exist_ok=True)
+
+    provider_tf_path = os.path.join(local_tf_dir, "provider.tf")
+    original_provider_content = None
+
+    try:
+        minio_client = Minio(
+            "storage.clouvix.com",
+            access_key="clouvix@gmail.com",
+            secret_key="Clouvix@bangalore2025",
+            secure=True
+        )
+
+        print(f"📥 Downloading Terraform project `{folder_name}` from bucket `{bucket_name}`...")
+        for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
+            object_key = obj.object_name
+            relative_path = object_key[len(folder_name) + 1:]
+            local_path = os.path.join(local_tf_dir, relative_path)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            minio_client.fget_object(bucket_name, object_key, local_path)
+            print(f"⬇️  {object_key} -> {local_path}")
+
+        with get_db_session() as db:
+            connections = get_user_connections_by_type(db, user_id, "aws")
+            if not connections:
+                raise ValueError("❌ No AWS connection found for user")
+
+            connection = connections[0]
+            connection_data = json.loads(connection.connection_json)
+            aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
+            aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
+
+            if not aws_access_key or not aws_secret_key:
+                raise ValueError("❌ AWS credentials are incomplete")
+
+            # ✅ Inject into provider.tf if it exists
+            if os.path.exists(provider_tf_path):
+                with open(provider_tf_path, "r", encoding="utf-8") as f:
+                    original_provider_content = f.read()
+
+                modified_provider = re.sub(
+                    r'provider\s+"aws"\s*\{[^}]*\}',
+                    f'''provider "aws" {{
+  access_key = "{aws_access_key}"
+  secret_key = "{aws_secret_key}"
+  region     = "us-east-1"
+}}''',
+                    original_provider_content,
+                    flags=re.DOTALL
+                )
+
+                with open(provider_tf_path, "w", encoding="utf-8") as f:
+                    f.write(modified_provider)
+
+                print("🔐 Injected AWS credentials into provider.tf")
+
+            print("🔨 Running terraform init")
+            subprocess.run(["terraform", "init"], cwd=local_tf_dir, check=True)
+
+            print("💣 Running terraform destroy")
+            result = subprocess.run(
+                ["terraform", "destroy", "-auto-approve"],
+                cwd=local_tf_dir,
+                capture_output=True,
+                text=True
+            )
+
+            # ✅ Restore original provider.tf
+            if original_provider_content:
+                with open(provider_tf_path, "w", encoding="utf-8") as f:
+                    f.write(original_provider_content)
+                print("🧼 Restored provider.tf without credentials")
+
+            # ✅ Upload updated files to MinIO
+            print("📤 Uploading cleaned files back to MinIO...")
+            for root, _, files in os.walk(local_tf_dir):
+                if ".terraform" in root:
+                    continue
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, local_tf_dir)
+                    object_key = f"{folder_name}/{relative_path}"
+                    minio_client.fput_object(bucket_name, object_key, file_path)
+                    print(f"⬆️  {file_path} -> {object_key}")
+
+            # ✅ Upload to S3
+            try:
+                s3_conn = get_s3_connection_info_with_credentials(user_id)
+                s3_bucket = s3_conn["bucket"]
+                s3_region = s3_conn["region"]
+                s3_prefix = s3_conn.get("prefix", "")
+                aws_access_key_id = s3_conn["aws_access_key_id"]
+                aws_secret_access_key = s3_conn["aws_secret_access_key"]
+
+                if s3_bucket and aws_access_key_id and aws_secret_access_key:
+                    s3 = boto3.client(
+                        "s3",
+                        region_name=s3_region,
+                        aws_access_key_id=aws_access_key_id,
+                        aws_secret_access_key=aws_secret_access_key
+                    )
+
+                    s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+                    print("📤 Uploading updated folder to S3...")
+
+                    for root, _, files in os.walk(local_tf_dir):
+                        if ".terraform" in root:
+                            continue
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            relative_path = os.path.relpath(file_path, local_tf_dir)
+                            object_key = f"{s3_object_prefix}{relative_path}"
+                            s3.upload_file(file_path, s3_bucket, object_key)
+                            print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
+
+                    print("✅ Terraform directory uploaded to S3!")
+                else:
+                    print("⚠️ S3 upload skipped - credentials missing or bucket config not found.")
+            except Exception as s3e:
+                print(f"❌ Error uploading to S3: {s3e}")
+
+            if result.returncode == 0:
+                return f"""
+✅ Terraform Destroy Successful for `{project_name}`
+
+```bash
+{result.stdout.strip()}
+```"""
+            else:
+                return f"""❌ Terraform Destroy Failed for {project_name}
+```bash
+{result.stderr.strip()}
+```"""
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Terraform destroy failed: {str(e)}")
+
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f"🧹 Deleted local working directory: {temp_dir}")
+
 
 # @tool
 # def destroy_terraform_tool_local(project_name: str, config: RunnableConfig) -> str:
 #     """
-#     Downloads a Terraform project folder from MinIO, injects AWS credentials if needed,
-#     runs `terraform destroy`, and uploads the updated folder back to MinIO.
+#     Downloads a Terraform project folder from MinIO, injects AWS credentials temporarily,
+#     runs `terraform destroy`, and uploads the cleaned folder back to MinIO and S3.
 #     """
 #     print("🧨 Running destroy_terraform_tool_local with project:", project_name)
 
@@ -1667,7 +1670,6 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #     bucket_name = f"terraform-workspaces-user-{user_id}"
 #     folder_name = f"{project_name}_terraform"
 
-#     # Temporary local working directory
 #     temp_dir = tempfile.mkdtemp()
 #     local_tf_dir = os.path.join(temp_dir, folder_name)
 #     os.makedirs(local_tf_dir, exist_ok=True)
@@ -1681,7 +1683,7 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #             secure=True
 #         )
 
-#         # Download all project files from MinIO
+#         # Download project files from MinIO
 #         print(f"📥 Downloading Terraform project `{folder_name}` from bucket `{bucket_name}`...")
 #         objects = minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True)
 #         for obj in objects:
@@ -1695,6 +1697,9 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #         terraform_file_path = os.path.join(local_tf_dir, "main.tf")
 #         if not os.path.exists(terraform_file_path):
 #             raise FileNotFoundError("❌ Terraform file not found in downloaded folder")
+
+#         with open(terraform_file_path, "r", encoding="utf-8") as f:
+#             original_tf_content = f.read()
 
 #         # Fetch AWS credentials from DB
 #         with get_db_session() as db:
@@ -1710,28 +1715,30 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #             if not aws_access_key or not aws_secret_key:
 #                 raise ValueError("❌ AWS credentials are incomplete")
 
-#             # Inject AWS provider block if needed - commented
-#             # with open(terraform_file_path, "r") as file:
-#             #     tf_content = file.read()
+#             # Step: Remove old provider block and inject temporary one
+#             cleaned_tf_content = re.sub(
+#                 r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
+#                 '',
+#                 original_tf_content,
+#                 flags=re.DOTALL
+#             ).strip()
 
-#             # if 'provider "aws"' not in tf_content:
-#             #     provider_block = f'''
-#             #         provider "aws" {{
-#             #         access_key = "{aws_access_key}"
-#             #         secret_key = "{aws_secret_key}"
-#             #         region     = "us-east-1"
-#             #         }}
-#             #         '''
-#             #     tf_content = provider_block + "\n" + tf_content
-#             #     with open(terraform_file_path, "w") as file:
-#             #         file.write(tf_content)
-#             #     print("🔧 Injected AWS provider block")
+#             temp_provider_block = f'''
+# provider "aws" {{
+#   access_key = "{aws_access_key}"
+#   secret_key = "{aws_secret_key}"
+#   region     = "us-east-1"
+# }}'''.strip()
 
-#             # Run terraform init
+#             updated_tf_content = temp_provider_block + "\n\n" + cleaned_tf_content
+#             with open(terraform_file_path, "w", encoding="utf-8") as f:
+#                 f.write(updated_tf_content)
+
+#             print("🔧 Injected AWS provider block (temporary)")
+
 #             print("🔨 Running terraform init")
 #             subprocess.run(["terraform", "init"], cwd=local_tf_dir, check=True)
 
-#             # Run terraform apply
 #             print("💣 Running terraform destroy")
 #             result = subprocess.run(
 #                 ["terraform", "destroy", "-auto-approve"],
@@ -1740,21 +1747,24 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #                 text=True
 #             )
 
-#             print(result)
-#             # Upload updated files to MinIO
-#             print("📤 Uploading updated folder back to MinIO...")
+#             # Restore original provider block after destroy
+#             with open(terraform_file_path, "w", encoding="utf-8") as f:
+#                 f.write(original_tf_content)
+#             print("🧼 Restored original main.tf")
+
+#             # Upload to MinIO
+#             print("📤 Uploading cleaned files back to MinIO...")
 #             for root, _, files in os.walk(local_tf_dir):
 #                 for file in files:
 #                     if ".terraform" in root:
 #                         continue
-
 #                     file_path = os.path.join(root, file)
 #                     relative_path = os.path.relpath(file_path, local_tf_dir)
 #                     object_key = f"{folder_name}/{relative_path}"
 #                     minio_client.fput_object(bucket_name, object_key, file_path)
 #                     print(f"⬆️  {file_path} -> {object_key}")
 
-#             # === Step 4: Upload to S3 ===
+#             # Upload to S3
 #             try:
 #                 s3_conn = get_s3_connection_info_with_credentials(user_id)
 #                 s3_bucket = s3_conn["bucket"]
@@ -1788,193 +1798,28 @@ def read_terraform_files_from_bucket(project_name: str, config: RunnableConfig) 
 #                 else:
 #                     print("⚠️ S3 upload skipped - credentials missing or bucket config not found.")
 #             except Exception as s3e:
-#                 print(f"❌ Error uploading to S3: {s3e}")                    
+#                 print(f"❌ Error uploading to S3: {s3e}")
+
 #             # Format and return result
 #             if result.returncode == 0:
 #                 return f"""
-#             ✅ Terraform Apply Successful for `{project_name}`
+# ✅ Terraform Destroy Successful for `{project_name}`
 
-#             ```bash
-#             {result.stdout.strip()}
-#             ```
-#             """
-#             else: return f""" ❌ Terraform Apply Failed for {project_name}
-#             {result.stderr.strip()}
-#             """
+# ```bash
+# {result.stdout.strip()}
+# ```"""
+#             else:
+#                 return f"""❌ Terraform Destroy Failed for {project_name}
+# ```bash
+# {result.stderr.strip()}
+# ```"""
 
 #     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Terraform apply failed: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Terraform destroy failed: {str(e)}")
 
 #     finally:
 #         shutil.rmtree(temp_dir, ignore_errors=True)
 #         print(f"🧹 Deleted local working directory: {temp_dir}")
-#     # except subprocess.CalledProcessError as e:
-#     #     return f"❌ Terraform CLI Error:\n```\n{e.stderr}\n```"
-#     # except Exception as e:
-#     #     return f"❌ Unexpected Error:\n```\n{str(e)}\n```"
-
-@tool
-def destroy_terraform_tool_local(project_name: str, config: RunnableConfig) -> str:
-    """
-    Downloads a Terraform project folder from MinIO, injects AWS credentials temporarily,
-    runs `terraform destroy`, and uploads the cleaned folder back to MinIO and S3.
-    """
-    print("🧨 Running destroy_terraform_tool_local with project:", project_name)
-
-    user_id = config['configurable'].get('user_id', 'unknown')
-    bucket_name = f"terraform-workspaces-user-{user_id}"
-    folder_name = f"{project_name}_terraform"
-
-    temp_dir = tempfile.mkdtemp()
-    local_tf_dir = os.path.join(temp_dir, folder_name)
-    os.makedirs(local_tf_dir, exist_ok=True)
-
-    try:
-        # MinIO Client
-        minio_client = Minio(
-            "storage.clouvix.com",
-            access_key="clouvix@gmail.com",
-            secret_key="Clouvix@bangalore2025",
-            secure=True
-        )
-
-        # Download project files from MinIO
-        print(f"📥 Downloading Terraform project `{folder_name}` from bucket `{bucket_name}`...")
-        objects = minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True)
-        for obj in objects:
-            object_key = obj.object_name
-            relative_path = object_key[len(folder_name) + 1:]
-            local_path = os.path.join(local_tf_dir, relative_path)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            minio_client.fget_object(bucket_name, object_key, local_path)
-            print(f"⬇️  {object_key} -> {local_path}")
-
-        terraform_file_path = os.path.join(local_tf_dir, "main.tf")
-        if not os.path.exists(terraform_file_path):
-            raise FileNotFoundError("❌ Terraform file not found in downloaded folder")
-
-        with open(terraform_file_path, "r", encoding="utf-8") as f:
-            original_tf_content = f.read()
-
-        # Fetch AWS credentials from DB
-        with get_db_session() as db:
-            connections = get_user_connections_by_type(db, user_id, "aws")
-            if not connections:
-                raise ValueError("❌ No AWS connection found for user")
-
-            connection = connections[0]
-            connection_data = json.loads(connection.connection_json)
-            aws_access_key = next((item["value"] for item in connection_data if item["key"] == "AWS_ACCESS_KEY_ID"), None)
-            aws_secret_key = next((item["value"] for item in connection_data if item["key"] == "AWS_SECRET_ACCESS_KEY"), None)
-
-            if not aws_access_key or not aws_secret_key:
-                raise ValueError("❌ AWS credentials are incomplete")
-
-            # Step: Remove old provider block and inject temporary one
-            cleaned_tf_content = re.sub(
-                r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
-                '',
-                original_tf_content,
-                flags=re.DOTALL
-            ).strip()
-
-            temp_provider_block = f'''
-provider "aws" {{
-  access_key = "{aws_access_key}"
-  secret_key = "{aws_secret_key}"
-  region     = "us-east-1"
-}}'''.strip()
-
-            updated_tf_content = temp_provider_block + "\n\n" + cleaned_tf_content
-            with open(terraform_file_path, "w", encoding="utf-8") as f:
-                f.write(updated_tf_content)
-
-            print("🔧 Injected AWS provider block (temporary)")
-
-            print("🔨 Running terraform init")
-            subprocess.run(["terraform", "init"], cwd=local_tf_dir, check=True)
-
-            print("💣 Running terraform destroy")
-            result = subprocess.run(
-                ["terraform", "destroy", "-auto-approve"],
-                cwd=local_tf_dir,
-                capture_output=True,
-                text=True
-            )
-
-            # Restore original provider block after destroy
-            with open(terraform_file_path, "w", encoding="utf-8") as f:
-                f.write(original_tf_content)
-            print("🧼 Restored original main.tf")
-
-            # Upload to MinIO
-            print("📤 Uploading cleaned files back to MinIO...")
-            for root, _, files in os.walk(local_tf_dir):
-                for file in files:
-                    if ".terraform" in root:
-                        continue
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_path, local_tf_dir)
-                    object_key = f"{folder_name}/{relative_path}"
-                    minio_client.fput_object(bucket_name, object_key, file_path)
-                    print(f"⬆️  {file_path} -> {object_key}")
-
-            # Upload to S3
-            try:
-                s3_conn = get_s3_connection_info_with_credentials(user_id)
-                s3_bucket = s3_conn["bucket"]
-                s3_region = s3_conn["region"]
-                s3_prefix = s3_conn.get("prefix", "")
-                aws_access_key_id = s3_conn["aws_access_key_id"]
-                aws_secret_access_key = s3_conn["aws_secret_access_key"]
-
-                if s3_bucket and aws_access_key_id and aws_secret_access_key:
-                    s3 = boto3.client(
-                        "s3",
-                        region_name=s3_region,
-                        aws_access_key_id=aws_access_key_id,
-                        aws_secret_access_key=aws_secret_access_key
-                    )
-
-                    print("📤 Uploading updated folder to S3...")
-                    s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
-
-                    for root, _, files in os.walk(local_tf_dir):
-                        for file in files:
-                            if ".terraform" in root:
-                                continue
-                            file_path = os.path.join(root, file)
-                            relative_path = os.path.relpath(file_path, local_tf_dir)
-                            object_key = f"{s3_object_prefix}{relative_path}"
-                            print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
-                            s3.upload_file(file_path, s3_bucket, object_key)
-
-                    print("✅ Terraform directory uploaded to S3!")
-                else:
-                    print("⚠️ S3 upload skipped - credentials missing or bucket config not found.")
-            except Exception as s3e:
-                print(f"❌ Error uploading to S3: {s3e}")
-
-            # Format and return result
-            if result.returncode == 0:
-                return f"""
-✅ Terraform Destroy Successful for `{project_name}`
-
-```bash
-{result.stdout.strip()}
-```"""
-            else:
-                return f"""❌ Terraform Destroy Failed for {project_name}
-```bash
-{result.stderr.strip()}
-```"""
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Terraform destroy failed: {str(e)}")
-
-    finally:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        print(f"🧹 Deleted local working directory: {temp_dir}")
 
 
 # @tool
@@ -2164,21 +2009,20 @@ def remediate_terraform_error_tool(project_name: str, terraform_code: str, error
     """ 
     except Exception as e: return f"❌ Remediation failed: {str(e)}"
 
+
 @tool
 def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConfig) -> str:
     """
-    Applies optimization directly to the Terraform file based on the ARN and recommendation.
-    - Finds the project name from the ARN.
-    - Updates the Terraform file using the recommendation.
-    - Uploads the updated file back to MinIO.
-    - Returns the updated Terraform code.
+    Optimizes Terraform project based on an ARN and a recommendation.
+    Loads all .tf files, sends them to LLM for context, applies the optimization,
+    and updates both MinIO and S3.
     """
+    print("🚀 Running optimize_resource_by_arn")
 
     user_id = config['configurable'].get('user_id', 'unknown')
-    print("Applying optimization for:", arn)
 
     try:
-        # Step 1: Identify the Terraform project
+        # 🔎 Find the project name from the ARN
         with get_db_session() as db:
             result = db.execute(
                 text("SELECT project_name FROM infrastructure_inventory WHERE arn = :arn AND user_id = :user_id LIMIT 1"),
@@ -2189,13 +2033,13 @@ def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConf
             return f"❌ No project found for ARN `{arn}` for user `{user_id}`."
 
         project_name = result.project_name
-        bucket_name = f"terraform-workspaces-user-{user_id}"
         folder_name = f"{project_name}_terraform"
+        bucket_name = f"terraform-workspaces-user-{user_id}"
 
-        # Step 2: Download Terraform files from MinIO
+        # 🗂️ Prepare temp folder and download all `.tf` files
         temp_dir = tempfile.mkdtemp()
-        download_path = os.path.join(temp_dir, folder_name)
-        os.makedirs(download_path, exist_ok=True)
+        local_path = os.path.join(temp_dir, folder_name)
+        os.makedirs(local_path, exist_ok=True)
 
         minio_client = Minio(
             "storage.clouvix.com",
@@ -2204,77 +2048,230 @@ def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConf
             secure=True
         )
 
+        tf_files = {}
+        print("📥 Downloading all `.tf` files from MinIO...")
         for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
             object_key = obj.object_name
+            if not object_key.endswith(".tf"):
+                continue
             relative_path = object_key[len(folder_name) + 1:]
-            local_path = os.path.join(download_path, relative_path)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            minio_client.fget_object(bucket_name, object_key, local_path)
+            file_path = os.path.join(local_path, relative_path)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            minio_client.fget_object(bucket_name, object_key, file_path)
+            with open(file_path, "r") as f:
+                tf_files[relative_path] = f.read()
+            print(f"⬇️ {object_key} -> {relative_path}")
 
-        terraform_file_path = os.path.join(download_path, "main.tf")
-        if not os.path.exists(terraform_file_path):
-            raise FileNotFoundError("❌ main.tf not found in the downloaded folder.")
+        if not tf_files:
+            return f"❌ No `.tf` files found in `{bucket_name}/{folder_name}`"
 
-        # Step 3: Read and update Terraform file using LLM
-        with open(terraform_file_path, "r") as file:
-            existing_code = file.read()
-        print("Exisiting code read:")
-        print(existing_code)
+        # 🧠 Build LLM input
+        tf_content = ""
+        for fname, content in tf_files.items():
+            tf_content += f"\n### File: {fname}\n```hcl\n{content.strip()}\n```\n"
 
         messages = [
-            SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
-            HumanMessage(content=f"""Here is the current Terraform configuration:
-                ```hcl
-                {existing_code}
-                ```
-                The user wants the following changes:
-                {recommendation}
+            SystemMessage(content="You are a Terraform expert. Apply the recommendation to the correct resource while preserving unrelated resources."),
+            HumanMessage(content=f"""
+Here is the current Terraform configuration:
 
-                Important:
+{tf_content}
 
-                Only include valid Terraform HCL, no explanation.
+The resource to optimize is:
+ARN: {arn}
 
-                Do NOT remove unrelated infrastructure unless specified.
+The user recommendation is:
+{recommendation}
 
-                Do NOT include deployment or function code.""") ]
+👉 Please apply the change, and return the updated configuration like this:
 
-  # Call LLM to get updated code
+### File: main.tf
+```hcl
+<updated content>
+```
+
+Only return valid Terraform HCL. Do NOT explain anything.
+""")
+        ]
+
+        # 🎯 Call LLM
         response = llm.invoke(messages)
-        print("Here is the llm response:")
-        print(response)
-        updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+        updated_output = response.content.strip()
 
-        # Write updated code to main.tf
-        with open(terraform_file_path, "w") as file:
-            file.write(updated_code)
+        # 🧾 Parse updated files
+        file_blocks = re.findall(r"### File: (.+?)\n```hcl\n(.*?)```", updated_output, re.DOTALL)
+        if not file_blocks:
+            raise Exception("❌ LLM did not return any properly formatted updates.")
 
-        print("✅ main.tf updated")
-    
-    # Upload back to MinIO
-        print("📤 Uploading updated folder to MinIO...")
-        for root, _, files in os.walk(download_path):
+        updated_files = []
+        for filename, content in file_blocks:
+            full_path = os.path.join(local_path, filename)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "w") as f:
+                f.write(content.strip())
+            updated_files.append(filename)
+            print(f"✅ Updated {filename}")
+
+        # 📤 Upload to MinIO
+        print("📤 Uploading updated files to MinIO...")
+        for root, _, files in os.walk(local_path):
             for file in files:
                 file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, download_path)
-                object_key = f"{folder_name}/{relative_path}"
+                rel_path = os.path.relpath(file_path, local_path)
+                object_key = f"{folder_name}/{rel_path}"
                 minio_client.fput_object(bucket_name, object_key, file_path)
-                print(f"⬆️  {file_path} -> {object_key}")
+                print(f"⬆️ MinIO: {file_path} -> {object_key}")
 
-        print("✅ Upload complete")
+        # ☁️ Upload to S3
+        try:
+            s3_info = get_s3_connection_info_with_credentials(user_id)
+            if s3_info:
+                s3_client = boto3.client(
+                    's3',
+                    region_name=s3_info["region"],
+                    aws_access_key_id=s3_info["aws_access_key_id"],
+                    aws_secret_access_key=s3_info["aws_secret_access_key"]
+                )
+                s3_bucket = s3_info["bucket"]
+                s3_prefix = s3_info.get("prefix", "")
+                s3_base = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                print("📤 Uploading updated files to S3...")
+                for root, _, files in os.walk(local_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        rel_path = os.path.relpath(file_path, local_path)
+                        s3_key = f"{s3_base}{rel_path}".replace("\\", "/")
+                        s3_client.upload_file(file_path, s3_bucket, s3_key)
+                        print(f"⬆️ S3: {file_path} -> {s3_key}")
+                print("✅ S3 upload complete.")
+        except Exception as e:
+            print(f"⚠️ S3 upload failed: {e}")
 
         return f"""
-        ✅ Optimization applied to `{project_name}`.
+✅ Optimization applied to project {project_name}.
+Updated files: {', '.join(updated_files)}
+"""
 
-        Terraform configuration has been updated and synced to MinIO.
-
-        ```hcl
-        {updated_code} 
-        """
     except S3Error as s3e:
         raise Exception(f"❌ MinIO error: {str(s3e)}")
     except Exception as e:
-        raise Exception(f"❌ Update failed: {str(e)}")
+        raise Exception(f"❌ Optimization failed: {str(e)}")
     finally:
-        # Cleanup temporary folder
         shutil.rmtree(temp_dir, ignore_errors=True)
         print(f"🧹 Deleted temp directory: {temp_dir}")
+
+# @tool
+# def optimize_resource_by_arn(arn: str, recommendation: str, config: RunnableConfig) -> str:
+#     """
+#     Applies optimization directly to the Terraform file based on the ARN and recommendation.
+#     - Finds the project name from the ARN.
+#     - Updates the Terraform file using the recommendation.
+#     - Uploads the updated file back to MinIO.
+#     - Returns the updated Terraform code.
+#     """
+
+#     user_id = config['configurable'].get('user_id', 'unknown')
+#     print("Applying optimization for:", arn)
+
+#     try:
+#         # Step 1: Identify the Terraform project
+#         with get_db_session() as db:
+#             result = db.execute(
+#                 text("SELECT project_name FROM infrastructure_inventory WHERE arn = :arn AND user_id = :user_id LIMIT 1"),
+#                 {"arn": arn, "user_id": user_id}
+#             ).fetchone()
+
+#         if not result or not result.project_name:
+#             return f"❌ No project found for ARN `{arn}` for user `{user_id}`."
+
+#         project_name = result.project_name
+#         bucket_name = f"terraform-workspaces-user-{user_id}"
+#         folder_name = f"{project_name}_terraform"
+
+#         # Step 2: Download Terraform files from MinIO
+#         temp_dir = tempfile.mkdtemp()
+#         download_path = os.path.join(temp_dir, folder_name)
+#         os.makedirs(download_path, exist_ok=True)
+
+#         minio_client = Minio(
+#             "storage.clouvix.com",
+#             access_key="clouvix@gmail.com",
+#             secret_key="Clouvix@bangalore2025",
+#             secure=True
+#         )
+
+#         for obj in minio_client.list_objects(bucket_name, prefix=f"{folder_name}/", recursive=True):
+#             object_key = obj.object_name
+#             relative_path = object_key[len(folder_name) + 1:]
+#             local_path = os.path.join(download_path, relative_path)
+#             os.makedirs(os.path.dirname(local_path), exist_ok=True)
+#             minio_client.fget_object(bucket_name, object_key, local_path)
+
+#         terraform_file_path = os.path.join(download_path, "main.tf")
+#         if not os.path.exists(terraform_file_path):
+#             raise FileNotFoundError("❌ main.tf not found in the downloaded folder.")
+
+#         # Step 3: Read and update Terraform file using LLM
+#         with open(terraform_file_path, "r") as file:
+#             existing_code = file.read()
+#         print("Exisiting code read:")
+#         print(existing_code)
+
+#         messages = [
+#             SystemMessage(content="You are an expert Terraform engineer. Your job is to update an existing Terraform configuration based on user requirements."),
+#             HumanMessage(content=f"""Here is the current Terraform configuration:
+#                 ```hcl
+#                 {existing_code}
+#                 ```
+#                 The user wants the following changes:
+#                 {recommendation}
+
+#                 Important:
+
+#                 Only include valid Terraform HCL, no explanation.
+
+#                 Do NOT remove unrelated infrastructure unless specified.
+
+#                 Do NOT include deployment or function code.""") ]
+
+#   # Call LLM to get updated code
+#         response = llm.invoke(messages)
+#         print("Here is the llm response:")
+#         print(response)
+#         updated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+
+#         # Write updated code to main.tf
+#         with open(terraform_file_path, "w") as file:
+#             file.write(updated_code)
+
+#         print("✅ main.tf updated")
+    
+#     # Upload back to MinIO
+#         print("📤 Uploading updated folder to MinIO...")
+#         for root, _, files in os.walk(download_path):
+#             for file in files:
+#                 file_path = os.path.join(root, file)
+#                 relative_path = os.path.relpath(file_path, download_path)
+#                 object_key = f"{folder_name}/{relative_path}"
+#                 minio_client.fput_object(bucket_name, object_key, file_path)
+#                 print(f"⬆️  {file_path} -> {object_key}")
+
+#         print("✅ Upload complete")
+
+#         return f"""
+#         ✅ Optimization applied to `{project_name}`.
+
+#         Terraform configuration has been updated and synced to MinIO.
+
+#         ```hcl
+#         {updated_code} 
+#         """
+#     except S3Error as s3e:
+#         raise Exception(f"❌ MinIO error: {str(s3e)}")
+#     except Exception as e:
+#         raise Exception(f"❌ Update failed: {str(e)}")
+#     finally:
+#         # Cleanup temporary folder
+#         shutil.rmtree(temp_dir, ignore_errors=True)
+#         print(f"🧹 Deleted temp directory: {temp_dir}")
