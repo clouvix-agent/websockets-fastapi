@@ -1446,52 +1446,86 @@ def get_terraform_folder(project_name: str) -> str:
 
 
 def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, services_json):
-    """Extracts Terraform configurations, validates, fixes errors, and saves the final file."""
+    """Extracts Terraform configurations, validates, fixes errors, and saves the split .tf files."""
+
     if not terraform_output:
-        print("Error: No Terraform code generated.")
+        print("❌ Error: No Terraform code generated.")
         return
 
-    terraform_output = re.sub(r"```hcl|```", "", terraform_output).strip()
+    # Clean raw block if it lacks markdown fencing
+    terraform_output = terraform_output.strip()
 
-    # Create terraform directory if it doesn't exist
+    # Ensure Terraform output directory exists
     if not os.path.exists(TERRAFORM_DIR):
         os.makedirs(TERRAFORM_DIR, exist_ok=True)
-        print(f"Created Terraform directory: {TERRAFORM_DIR}")
+        print(f"📁 Created Terraform directory: {TERRAFORM_DIR}")
 
-    # Validate and Fix Terraform Configuration
+    # === Step 1: Validate and Get Final Split Code ===
     validated_code = validate_terraform_with_openai(terraform_output, services_json)
 
-    # Save the final validated Terraform file
-    final_tf_path = os.path.join(TERRAFORM_DIR, "main.tf")
-    with open(final_tf_path, "w") as tf_file:
-        tf_file.write(validated_code)
+    # === Step 2: Extract code blocks by file type ===
+    file_sections = {
+        "main.tf": "",
+        "variables.tf": "",
+        "outputs.tf": "",
+        "provider.tf": ""
+    }
 
-    # Add an entry to workspace table
+    matches = re.findall(r"```(.*?)\n(.*?)```", validated_code, re.DOTALL)
+    for tag, code in matches:
+        tag_clean = tag.strip().lower()
+        code = code.strip()
+
+        if "main.tf" in tag_clean or tag_clean == "main":
+            file_sections["main.tf"] = code
+        elif "variable" in tag_clean or "var.tf" in tag_clean:
+            file_sections["variables.tf"] = code
+        elif "output" in tag_clean or "outputs.tf" in tag_clean:
+            file_sections["outputs.tf"] = code
+        elif "provider" in tag_clean or "provider.tf" in tag_clean:
+            file_sections["provider.tf"] = code
+        elif tag_clean in ["terraform", "hcl"]:
+            # fallback: assume general HCL goes to main.tf if not classified
+            file_sections["main.tf"] += "\n" + code
+
+    # Fallback if LLM returned no fenced code blocks
+    if all(not content for content in file_sections.values()):
+        file_sections["main.tf"] = validated_code.strip()
+
+    # === Step 3: Write each file to disk ===
+    for filename, content in file_sections.items():
+        if content:
+            file_path = os.path.join(TERRAFORM_DIR, filename)
+            with open(file_path, "w") as f:
+                f.write(content)
+            print(f"✅ Saved: {filename}")
+        else:
+            print(f"⚠️ Skipped empty file: {filename}")
+
+    # === Step 4: Save workspace metadata to DB ===
     try:
         with get_db_session() as db:
-            # Ensure services_json is a dictionary for the WorkspaceCreate model
             if isinstance(services_json, str):
                 try:
                     diagramjson_dict = json.loads(services_json)
                 except json.JSONDecodeError:
-                    print("Error parsing services_json as JSON string")
-                    diagramjson_dict = {"error": "Failed to parse JSON"}
+                    diagramjson_dict = {"error": "Invalid JSON"}
             else:
-                # If it's already a dict, use it directly
                 diagramjson_dict = services_json
-            
+
             new_workspace = WorkspaceCreate(
                 userid=user_id,
                 wsname=project_name,
                 filetype="terraform",
-                filelocation=final_tf_path,
+                filelocation=TERRAFORM_DIR,  # Use folder instead of a file
                 diagramjson=diagramjson_dict,
                 githublocation=""
             )
             create_workspace(db=db, workspace=new_workspace)
-            print(f"\n✅ Final validated Terraform file saved at: {final_tf_path}")
+            print(f"\n📝 Workspace entry created for: {project_name}")
     except Exception as e:
-        print(f"Error saving to workspace: {e}")
+        print(f"❌ Error saving workspace: {e}")
+
 
 
 def _parse_services_and_connections(query: str) -> Dict[str, Any]:
@@ -1822,7 +1856,15 @@ def _generate_terraform_hcl(
                 5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
                 6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
                 7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
-                8.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+                8. **Splitting of Terraform code into files:** 
+                    Split this Terraform configuration into the following separate files according to best practices:
+
+                    - `provider.tf`: Contains only the `terraform` and `provider` blocks.
+                    - `main.tf`: Contains all resource definitions, data blocks, and modules.
+                    - `variables.tf`: Defines all input variables used across the configuration, including extracted hardcoded values as variables.
+                    - `outputs.tf`: Contains all output definitions relevant to the infrastructure.
+
+                    Maintain full functionality and interdependencies between files. Ensure variable references are used consistently across files where applicable.
 
 
                 **RESOURCE CONFIGURATION RULES:**
@@ -1920,22 +1962,25 @@ def _generate_terraform_hcl(
 
 
 
+
 # def validate_terraform_with_openai(terraform_code, architecture_json):
-#     """ Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
-#     The function will loop 3 times to progressively refine the code."""
+#     """
+#     Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
+#     The function will loop 3 times to progressively refine the code.
+#     """
 #     try:
-#         # Ensure architecture_json is a dictionary
+#         # --- Data Preparation (Restored from your original code) ---
 #         if isinstance(architecture_json, str):
 #             try:
 #                 architecture_json = json.loads(architecture_json)
 #             except json.JSONDecodeError:
 #                 print("Error parsing architecture_json as JSON string")
 #                 return terraform_code
-                
+        
 #         services = architecture_json.get("services", [])
 #         connections = architecture_json.get("connections", [])
 
-#         # Convert services and connections to dict if they're not already
+#         # Convert services to a dictionary list
 #         services_dict = []
 #         for service in services:
 #             if hasattr(service, 'dict'):
@@ -1945,6 +1990,7 @@ def _generate_terraform_hcl(
 #             else:
 #                 services_dict.append(str(service))
 
+#         # Convert connections to a dictionary list
 #         connections_dict = []
 #         for conn in connections:
 #             if hasattr(conn, 'dict'):
@@ -1954,51 +2000,73 @@ def _generate_terraform_hcl(
 #             else:
 #                 connections_dict.append(str(conn))
 
-#         llm = ChatOpenAI(model="gpt-4o", temperature=0.1, api_key=OPENAI_API_KEY)
+#         llm = ChatOpenAI(model="gpt-4o", temperature=0.0, api_key=OPENAI_API_KEY)
+        
+#         # --- New Iterative Validation Loop ---
 #         max_validations = 3
 #         current_code = terraform_code
+        
 #         for i in range(max_validations):
 #             print(f"🔎 Starting Validation Loop: Iteration {i + 1}/{max_validations}")
-#         messages = [
-#             SystemMessage(content="You are a senior DevOps engineer specializing in Terraform. Validate the configuration for production-ready deployment, checking syntax, dependencies, security, and best practices. Confirm it can execute `terraform apply` successfully without errors or additional manual steps.."),
-#             HumanMessage(content=f"""
-#             The user wants to deploy the following AWS infrastructure:
 
-#             **Services:**
+#             # === STAGE 1: Deep Validation and Correction Prompt ===
+#             system_prompt_1 = """
+# You are an automated Terraform validation and correction engine. Your single purpose is to meticulously analyze, correct, and finalize a given Terraform configuration to guarantee it passes `terraform apply` on the first attempt without any errors.
+
+# **YOUR CORRECTION CHECKLIST (NON-NEGOTIABLE):**
+# 1.  **Fix All Syntax Errors:** Correct any and all HCL syntax violations, including missing brackets, incorrect operators, or invalid expressions.
+# 2.  **Replace Deprecated Arguments:** Identify and replace any deprecated resource arguments or attributes with their modern equivalents. For example, if you see `security_groups` used with a `subnet_id` on an `aws_instance`, you MUST replace it with `vpc_security_group_ids`.
+# 3.  **Resolve Logical Errors & Dependencies:** Add missing `depends_on` attributes where implicit dependency is not enough. Correct invalid resource references. Ensure the order of resources is logical for creation.
+# 4.  **Ensure Completeness:** Add any missing mandatory resources required for the configuration to be functional (e.g., an `aws_internet_gateway` and `aws_route_table` for a public EC2 instance).
+# 5.  **Adhere to Best Practices:** Ensure the code follows modern security and AWS best practices, including the principle of least privilege for IAM policies.
+# 6.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+
+# **RESPONSE FORMAT:**
+# - If the code is already perfect, return it unchanged.
+# - If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code.
+# - If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code in three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions).
+# - DO NOT include explanations, apologies, or any text outside of the HCL code.
+# """
+            
+#             human_message_1 = f"""
+#             **Architecture to Achieve:**
 #             ```json
-#             {json.dumps(services_dict, indent=2)}
+#             {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
 #             ```
 
-#             **Connections:**
-#             ```json
-#             {json.dumps(connections_dict, indent=2)}
-#             ```
-#             Check if each connection is being handled properly, including IAM roles, policies, security groups, and networking for connecting required services.
-#             Check if user run terraform apply then it should able to apply in one go . So validate the terraform code in deep and make sure it is correct and complete.
-#             **Terraform Configuration:**
+#             **Terraform Code to Validate and Fix:**
 #             ```hcl
-#             {terraform_code}
+#             {current_code}
 #             ```
+#             Please perform a strict validation and correction on the code above based on all your rules. The final output must be perfect and ready for an immediate `terraform apply`.
+#             """
+            
+#             messages_1 = [
+#                 SystemMessage(content=system_prompt_1),
+#                 HumanMessage(content=human_message_1)
+#             ]
 
-#             **Validation Request:**
-#             - Does this Terraform file achieve the user's intended goal?
-#             - If yes, return the entire Terraform file as is.
-#             - If no, update it to align with the user's infrastructure requirements and return the complete corrected Terraform configuration.
-#             - Ensure: Do NOT include function code, Docker image URLs, or any deployment-related configuration.
-#             - The response should only contain valid Terraform HCL code, without explanations.
-#             """)
-#         ]
+#             response_1 = llm.invoke(messages_1)
+#             validated_code = re.sub(r"```hcl|```", "", response_1.content.strip()).strip()
+#             print(f"  [Iteration {i + 1}] Stage 1 (Correction) Complete.")
 
-#         response = llm.invoke(messages)
-#         validated_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
+#             # === STAGE 2: Connection Integrity Check ===
+#             system_prompt_2 = """
+# You are an expert Terraform connection validator. Your task is to ensure a Terraform file correctly implements all required service-to-service connections as defined in a JSON object.
 
-#         print("🔎 Running OpenAI validation for missing connections...")
-#         messages = [
-#             SystemMessage(content="You are an expert Terraform engineer. Validate that the Terraform file includes all required service connections."),
-#             HumanMessage(content=f"""
-#             The user wants the following service connections:
+# **VALIDATION RULES:**
+# 1.  **Check Connections:** Review the `connections` JSON and verify that each link is correctly implemented in the Terraform code (e.g., via security group rules, IAM policies, subnet associations, etc.).
+# 2.  **Add Missing Connections Only:** If a connection is missing, add the necessary, syntactically correct resource or attribute to fix it.
+# 3.  **Do Not Modify Other Code:** Do not remove or change any other part of the configuration that is not directly related to fixing a missing connection.
+# 4.  If all connections are present, return the file as is.
+# 5.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+# 6.  When writing Terraform code for AWS resources, always use lowercase letters, numbers, hyphens, underscores, and periods only for resource names and identifiers, as AWS services have strict naming restrictions that don't allow uppercase letters.
 
-#             **Connections:**
+# **RESPONSE FORMAT:**
+# - Return ONLY the complete, valid Terraform HCL file. No explanations.
+# """
+#             human_message_2 = f"""
+#             **Required Connections:**
 #             ```json
 #             {json.dumps(connections_dict, indent=2)}
 #             ```
@@ -2007,160 +2075,171 @@ def _generate_terraform_hcl(
 #             ```hcl
 #             {validated_code}
 #             ```
+#             Please validate that all required service connections are implemented. Add any missing connection logic and return the complete file.
+#             """
+            
+#             messages_2 = [
+#                 SystemMessage(content=system_prompt_2),
+#                 HumanMessage(content=human_message_2)
+#             ]
 
-#             **Validation Request:**
-#             - Ensure all the required connections between services are properly handled in the Terraform file.
-#             - If any connection is missing, **ONLY add the missing connection** (e.g., security groups, IAM roles, networking rules, etc.).
-#             - **DO NOT remove or modify any existing connections**.
-#             - If all required connections are already present, return the Terraform file as it is.
-#             - The response should contain only the entire valid Terraform HCL file without explanations.
-#             """)
-#         ]
+#             response_2 = llm.invoke(messages_2)
+#             final_code_for_iteration = re.sub(r"```hcl|```", "", response_2.content.strip()).strip()
+            
+#             # Prepare for the next loop by updating the code to be validated.
+#             current_code = final_code_for_iteration
+#             print(f"  [Iteration {i + 1}] Stage 2 (Connections) Complete.")
 
-#         response = llm.invoke(messages)
-#         final_code = re.sub(r"```hcl|```", "", response.content.strip()).strip()
-
-#         return final_code
+#         # After the loop, `current_code` holds the final, thrice-validated code.
+#         print("✅ Validation process complete.")
+#         return current_code
 
 #     except Exception as e:
-#         print(f"Error in validate_terraform_with_openai: {e}")
+#         print(f"❌ Error during the validation loop: {e}")
 #         return terraform_code  # Return original code if validation fails
-
 
 def validate_terraform_with_openai(terraform_code, architecture_json):
     """
     Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
-    The function will loop 3 times to progressively refine the code.
+    The function will loop up to 5 times and exit early if the code stabilizes.
     """
     try:
-        # --- Data Preparation (Restored from your original code) ---
+        # --- Parse architecture JSON ---
         if isinstance(architecture_json, str):
             try:
                 architecture_json = json.loads(architecture_json)
             except json.JSONDecodeError:
-                print("Error parsing architecture_json as JSON string")
+                print("❌ Failed to parse architecture_json.")
                 return terraform_code
-        
+
         services = architecture_json.get("services", [])
         connections = architecture_json.get("connections", [])
 
-        # Convert services to a dictionary list
-        services_dict = []
-        for service in services:
-            if hasattr(service, 'dict'):
-                services_dict.append(service.dict())
-            elif isinstance(service, dict):
-                services_dict.append(service)
-            else:
-                services_dict.append(str(service))
-
-        # Convert connections to a dictionary list
-        connections_dict = []
-        for conn in connections:
-            if hasattr(conn, 'dict'):
-                connections_dict.append(conn.dict())
-            elif isinstance(conn, dict):
-                connections_dict.append(conn)
-            else:
-                connections_dict.append(str(conn))
+        services_dict = [s.dict() if hasattr(s, 'dict') else s for s in services]
+        connections_dict = [c.dict() if hasattr(c, 'dict') else c for c in connections]
 
         llm = ChatOpenAI(model="gpt-4o", temperature=0.0, api_key=OPENAI_API_KEY)
-        
-        # --- New Iterative Validation Loop ---
-        max_validations = 3
+
+        # --- Iterative validation loop ---
+        max_validations = 5
         current_code = terraform_code
-        
+        last_code = None
+
         for i in range(max_validations):
-            print(f"🔎 Starting Validation Loop: Iteration {i + 1}/{max_validations}")
+            print(f"\n🔁 Validation Loop {i + 1}/{max_validations}")
 
-            # === STAGE 1: Deep Validation and Correction Prompt ===
+            # === STAGE 1: Structural Validation & Fixes ===
             system_prompt_1 = """
-You are an automated Terraform validation and correction engine. Your single purpose is to meticulously analyze, correct, and finalize a given Terraform configuration to guarantee it passes `terraform apply` on the first attempt without any errors.
+You are an automated Terraform validation engine. Fix syntax errors, deprecated fields, missing dependencies, and incomplete resources.
 
-**YOUR CORRECTION CHECKLIST (NON-NEGOTIABLE):**
-1.  **Fix All Syntax Errors:** Correct any and all HCL syntax violations, including missing brackets, incorrect operators, or invalid expressions.
-2.  **Replace Deprecated Arguments:** Identify and replace any deprecated resource arguments or attributes with their modern equivalents. For example, if you see `security_groups` used with a `subnet_id` on an `aws_instance`, you MUST replace it with `vpc_security_group_ids`.
-3.  **Resolve Logical Errors & Dependencies:** Add missing `depends_on` attributes where implicit dependency is not enough. Correct invalid resource references. Ensure the order of resources is logical for creation.
-4.  **Ensure Completeness:** Add any missing mandatory resources required for the configuration to be functional (e.g., an `aws_internet_gateway` and `aws_route_table` for a public EC2 instance).
-5.  **Adhere to Best Practices:** Ensure the code follows modern security and AWS best practices, including the principle of least privilege for IAM policies.
-6.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+**Rules:**
+1. Fix all HCL syntax errors.
+2. Replace deprecated arguments (e.g., use vpc_security_group_ids instead of security_groups if subnet_id is used).
+3. Add missing AWS dependencies (like subnets, gateways, route tables).
+4. Always split Terraform into:
+   - provider.tf: provider and terraform blocks
+   - main.tf: resources, modules, data
+   - variables.tf: variable definitions
+   - outputs.tf: output blocks
+5. Code should pass `terraform plan` without any manual edits.
+6. Always output each file in a separate fenced markdown block:
+   ```main.tf
+   ...
+   ```
+   ```variables.tf
+   ...
+   ```
+   etc.
 
-**RESPONSE FORMAT:**
-- If the code is already perfect, return it unchanged.
-- If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code.
-- If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code in three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions).
-- DO NOT include explanations, apologies, or any text outside of the HCL code.
+Return the full set of .tf files using fenced code blocks. No explanations.
 """
-            
-            human_message_1 = f"""
-            **Architecture to Achieve:**
-            ```json
-            {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
-            ```
 
-            **Terraform Code to Validate and Fix:**
-            ```hcl
-            {current_code}
-            ```
-            Please perform a strict validation and correction on the code above based on all your rules. The final output must be perfect and ready for an immediate `terraform apply`.
-            """
-            
-            messages_1 = [
+            human_message_1 = f"""
+Architecture to Achieve:
+
+```json
+{json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
+```
+
+Terraform Code:
+
+```hcl
+{current_code}
+```
+"""
+            response_1 = llm.invoke([
                 SystemMessage(content=system_prompt_1),
                 HumanMessage(content=human_message_1)
-            ]
+            ])
 
-            response_1 = llm.invoke(messages_1)
-            validated_code = re.sub(r"```hcl|```", "", response_1.content.strip()).strip()
-            print(f"  [Iteration {i + 1}] Stage 1 (Correction) Complete.")
+            validated_code = response_1.content.strip()
 
-            # === STAGE 2: Connection Integrity Check ===
+            if validated_code == last_code:
+                print("✅ Code is stable and unchanged. Exiting early.")
+                break
+            else:
+                last_code = validated_code
+                print(f"🛠️ Code updated in iteration {i + 1}.")
+
+            # === STAGE 2: Connection Validation ===
             system_prompt_2 = """
-You are an expert Terraform connection validator. Your task is to ensure a Terraform file correctly implements all required service-to-service connections as defined in a JSON object.
+You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured.
 
-**VALIDATION RULES:**
-1.  **Check Connections:** Review the `connections` JSON and verify that each link is correctly implemented in the Terraform code (e.g., via security group rules, IAM policies, subnet associations, etc.).
-2.  **Add Missing Connections Only:** If a connection is missing, add the necessary, syntactically correct resource or attribute to fix it.
-3.  **Do Not Modify Other Code:** Do not remove or change any other part of the configuration that is not directly related to fixing a missing connection.
-4.  If all connections are present, return the file as is.
-5.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
-6.  When writing Terraform code for AWS resources, always use lowercase letters, numbers, hyphens, underscores, and periods only for resource names and identifiers, as AWS services have strict naming restrictions that don't allow uppercase letters.
+Instructions:
 
-**RESPONSE FORMAT:**
-- Return ONLY the complete, valid Terraform HCL file. No explanations.
+1. Use the connections JSON to verify and enforce all links between services.
+2. DO NOT modify unrelated parts of the configuration.
+3. Always return split .tf files in fenced blocks like:
+   ```main.tf
+   ...
+   ```
+   ```variables.tf
+   ...
+   ```
+   ```outputs.tf
+   ...
+   ```
+   ```provider.tf
+   ...
+   ```
+
+Return only valid HCL blocks. No explanations.
 """
-            human_message_2 = f"""
-            **Required Connections:**
-            ```json
-            {json.dumps(connections_dict, indent=2)}
-            ```
 
-            **Current Terraform Configuration:**
-            ```hcl
-            {validated_code}
-            ```
-            Please validate that all required service connections are implemented. Add any missing connection logic and return the complete file.
-            """
-            
-            messages_2 = [
+            human_message_2 = f"""
+Connections to Enforce:
+
+```json
+{json.dumps(connections_dict, indent=2)}
+```
+
+Terraform Code:
+
+```hcl
+{validated_code}
+```
+"""
+            response_2 = llm.invoke([
                 SystemMessage(content=system_prompt_2),
                 HumanMessage(content=human_message_2)
-            ]
+            ])
 
-            response_2 = llm.invoke(messages_2)
-            final_code_for_iteration = re.sub(r"```hcl|```", "", response_2.content.strip()).strip()
-            
-            # Prepare for the next loop by updating the code to be validated.
-            current_code = final_code_for_iteration
-            print(f"  [Iteration {i + 1}] Stage 2 (Connections) Complete.")
+            final_code = response_2.content.strip()
 
-        # After the loop, `current_code` holds the final, thrice-validated code.
-        print("✅ Validation process complete.")
-        return current_code
+            if final_code == last_code:
+                print("✅ No changes in connection validation. Finalized.")
+                break
+            else:
+                current_code = final_code
+                last_code = final_code
+                print(f"🔗 Connection validation completed in iteration {i + 1}.")
+
+        print("\n✅ Validation loop complete. Returning final code.")
+        return last_code
 
     except Exception as e:
-        print(f"❌ Error during the validation loop: {e}")
-        return terraform_code  # Return original code if validation fails
+        print(f"❌ Error in validation loop: {str(e)}")
+        return terraform_code
 
 # def _create_services_summary(services_json: dict) -> str:
 #     """Create a human-readable summary of the services and connections."""

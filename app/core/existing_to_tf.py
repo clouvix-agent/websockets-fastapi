@@ -1290,82 +1290,188 @@ def remove_invalid_volume_ids(config: dict) -> dict:
 
 
 
-def generate_terraform_from_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector) -> str:
-    all_code_blocks = []
+# def generate_terraform_from_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector) -> str:
+#     all_code_blocks = []
 
+#     for arn in arns:
+#         resource_info = inspector.get_resource_details(arn)
+
+#         if "error" in resource_info:
+#             print(f"❌ Error fetching resource: {resource_info['error']}")
+#             continue
+
+#         service = resource_info.get("service")
+#         resource_type = resource_info.get("resource_type")
+#         resource_id = resource_info.get("resource_id")
+#         #config_details = resource_info.get("details")
+
+#         config_details = remove_invalid_volume_ids(resource_info.get("details"))
+
+
+#         prompt = f"""
+#         You are an expert Terraform DevOps engineer.
+
+#         Generate production-ready **Terraform HCL code** that matches the live AWS resource configuration provided below.
+
+#         ---
+
+#         ### 🔒 STRICT INSTRUCTIONS:
+#         - Only generate a single valid Terraform `resource` block for the AWS resource.
+#         - Include provider block that is must needed.
+#         - Include comments if necessary.
+#         - Do **NOT** include:
+#         - explanations
+#         - Do **NOT** add default values unless they are explicitly present in the input.
+#         - Do **NOT** guess or infer missing fields.
+#         - Do **NOT** include any deprecated or legacy Terraform attributes.
+#         - Do **NOT** include `acl` or `aws_s3_bucket_acl` if the bucket has `BucketOwnerEnforced` ownership.
+#         - Use the exact resource name `{resource_id}`.
+#         - **IMPORTANT EC2 RULE**: If the `instance_type` (e.g., "t2.nano", "t3.micro") starts with `t2`, `t3`, or `t4g`, you **MUST OMIT** the `cpu_options` block entirely, as it is not a configurable attribute for these burstable instance types.
+#         - All values must come strictly from the actual configuration JSON.
+
+#         ---
+
+#         ### 📦 AWS Resource Metadata:
+#         Service: {service}  
+#         Type: {resource_type}  
+#         Region: {resource_info.get('region')}  
+#         Resource ID: {resource_id}  
+
+#         ---
+
+#         ### 🔧 Actual Live Configuration (in JSON):
+#         {json.dumps(config_details, indent=2, default=str)}
+
+#         ---
+
+#         Now generate the exact Terraform HCL code for this resource only (no extras):
+#         """.strip()
+
+#         try:
+#             response = client.chat.completions.create(
+#                 model="gpt-4o",
+#                 messages=[
+#                     {"role": "system", "content": "You are a DevOps expert who writes Terraform."},
+#                     {"role": "user", "content": prompt}
+#                 ],
+#                 temperature=0.3,
+#                 max_tokens=15000
+#             )
+#             tf_code = response.choices[0].message.content
+#             cleaned_code = clean_terraform_code(tf_code)
+#             all_code_blocks.append(cleaned_code)
+
+#         except Exception as e:
+#             print(f"❌ OpenAI API call failed for {arn}: {str(e)}")
+#             continue
+
+#     return "\n\n".join(all_code_blocks)
+
+
+def generate_terraform_from_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector, output_dir: str = TEMP_DIR) -> str:
+    """
+    Fetches resource config from AWS, calls OpenAI to generate Terraform code,
+    and splits the result into separate .tf files (main.tf, variables.tf, outputs.tf).
+    
+    Returns:
+        str: Combined Terraform code for reference.
+    """
+    combined_code_output = []
+    os.makedirs(output_dir, exist_ok=True)
+    
     for arn in arns:
         resource_info = inspector.get_resource_details(arn)
-
         if "error" in resource_info:
             print(f"❌ Error fetching resource: {resource_info['error']}")
             continue
-
+            
         service = resource_info.get("service")
         resource_type = resource_info.get("resource_type")
         resource_id = resource_info.get("resource_id")
-        #config_details = resource_info.get("details")
-
         config_details = remove_invalid_volume_ids(resource_info.get("details"))
-
-
+        
         prompt = f"""
-        You are an expert Terraform DevOps engineer.
+You are a senior Terraform DevOps engineer following best practices.
+Your task is to generate a complete and modular Terraform configuration for the AWS resource described below.
 
-        Generate production-ready **Terraform HCL code** that matches the live AWS resource configuration provided below.
+### 📝 Generation Rules:
+1.  You **MUST** generate content for all four files: `main.tf`, `provider.tf`, `variables.tf`, and `outputs.tf`. Do not omit any of them.
+2.  **`main.tf`**: Create the resource block here. Do **NOT** hardcode important values (like `ami`, `instance_type`, `tags`). Instead, reference them from variables (e.g., `ami = var.ami`).
+3.  **`variables.tf`**: Define all variables used in `main.tf`. **CRITICAL: Every `variable` block MUST include a `default` value set to the corresponding value from the `Actual Configuration (JSON)` provided below.**
+4.  **`outputs.tf`**: Create meaningful outputs for the resource. For an EC2 instance, you **MUST** include outputs for `instance_id` and `public_ip`.
+5.  **`provider.tf`**: Include a standard AWS provider block.
 
-        ---
+### 📋 Output Format (Use this strictly):
+### File: main.tf
+```hcl
+<main code using var.>
+```
 
-        ### 🔒 STRICT INSTRUCTIONS:
-        - Only generate a single valid Terraform `resource` block for the AWS resource.
-        - Include provider block that is must needed.
-        - Include comments if necessary.
-        - Do **NOT** include:
-        - explanations
-        - Do **NOT** add default values unless they are explicitly present in the input.
-        - Do **NOT** guess or infer missing fields.
-        - Do **NOT** include any deprecated or legacy Terraform attributes.
-        - Do **NOT** include `acl` or `aws_s3_bucket_acl` if the bucket has `BucketOwnerEnforced` ownership.
-        - Use the exact resource name `{resource_id}`.
-        - **IMPORTANT EC2 RULE**: If the `instance_type` (e.g., "t2.nano", "t3.micro") starts with `t2`, `t3`, or `t4g`, you **MUST OMIT** the `cpu_options` block entirely, as it is not a configurable attribute for these burstable instance types.
-        - All values must come strictly from the actual configuration JSON.
+### File: variables.tf
+```hcl
+<variable definitions with default values>
+```
 
-        ---
+### File: outputs.tf
+```hcl
+<output definitions>
+```
 
-        ### 📦 AWS Resource Metadata:
-        Service: {service}  
-        Type: {resource_type}  
-        Region: {resource_info.get('region')}  
-        Resource ID: {resource_id}  
+### File: provider.tf
+```hcl
+<provider block>
+```
 
-        ---
+### 🔒 Strict Instructions:
+- Do **NOT** include explanations.
+- Do **NOT** guess or infer missing fields.
+- Do **NOT** include any deprecated or legacy Terraform attributes.
+- Do **NOT** include `acl` or `aws_s3_bucket_acl` if the bucket has `BucketOwnerEnforced` ownership.
+- Use the exact resource name `{resource_id}`.
+- **EC2 RULE**: If the `instance_type` starts with `t2`, `t3`, or `t4g`, you **MUST OMIT** the `cpu_options` block.
+- **KEY PAIR RULE**: Only include `key_name` if a key pair is explicitly present and named in the actual AWS configuration.Even see the value of the key pair exist or not , if not then exclude it from terraform code.
+- All values must come strictly from the actual configuration JSON.
 
-        ### 🔧 Actual Live Configuration (in JSON):
-        {json.dumps(config_details, indent=2, default=str)}
+---
+### 📦 Resource Metadata:
+Service: {service}
+Type: {resource_type}
+Region: {resource_info.get('region')}
+Resource ID: {resource_id}
 
-        ---
-
-        Now generate the exact Terraform HCL code for this resource only (no extras):
+### 🔧 Actual Configuration (JSON):
+{json.dumps(config_details, indent=2, default=str)}
         """.strip()
-
+        
         try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a DevOps expert who writes Terraform."},
+                    {"role": "system", "content": "You are a DevOps expert writing Terraform."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
                 max_tokens=15000
             )
-            tf_code = response.choices[0].message.content
-            cleaned_code = clean_terraform_code(tf_code)
-            all_code_blocks.append(cleaned_code)
-
+            
+            full_response = response.choices[0].message.content
+            combined_code_output.append(full_response)
+            
+            # Parse the response and write each file
+            parsed_blocks = re.findall(
+                r"### File: ([\w\.\-]+)\s+```hcl\s*(.*?)```", full_response, re.DOTALL
+            )
+            
+            for filename, content in parsed_blocks:
+                file_path = os.path.join(output_dir, filename)
+                with open(file_path, "a", encoding="utf-8") as f:
+                    f.write(content.strip() + "\n")
+                print(f"✅ Generated: {filename}")
+                
         except Exception as e:
-            print(f"❌ OpenAI API call failed for {arn}: {str(e)}")
-            continue
-
-    return "\n\n".join(all_code_blocks)
+            print(f"❌ OpenAI failed for ARN {arn}: {str(e)}")
+    
+    return "\n\n".join(combined_code_output)
 
 
 def get_aws_resource_type_from_arn(arn: str) -> str:
@@ -1896,37 +2002,63 @@ def clean_terraform_code(raw_code: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-# def import_and_apply_for_resource(main_tf_path: str, arns: list[str], user_id: int, project_name: str) -> str:
-#     """
-#     Imports each resource from ARNs into Terraform state, applies the configuration,
-#     and updates workspace status in the DB if apply is successful.
-#     """
 
+# def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int,project_name: str,aws_access_key: str,aws_secret_key: str,region: str = "us-east-1") -> str:
+#     """
+#     Imports resources from ARNs, applies Terraform configuration,
+#     injects AWS credentials into provider block temporarily,
+#     and restores original main.tf afterward.
+#     """
 #     logs = []
 #     working_dir = os.path.dirname(os.path.abspath(main_tf_path)) or os.getcwd()
-#     terraform_tfstate_path = os.path.join(working_dir, "terraform.tfstate")
 
 #     if not os.path.exists(main_tf_path):
 #         return "❌ main.tf file not found."
 
-#     with open(main_tf_path, "r") as f:
-#         tf_content = f.read()
+#     # Step 1: Read original file
+#     with open(main_tf_path, "r", encoding="utf-8") as f:
+#         original_tf_content = f.read()
 
-#     # Run terraform init once
+#     # Step 2: Remove any existing provider "aws" block (safely)
+#     cleaned_tf_content = re.sub(
+#         r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
+#         '',
+#         original_tf_content,
+#         flags=re.DOTALL
+#     ).strip()
+
+#     # Step 3: Inject temporary provider block with credentials
+#     provider_block = f'''
+#             provider "aws" {{
+#             access_key = "{aws_access_key}"
+#             secret_key = "{aws_secret_key}"
+#             region     = "{region}"
+#             }}
+#             '''.strip()
+
+#     final_tf_content = provider_block + "\n\n" + cleaned_tf_content
+
+#     # Step 4: Save updated main.tf
+#     with open(main_tf_path, "w", encoding="utf-8") as f:
+#         f.write(final_tf_content)
+
+#     # Step 5: Terraform Init
 #     try:
 #         logs.append("🔨 Running terraform init...")
 #         subprocess.run(["terraform", "init"], cwd=working_dir, check=True)
 #     except subprocess.CalledProcessError as e:
 #         logs.append(f"❌ Terraform init failed:\n{e.stderr or str(e)}")
+#         with open(main_tf_path, "w", encoding="utf-8") as f:
+#             f.write(original_tf_content)
 #         return "\n".join(logs)
 
-#     # Process each ARN separately
+#     # Step 6: Import each resource
 #     for arn in arns:
 #         resource_type = get_aws_resource_type_from_arn(arn)
 #         import_id = get_import_id(resource_type, arn)
 
-#         pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*{{')
-#         match = pattern.search(tf_content)
+#         pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*\{{')
+#         match = pattern.search(final_tf_content)
 #         if not match:
 #             logs.append(f"❌ Could not find Terraform resource for type: {resource_type} (ARN: {arn})")
 #             continue
@@ -1946,7 +2078,7 @@ def clean_terraform_code(raw_code: str) -> str:
 #         except subprocess.CalledProcessError as e:
 #             logs.append(f"❌ Import failed for {resource_type}.{resource_name}\n{e.stderr or str(e)}")
 
-#     # Apply Terraform
+#     # Step 7: Terraform Apply
 #     try:
 #         logs.append("🚀 Running terraform apply...")
 #         apply_proc = subprocess.run(
@@ -1960,7 +2092,6 @@ def clean_terraform_code(raw_code: str) -> str:
 #             logs.append("✅ Terraform Apply Successful")
 #             logs.append(f"```bash\n{apply_proc.stdout}\n```")
 
-#             # ✅ Update DB status only on success
 #             try:
 #                 with get_db_session() as db:
 #                     status_payload = WorkspaceStatusCreate(
@@ -1968,25 +2099,19 @@ def clean_terraform_code(raw_code: str) -> str:
 #                         project_name=project_name,
 #                         status=apply_proc.stdout.strip()
 #                     )
-#                     print("📝 Updating workspace status...")
-#                     assert create_or_update_workspace_status(db=db, status_data=status_payload)
-#                     print("✅ Workspace status updated.")
+#                     create_or_update_workspace_status(db=db, status_data=status_payload)
 
-#                     minio_file_path = f"{project_name}_terraform/main.tf"
-#                     # Update Workspace (filelocation to MinIO path)
-            
 #                     workspace_payload = WorkspaceCreate(
-#                             userid=user_id,
-#                             wsname=project_name,
-#                             filetype="terraform",
-#                             filelocation=minio_file_path,
-#                             diagramjson=None
-#                         )
-#                     print("📁 Updating workspace record...")
-#                     assert create_or_update_workspace(db=db, workspace_data=workspace_payload)
-#                     print("✅ Workspace table updated.")
+#                         userid=user_id,
+#                         wsname=project_name,
+#                         filetype="terraform",
+#                         filelocation=f"{project_name}_terraform/main.tf",
+#                         diagramjson=None
+#                     )
+#                     create_or_update_workspace(db=db, workspace_data=workspace_payload)
+#                     logs.append("✅ Workspace status and record updated in DB.")
 #             except Exception as db_err:
-#                 logs.append(f"❌ Failed to update workspace status: {str(db_err)}")
+#                 logs.append(f"❌ Failed to update DB: {str(db_err)}")
 
 #         else:
 #             logs.append("❌ Terraform Apply Failed")
@@ -1995,85 +2120,92 @@ def clean_terraform_code(raw_code: str) -> str:
 #     except subprocess.CalledProcessError as e:
 #         logs.append(f"❌ Terraform apply error:\n{e.stderr or str(e)}")
 
+#     # Step 8: Restore original main.tf
+#     with open(main_tf_path, "w", encoding="utf-8") as f:
+#         f.write(original_tf_content)
+#     logs.append("🧼 Restored original main.tf (without injected credentials).")
+
 #     return "\n".join(logs)
 
-def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int,project_name: str,aws_access_key: str,aws_secret_key: str,region: str = "us-east-1") -> str:
+def import_and_apply_for_resource(
+    main_tf_path: str,
+    arns: list[str],
+    user_id: int,
+    project_name: str,
+    aws_access_key: str,
+    aws_secret_key: str,
+    region: str = "us-east-1"
+) -> str:
     """
     Imports resources from ARNs, applies Terraform configuration,
-    injects AWS credentials into provider block temporarily,
-    and restores original main.tf afterward.
+    injects AWS credentials into `provider.tf` before Terraform commands,
+    and restores the original provider.tf after execution.
     """
     logs = []
-    working_dir = os.path.dirname(os.path.abspath(main_tf_path)) or os.getcwd()
+    working_dir = os.path.dirname(os.path.abspath(main_tf_path))
+    provider_tf_path = os.path.join(working_dir, "provider.tf")
 
-    if not os.path.exists(main_tf_path):
-        return "❌ main.tf file not found."
-
-    # Step 1: Read original file
-    with open(main_tf_path, "r", encoding="utf-8") as f:
-        original_tf_content = f.read()
-
-    # Step 2: Remove any existing provider "aws" block (safely)
-    cleaned_tf_content = re.sub(
+    # Read original provider.tf (or set to empty if not exists)
+    if os.path.exists(provider_tf_path):
+        with open(provider_tf_path, "r", encoding="utf-8") as f:
+            original_provider_content = f.read()
+    else:
+        original_provider_content = ""
+    
+    # Remove any existing provider "aws" block
+    stripped_provider_content = re.sub(
         r'provider\s+"aws"\s*\{(?:[^{}]*|\{[^{}]*\})*?\}\s*',
         '',
-        original_tf_content,
+        original_provider_content,
         flags=re.DOTALL
     ).strip()
 
-    # Step 3: Inject temporary provider block with credentials
+    # Inject temporary provider block with credentials
     provider_block = f'''
-            provider "aws" {{
-            access_key = "{aws_access_key}"
-            secret_key = "{aws_secret_key}"
-            region     = "{region}"
-            }}
-            '''.strip()
+provider "aws" {{
+  access_key = "{aws_access_key}"
+  secret_key = "{aws_secret_key}"
+  region     = "{region}"
+}}
+'''.strip()
 
-    final_tf_content = provider_block + "\n\n" + cleaned_tf_content
+    modified_provider_content = provider_block + "\n\n" + stripped_provider_content
 
-    # Step 4: Save updated main.tf
-    with open(main_tf_path, "w", encoding="utf-8") as f:
-        f.write(final_tf_content)
+    # Overwrite provider.tf with temporary credentials
+    with open(provider_tf_path, "w", encoding="utf-8") as f:
+        f.write(modified_provider_content)
+    logs.append("🔐 Injected temporary provider block with credentials.")
 
-    # Step 5: Terraform Init
     try:
-        logs.append("🔨 Running terraform init...")
+        # Terraform Init
+        logs.append("🔧 Running terraform init...")
         subprocess.run(["terraform", "init"], cwd=working_dir, check=True)
-    except subprocess.CalledProcessError as e:
-        logs.append(f"❌ Terraform init failed:\n{e.stderr or str(e)}")
-        with open(main_tf_path, "w", encoding="utf-8") as f:
-            f.write(original_tf_content)
-        return "\n".join(logs)
 
-    # Step 6: Import each resource
-    for arn in arns:
-        resource_type = get_aws_resource_type_from_arn(arn)
-        import_id = get_import_id(resource_type, arn)
+        # Import Resources
+        with open(main_tf_path, "r") as f:
+            tf_content = f.read()
 
-        pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*\{{')
-        match = pattern.search(final_tf_content)
-        if not match:
-            logs.append(f"❌ Could not find Terraform resource for type: {resource_type} (ARN: {arn})")
-            continue
+        for arn in arns:
+            resource_type = get_aws_resource_type_from_arn(arn)
+            import_id = get_import_id(resource_type, arn)
 
-        resource_name = match.group(1)
-        logs.append(f"📦 Importing `{resource_type}.{resource_name}` with ID: {import_id}")
+            pattern = re.compile(rf'resource\s+"{resource_type}"\s+"([\w\-]+)"\s*\{{')
+            match = pattern.search(tf_content)
+            if not match:
+                logs.append(f"❌ Resource block not found for {resource_type}")
+                continue
 
-        try:
+            resource_name = match.group(1)
+            logs.append(f"📦 Importing: {resource_type}.{resource_name} using ID: {import_id}")
+
             subprocess.run(
                 ["terraform", "import", f"{resource_type}.{resource_name}", import_id],
                 cwd=working_dir,
-                check=True,
-                capture_output=True,
-                text=True
+                check=True
             )
-            logs.append(f"✅ Import successful for {resource_type}.{resource_name}")
-        except subprocess.CalledProcessError as e:
-            logs.append(f"❌ Import failed for {resource_type}.{resource_name}\n{e.stderr or str(e)}")
+            logs.append(f"✅ Imported: {resource_type}.{resource_name}")
 
-    # Step 7: Terraform Apply
-    try:
+        # Terraform Apply
         logs.append("🚀 Running terraform apply...")
         apply_proc = subprocess.run(
             ["terraform", "apply", "-auto-approve"],
@@ -2086,48 +2218,149 @@ def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int
             logs.append("✅ Terraform Apply Successful")
             logs.append(f"```bash\n{apply_proc.stdout}\n```")
 
-            try:
-                with get_db_session() as db:
-                    status_payload = WorkspaceStatusCreate(
-                        userid=user_id,
-                        project_name=project_name,
-                        status=apply_proc.stdout.strip()
-                    )
-                    create_or_update_workspace_status(db=db, status_data=status_payload)
+            # Update DB
+            with get_db_session() as db:
+                status_payload = WorkspaceStatusCreate(
+                    userid=user_id,
+                    project_name=project_name,
+                    status=apply_proc.stdout.strip()
+                )
+                create_or_update_workspace_status(db=db, status_data=status_payload)
 
-                    workspace_payload = WorkspaceCreate(
-                        userid=user_id,
-                        wsname=project_name,
-                        filetype="terraform",
-                        filelocation=f"{project_name}_terraform/main.tf",
-                        diagramjson=None
-                    )
-                    create_or_update_workspace(db=db, workspace_data=workspace_payload)
-                    logs.append("✅ Workspace status and record updated in DB.")
-            except Exception as db_err:
-                logs.append(f"❌ Failed to update DB: {str(db_err)}")
+                workspace_payload = WorkspaceCreate(
+                    userid=user_id,
+                    wsname=project_name,
+                    filetype="terraform",
+                    filelocation=f"{project_name}_terraform/main.tf",
+                    diagramjson=None
+                )
+                create_or_update_workspace(db=db, workspace_data=workspace_payload)
+
+            logs.append("✅ DB updated with workspace info.")
 
         else:
             logs.append("❌ Terraform Apply Failed")
             logs.append(f"```bash\n{apply_proc.stderr}\n```")
 
     except subprocess.CalledProcessError as e:
-        logs.append(f"❌ Terraform apply error:\n{e.stderr or str(e)}")
+        logs.append(f"❌ Terraform error: {str(e)}")
 
-    # Step 8: Restore original main.tf
-    with open(main_tf_path, "w", encoding="utf-8") as f:
-        f.write(original_tf_content)
-    logs.append("🧼 Restored original main.tf (without injected credentials).")
+    finally:
+        # Restore original provider.tf content
+        with open(provider_tf_path, "w", encoding="utf-8") as f:
+            f.write(original_provider_content)
+        logs.append("🧼 Restored original provider.tf")
 
     return "\n".join(logs)
 
 
-# def validate_and_fix_terraform_code(code: str, working_dir: str = ".") -> str:
+
+
+def validate_and_fix_terraform_code(working_dir: str) -> str:
+    """
+    Validates Terraform code located in a directory. If validation fails, it reads
+    the files, asks OpenAI to fix them, overwrites the files with the fix, and retries.
+
+    Args:
+        working_dir (str): The directory path containing the .tf files.
+
+    Returns:
+        str: A success message, or an error message if it fails after all attempts.
+    """
+    max_attempts = 5
+    for attempt in range(1, max_attempts + 1):
+        print(f"\n🔁 Attempt {attempt}: Validating Terraform code in {working_dir}...")
+
+        # Step A: Run terraform init & validate
+        init_proc = subprocess.run(
+            ["terraform", "init", "-input=false", "-no-color"],
+            cwd=working_dir, capture_output=True, text=True
+        )
+        if init_proc.returncode != 0:
+            validation_error = f"Terraform Init Failed:\n{init_proc.stderr.strip()}"
+        else:
+            validate_proc = subprocess.run(
+                ["terraform", "validate", "-no-color"],
+                cwd=working_dir, capture_output=True, text=True
+            )
+            if validate_proc.returncode == 0:
+                print("✅ Terraform code is valid!")
+                return f"🎉 Success! Terraform validation passed in {working_dir}"
+            else:
+                validation_error = f"Terraform Validate Failed:\n{validate_proc.stderr.strip()}"
+
+        print(f"❌ Validation failed:\n{validation_error}")
+        if attempt == max_attempts:
+            break # Don't try to fix on the last attempt
+
+        # Step B: If validation fails, read all .tf files to build a context for the LLM
+        code_blocks = []
+        try:
+            for filename in os.listdir(working_dir):
+                if filename.endswith(".tf"):
+                    with open(os.path.join(working_dir, filename), "r", encoding="utf-8") as f:
+                        content = f.read()
+                        code_blocks.append(f"### File: {filename}\n```hcl\n{content.strip()}\n```")
+        except Exception as e:
+            return f"❌ Error: Could not read Terraform files for fixing: {e}"
+
+        current_code_str = "\n\n".join(code_blocks)
+
+        # Step C: Ask OpenAI to fix the code
+        fix_prompt = f"""You are a Terraform expert. You are given multi-file Terraform code that failed validation.
+Your job is to fix any syntax or logic errors in the code while preserving the file headers and structure.
+
+### Invalid Terraform Code:
+{current_code_str}
+
+### Validation Error:
+{validation_error}
+
+### Instructions:
+- Analyze the error and correct the code in the corresponding file(s).
+- Return the full, corrected code in the exact same multi-file format, including all original files.
+- Do NOT add explanations or change file names.
+- Do NOT combine files.
+"""
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a DevOps expert who fixes Terraform code."},
+                    {"role": "user", "content": fix_prompt}
+                ],
+                temperature=0.2,
+                max_tokens=4000
+            )
+            fixed_code_str = response.choices[0].message.content.strip()
+
+            # Step D: Overwrite the files with the LLM's corrected code
+            parsed_blocks = re.findall(r"### File:\s*([\w\.\-]+)\s*```hcl\s*(.*?)```", fixed_code_str, re.DOTALL)
+            if not parsed_blocks:
+                print("⚠️ LLM did not return code in the expected format. Retrying...")
+                continue
+
+            for filename, content in parsed_blocks:
+                file_path = os.path.join(working_dir, filename)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content.strip() + "\n")
+            print("📝 Overwrote files with attempted fix.")
+
+        except Exception as e:
+            return f"❌ Error: OpenAI API call failed during fix attempt: {str(e)}"
+
+    return f"❌ Error: Failed to validate Terraform code after {max_attempts} attempts."
+
+
+# def validate_and_fix_terraform_code(code: str, working_dir: str = TEMP_DIR) -> str:
 #     """
 #     Validates the Terraform code using `terraform validate`.
 #     If it fails, uses OpenAI to fix the code based on error output.
 #     Repeats until validation succeeds or max retries are hit.
-#     Returns the final working Terraform code or error message.
+#     Saves the final validated code into `main.tf` inside the TEMP_DIR.
+
+#     Returns:
+#         str: Final validated Terraform code or error message.
 #     """
 #     cleaned_code = clean_terraform_code(code)
 #     tf_file = os.path.join(working_dir, "main.tf")
@@ -2139,31 +2372,27 @@ def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int
 #         iteration += 1
 
 #         # Save the current version of code
-#         with open(tf_file, "w") as f:
+#         with open(tf_file, "w", encoding="utf-8") as f:
 #             f.write(cleaned_code)
 
-#         # Initialize Terraform (required before validate)
-#         # Use capture_output=True to suppress init output unless there's an error
+#         # Run terraform init
 #         init_proc = subprocess.run(
-#             ["terraform", "init", "-input=false", "-no-color"],  # Added -no-color for cleaner output
+#             ["terraform", "init", "-input=false", "-no-color"],
 #             cwd=working_dir,
 #             capture_output=True,
 #             text=True
 #         )
-        
+
 #         if init_proc.returncode != 0:
 #             print(f"❌ Terraform init failed (iteration {iteration}):\n{init_proc.stderr.strip()}")
-#             # If init fails, we might not be able to validate. Try to fix based on init error.
 #             validation_error = init_proc.stderr.strip()
-#             # If it's an init error, we might need a different prompt or give up.
-#             # For now, treat it like a validation error for fixing.
 #         else:
 #             print(f"🔧 Terraform init successful (iteration {iteration})")
 #             validation_error = ""
 
 #         # Run terraform validate
 #         validate_proc = subprocess.run(
-#             ["terraform", "validate", "-no-color"],  # Added -no-color for cleaner output
+#             ["terraform", "validate", "-no-color"],
 #             cwd=working_dir,
 #             capture_output=True,
 #             text=True
@@ -2171,34 +2400,35 @@ def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int
 
 #         if validate_proc.returncode == 0:
 #             print(f"✅ Terraform code is valid on iteration {iteration}")
+            
+#             # ✅ Save validated code to TEMP_DIR/main.tf
+#             with open(tf_file, "w", encoding="utf-8") as f:
+#                 f.write(cleaned_code + "\n")
+            
+#             print(f"📁 Validated Terraform code saved to: {tf_file}")
 #             return cleaned_code
 
 #         # If validation fails, extract the error
-#         if not validation_error:  # Only use validate error if init didn't fail
+#         if not validation_error:
 #             validation_error = validate_proc.stderr.strip()
 #         print(f"❌ Validation failed (iteration {iteration}):\n{validation_error}")
 
-#         # Construct a prompt to fix the code using OpenAI
+#         # Ask OpenAI to fix it
 #         fix_prompt = f"""You are a Terraform expert.
 
-# You are provided with Terraform HCL code that failed validation. Fix **all** the issues strictly based on the validation error shown.
+#         You are provided with Terraform HCL code that failed validation. Fix **all** the issues strictly based on the validation error shown.
 
-# ### Original Invalid Terraform Code:
-# ```hcl
-# {cleaned_code}
-# ```
+#         ### Original Invalid Terraform Code:
+#         ```hcl
+#         {cleaned_code}
+#         ```
+#         ### Validation Error:
+#         {validation_error}
 
-# ### Validation Error:
-# ```
-# {validation_error}
-# ```
+#         ### Instructions:
+#         Only return corrected, valid Terraform code. Do NOT include explanations, comments, or notes. Do NOT wrap the code in triple backticks.
 
-# ### Instructions:
-# Only return corrected, valid Terraform code. Do NOT include explanations, comments, or notes. Do NOT wrap the code in triple backticks.
-
-# Fix all issues so the code becomes valid and production-ready."""
-
-#         # Call OpenAI to fix the code
+#         Fix all issues so the code becomes valid and production-ready."""
 #         try:
 #             response = client.chat.completions.create(
 #                 model="gpt-4o",
@@ -2216,104 +2446,6 @@ def import_and_apply_for_resource(main_tf_path: str,arns: list[str],user_id: int
 #             return f"❌ OpenAI API call failed during fix attempt: {str(e)}"
 
 #     return "❌ Could not produce valid Terraform code after multiple attempts."
-
-
-
-
-def validate_and_fix_terraform_code(code: str, working_dir: str = TEMP_DIR) -> str:
-    """
-    Validates the Terraform code using `terraform validate`.
-    If it fails, uses OpenAI to fix the code based on error output.
-    Repeats until validation succeeds or max retries are hit.
-    Saves the final validated code into `main.tf` inside the TEMP_DIR.
-
-    Returns:
-        str: Final validated Terraform code or error message.
-    """
-    cleaned_code = clean_terraform_code(code)
-    tf_file = os.path.join(working_dir, "main.tf")
-
-    iteration = 0
-    max_iterations = 5
-
-    while iteration < max_iterations:
-        iteration += 1
-
-        # Save the current version of code
-        with open(tf_file, "w", encoding="utf-8") as f:
-            f.write(cleaned_code)
-
-        # Run terraform init
-        init_proc = subprocess.run(
-            ["terraform", "init", "-input=false", "-no-color"],
-            cwd=working_dir,
-            capture_output=True,
-            text=True
-        )
-
-        if init_proc.returncode != 0:
-            print(f"❌ Terraform init failed (iteration {iteration}):\n{init_proc.stderr.strip()}")
-            validation_error = init_proc.stderr.strip()
-        else:
-            print(f"🔧 Terraform init successful (iteration {iteration})")
-            validation_error = ""
-
-        # Run terraform validate
-        validate_proc = subprocess.run(
-            ["terraform", "validate", "-no-color"],
-            cwd=working_dir,
-            capture_output=True,
-            text=True
-        )
-
-        if validate_proc.returncode == 0:
-            print(f"✅ Terraform code is valid on iteration {iteration}")
-            
-            # ✅ Save validated code to TEMP_DIR/main.tf
-            with open(tf_file, "w", encoding="utf-8") as f:
-                f.write(cleaned_code + "\n")
-            
-            print(f"📁 Validated Terraform code saved to: {tf_file}")
-            return cleaned_code
-
-        # If validation fails, extract the error
-        if not validation_error:
-            validation_error = validate_proc.stderr.strip()
-        print(f"❌ Validation failed (iteration {iteration}):\n{validation_error}")
-
-        # Ask OpenAI to fix it
-        fix_prompt = f"""You are a Terraform expert.
-
-        You are provided with Terraform HCL code that failed validation. Fix **all** the issues strictly based on the validation error shown.
-
-        ### Original Invalid Terraform Code:
-        ```hcl
-        {cleaned_code}
-        ```
-        ### Validation Error:
-        {validation_error}
-
-        ### Instructions:
-        Only return corrected, valid Terraform code. Do NOT include explanations, comments, or notes. Do NOT wrap the code in triple backticks.
-
-        Fix all issues so the code becomes valid and production-ready."""
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You are a DevOps expert who writes Terraform."},
-                    {"role": "user", "content": fix_prompt}
-                ],
-                temperature=0.2,
-                max_tokens=1500
-            )
-            fixed_code = response.choices[0].message.content
-            cleaned_code = clean_terraform_code(fixed_code)
-
-        except Exception as e:
-            return f"❌ OpenAI API call failed during fix attempt: {str(e)}"
-
-    return "❌ Could not produce valid Terraform code after multiple attempts."
 
 
 def fetch_and_save_aws_resource_details(arns: list[str], inspector: DynamicAWSResourceInspector,output_dir: str, project_name: str = "project_name") -> str:
@@ -2355,6 +2487,115 @@ def fetch_and_save_aws_resource_details(arns: list[str], inspector: DynamicAWSRe
 
 
 
+# def upload_terraform_to_minio(
+#     local_tf_dir: str,
+#     user_id: int,
+#     project_name: str,
+#     minio_endpoint: str = "storage.clouvix.com",
+#     minio_access_key: str = "clouvix@gmail.com",
+#     minio_secret_key: str = "Clouvix@bangalore2025",
+#     secure: bool = True
+# ) -> str:
+#     """
+#     Uploads Terraform files to both MinIO and S3 (if configured).
+
+#     Args:
+#         local_tf_dir (str): Path to local Terraform project folder.
+#         user_id (int): User ID (for bucket naming).
+#         project_name (str): Project folder name inside bucket.
+
+#     Returns:
+#         str: Upload status summary.
+#     """
+#     bucket_name = f"terraform-workspaces-user-{user_id}"
+#     folder_name = f"{project_name}_terraform"
+
+#     minio_success = False
+#     s3_success = False
+
+#     try:
+#         # === Upload to MinIO ===
+#         minio_client = Minio(
+#             minio_endpoint,
+#             access_key=minio_access_key,
+#             secret_key=minio_secret_key,
+#             secure=secure
+#         )
+
+#         if not minio_client.bucket_exists(bucket_name):
+#             print(f"🪣 Bucket `{bucket_name}` does not exist. Creating it...")
+#             minio_client.make_bucket(bucket_name)
+#         else:
+#             print(f"✅ MinIO bucket `{bucket_name}` exists.")
+
+#         print("📤 Uploading Terraform files to MinIO...")
+#         for root, _, files in os.walk(local_tf_dir):
+#             if ".terraform" in root:
+#                 continue
+
+#             for file in files:
+#                 if file.endswith(".json"):
+#                     continue
+
+#                 file_path = os.path.join(root, file)
+#                 relative_path = os.path.relpath(file_path, local_tf_dir)
+#                 object_key = f"{folder_name}/{relative_path}".replace("\\", "/")
+
+#                 minio_client.fput_object(bucket_name, object_key, file_path)
+#                 print(f"⬆️ MinIO: {object_key}")
+
+#         minio_success = True
+#     except Exception as e:
+#         print(f"❌ MinIO upload failed: {e}")
+
+#     # === Upload to S3 (if configured) ===
+#     try:
+#         s3_config = get_s3_connection_info_with_credentials(user_id)
+#         s3_bucket = s3_config["bucket"]
+#         s3_region = s3_config["region"]
+#         s3_prefix = s3_config.get("prefix", "")
+#         aws_access_key_id = s3_config.get("aws_access_key_id")
+#         aws_secret_access_key = s3_config.get("aws_secret_access_key")
+
+#         if s3_bucket and aws_access_key_id and aws_secret_access_key:
+#             s3 = boto3.client(
+#                 's3',
+#                 region_name=s3_region,
+#                 aws_access_key_id=aws_access_key_id,
+#                 aws_secret_access_key=aws_secret_access_key
+#             )
+
+#             s3_folder_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+#             print("📤 Uploading Terraform files to S3...")
+#             for root, _, files in os.walk(local_tf_dir):
+#                 if ".terraform" in root:
+#                     continue
+
+#                 for file in files:
+#                     if file.endswith(".json"):
+#                         continue
+
+#                     file_path = os.path.join(root, file)
+#                     relative_path = os.path.relpath(file_path, local_tf_dir)
+#                     object_key = f"{s3_folder_prefix}{relative_path}".replace("\\", "/")
+
+#                     s3.upload_file(file_path, s3_bucket, object_key)
+#                     print(f"⬆️ S3: {object_key}")
+
+#             s3_success = True
+#         else:
+#             print("⚠️ Skipping S3 upload – missing credentials or bucket info.")
+
+#     except Exception as e:
+#         print(f"❌ S3 upload failed: {e}")
+
+#     # === Final status message ===
+#     status = "Upload Summary:\n"
+#     status += "✅ MinIO upload successful.\n" if minio_success else "❌ MinIO upload failed.\n"
+#     status += "✅ S3 upload successful.\n" if s3_success else "⚠️ S3 upload skipped or failed.\n"
+#     return status
+
 def upload_terraform_to_minio(
     local_tf_dir: str,
     user_id: int,
@@ -2365,7 +2606,8 @@ def upload_terraform_to_minio(
     secure: bool = True
 ) -> str:
     """
-    Uploads Terraform files to both MinIO and S3 (if configured).
+    Uploads Terraform .tf and .tfstate files to MinIO and S3 (if configured).
+    Skips .terraform directories and .json files.
 
     Args:
         local_tf_dir (str): Path to local Terraform project folder.
@@ -2405,12 +2647,13 @@ def upload_terraform_to_minio(
                 if file.endswith(".json"):
                     continue
 
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, local_tf_dir)
-                object_key = f"{folder_name}/{relative_path}".replace("\\", "/")
+                if file.endswith(".tf") or "tfstate" in file:
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, local_tf_dir)
+                    object_key = f"{folder_name}/{relative_path}".replace("\\", "/")
 
-                minio_client.fput_object(bucket_name, object_key, file_path)
-                print(f"⬆️ MinIO: {object_key}")
+                    minio_client.fput_object(bucket_name, object_key, file_path)
+                    print(f"⬆️ MinIO: {object_key}")
 
         minio_success = True
     except Exception as e:
@@ -2444,12 +2687,13 @@ def upload_terraform_to_minio(
                     if file.endswith(".json"):
                         continue
 
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_path, local_tf_dir)
-                    object_key = f"{s3_folder_prefix}{relative_path}".replace("\\", "/")
+                    if file.endswith(".tf") or "tfstate" in file:
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, local_tf_dir)
+                        object_key = f"{s3_folder_prefix}{relative_path}".replace("\\", "/")
 
-                    s3.upload_file(file_path, s3_bucket, object_key)
-                    print(f"⬆️ S3: {object_key}")
+                        s3.upload_file(file_path, s3_bucket, object_key)
+                        print(f"⬆️ S3: {object_key}")
 
             s3_success = True
         else:
@@ -2463,7 +2707,6 @@ def upload_terraform_to_minio(
     status += "✅ MinIO upload successful.\n" if minio_success else "❌ MinIO upload failed.\n"
     status += "✅ S3 upload successful.\n" if s3_success else "⚠️ S3 upload skipped or failed.\n"
     return status
-
 
 
 # def main():

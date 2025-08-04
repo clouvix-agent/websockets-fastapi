@@ -1,6 +1,11 @@
 def run_ec2_rds_recommendation_scheduler():
+    """
+    Scheduler function that fetches resources for each user, authenticates using their
+    specific credentials, and generates cost-saving recommendations.
+    """
+    # Import necessary functions and modules
     from app.core.rds_ec2_recommendation import (
-        get_boto3_session, fetch_arns_grouped_by_user_id, extract_instance_info_from_arn,
+        fetch_arns_grouped_by_user_id, extract_instance_info_from_arn,
         describe_ec2_instance, describe_rds_instance, get_pricing_info,
         get_configured_cloudwatch_metrics, generate_recommendations,
         create_or_update_metrics, generate_llm_recommendation, insert_or_update,
@@ -8,26 +13,59 @@ def run_ec2_rds_recommendation_scheduler():
     )
     from app.database import SessionLocal
     from botocore.exceptions import ClientError, NoCredentialsError
+    from app.core.existing_to_tf import get_aws_credentials_from_db
     import re
+    import boto3 # Make sure boto3 is imported
 
     try:
-        session = get_boto3_session()
+        # Fetch all ARNs grouped by their user_id from the database
         arns_by_user = fetch_arns_grouped_by_user_id()
         if not arns_by_user:
             print("\nNo processable ARNs found. Exiting.")
             return
 
         print("\n==================================================")
-        print("      STARTING AWS COST & RIGHTSIZING ADVISOR     ")
+        print("      STARTING AWS COST & RIGHTSIZING ADVISOR      ")
         print("==================================================")
 
+        # Loop through each user found in the database
         for user_id, arns in arns_by_user.items():
             print(f"\n\n--- Processing User ID: {user_id} ---")
+
+            # --- Step 1: Get credentials for the current user from the DB ---
+            try:
+                aws_access_key, aws_secret_key = get_aws_credentials_from_db(user_id)
+            except ValueError as e:
+                print(f"❌ Could not get credentials for User ID {user_id}: {e}. Skipping this user.")
+                continue # Move to the next user
+            except Exception as e:
+                print(f"❌ An unexpected error occurred while fetching credentials for User ID {user_id}: {e}. Skipping.")
+                continue
+
+            # --- Step 2: Create a specific Boto3 session for this user ---
+            try:
+                session = boto3.Session(
+                    aws_access_key_id=aws_access_key,
+                    aws_secret_access_key=aws_secret_key,
+                )
+                # Validate credentials by making a simple API call
+                sts_client = session.client('sts')
+                identity = sts_client.get_caller_identity()
+                print(f"✅ AWS session created successfully for User ID {user_id}. Authenticated as: {identity['Arn']}")
+            except ClientError as e:
+                print(f"❌ AWS credentials for User ID {user_id} are invalid or expired: {e}. Skipping this user.")
+                continue
+            except Exception as e:
+                print(f"❌ Failed to create Boto3 session for User ID {user_id}: {e}. Skipping this user.")
+                continue
+
+            # --- Step 3: Process all ARNs for this user with their specific session ---
             for arn in arns:
                 try:
                     print(f"\n🔍 Processing ARN: {arn}")
                     instance_id, region, service_type = extract_instance_info_from_arn(arn)
 
+                    # All subsequent calls now use the correct, user-specific session
                     describe_func = describe_ec2_instance if service_type == 'EC2' else describe_rds_instance
                     instance_details = describe_func(instance_id, region, session)
 
@@ -42,12 +80,8 @@ def run_ec2_rds_recommendation_scheduler():
                         db = SessionLocal()
                         try:
                             create_or_update_metrics(
-                                db=db,
-                                userid=user_id,
-                                arn=arn,
-                                resource_type=service_type,
-                                metrics_data=collected_metrics,
-                                additional_info=instance_details
+                                db=db, userid=user_id, arn=arn, resource_type=service_type,
+                                metrics_data=collected_metrics, additional_info=instance_details
                             )
                         finally:
                             db.close()
@@ -65,7 +99,7 @@ def run_ec2_rds_recommendation_scheduler():
 
                             # LLM Recommendation logic
                             current_total_annual = (current_pricing["compute_hourly"] * 24 * 365) + (current_pricing.get("storage_monthly", 0) * 12)
-                            new_total_annual = (new_pricing["compute_hourly"] * 24 * 365) + (new_pricing.get("storage_monthly", 0) * 12)
+                            new_total_annual = (new_pricing["compute_hourly"] * 24 * 365) + (current_pricing.get("storage_monthly", 0) * 12)
                             savings = max(current_total_annual - new_total_annual, 0)
                             percent_savings = (savings / current_total_annual) * 100 if current_total_annual > 0 else 0
 
@@ -78,28 +112,30 @@ def run_ec2_rds_recommendation_scheduler():
                                 percent_saving=percent_savings
                             )
 
-                            action_text = impact_text = savings_text = None
+                            action_text = impact_text = savings_text = summary_text = None
                             try:
-                                match = re.search(r"\d*\.*\s*Action:\s*(.+?)\n+\d*\.*\s*Impact:\s*(.+?)\n+\d*\.*\s*Savings:\s*(.+)", llm_text, re.DOTALL | re.IGNORECASE)
+                                match = re.search(
+                                    r"Action:\s*(.*?)\n+Impact:\s*(.*?)\n+Savings:\s*(.*?)\n+Summary:\s*(.*)",
+                                    llm_text, re.DOTALL | re.IGNORECASE
+                                )
                                 if match:
-                                    action_text = {"text": match.group(1).strip()}
-                                    impact_text = {"text": match.group(2).strip()}
-                                    savings_text = {"text": match.group(3).strip()}
+                                    action_text = match.group(1).strip()
+                                    impact_text = match.group(2).strip()
+                                    savings_text = match.group(3).strip()
+                                    summary_text = match.group(4).strip()
+                                else:
+                                    summary_text = llm_text
                             except Exception as e:
                                 print(f"⚠️ Failed to parse LLM response: {e}")
+                                summary_text = llm_text
 
                             # Save to DB
                             db = SessionLocal()
                             try:
                                 insert_or_update(
-                                    db=db,
-                                    userid=user_id,
-                                    resource_type=service_type,
-                                    arn=arn,
-                                    recommendation_text=llm_text,
-                                    action=action_text,
-                                    impact=impact_text,
-                                    savings=savings_text
+                                    db=db, userid=user_id, resource_type=service_type, arn=arn,
+                                    recommendation_text=summary_text, action=action_text,
+                                    impact=impact_text, savings=savings_text
                                 )
                             finally:
                                 db.close()
@@ -111,7 +147,5 @@ def run_ec2_rds_recommendation_scheduler():
                 finally:
                     print("--------------------------------------------------")
 
-    except NoCredentialsError as e:
-        print(f"\n❌ AWS Credentials Error: {e}")
     except Exception as e:
         print(f"\n❌ An unexpected error occurred in the cost scheduler: {e}")

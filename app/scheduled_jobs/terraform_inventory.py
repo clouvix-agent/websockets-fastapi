@@ -157,7 +157,7 @@ def fetch_all_state_files():
     print(f"✅ Inventory sync complete at {datetime.utcnow()}")
 
 # # --- Main Entry Point ---
-# if __name__ == "__main__":
-#     print("🚀 Starting Terraform State Sync...")
-#     fetch_all_state_files()
-#     print("✅ Script finished.")
+if __name__ == "__main__":
+    print("🚀 Starting Terraform State Sync...")
+    fetch_all_state_files()
+    print("✅ Script finished.")
