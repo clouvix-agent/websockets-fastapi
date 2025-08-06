@@ -174,6 +174,7 @@ async def generate_terraform(request: TerraformRequest, db: Session = Depends(ge
             
             # First save to file temporarily (in case we need it for backward compatibility)
             architecture_file_path = "architecture_json/request.json"
+            print(architecture_file_path)
             with open(architecture_file_path, "w") as f:
                 json.dump(architecture_json, f)
             

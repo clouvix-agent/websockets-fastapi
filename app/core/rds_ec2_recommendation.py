@@ -383,6 +383,7 @@ RDS_DOWNSIZE_MAP = {
     "db.t3.medium": "db.t3.small", 
     "db.t3.small": "db.t3.micro",
     "db.t3.micro": "db.t4g.micro",
+    "db.t4g.small":"db.t4g.micro",
     
     # T4g Family (ARM-based)
     "db.t4g.2xlarge": "db.t4g.xlarge",
@@ -604,15 +605,17 @@ A cost-saving change is recommended:
 
 **CRITICAL INSTRUCTIONS**
 Your output MUST contain four distinct sections in this exact order and format:
-1.  `Action:` (A brief, specific action to take)
+1.  `Action:` (A brief, specific action to take)-Here in action do not use upgrade or downgrade , just say change from this to this.
 2.  `Impact:` (The benefit of this action)
 3.  `Savings:` (The financial benefit)
 4.  `Summary:` (A single, well-written paragraph that combines the key points from Action, Impact, and Savings into a concise, easy-to-read narrative recommendation.)
 
 Do not use emojis or any other markdown. If pricing data is not available, generate general information for the sections without mentioning the lack of data.
+Do not use Upgrade or Downgrade , just say "change".
+Even for RDS instance type do not use Upgrade or Downgrade words instead that use Change.
 
 **EXAMPLE OF THE REQUIRED OUTPUT FORMAT:**
-Action: Downgrade the instance from t3.large to t3.medium.
+Action:Change the instance from t3.large to t3.medium.
 Impact: This change aligns the instance size with its actual usage, reducing waste without affecting performance for its current workload.
 Savings: You can save an estimated $150.00 annually (45.0%).
 Summary: We recommend downgrading the instance from t3.large to t3.medium. This action will better align the resource with its actual usage, reducing waste without impacting performance and resulting in an estimated annual savings of $150.00 (45.0%).

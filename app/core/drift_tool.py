@@ -353,112 +353,15 @@ def upload_project_to_minio(local_project_dir: str, user_id: int, project_name: 
 
 
 
-
-# @tool
-# def drift_detection_tool(project_name: str, config: RunnableConfig, action: str):
-#     """
-#     This tool solves Terraform drift based on selected action:
-    
-#     Args:
-#         project_name (str): Name of the Terraform project.
-#         config (RunnableConfig): Contains `user_id` inside config["configurable"].
-#         action (str): "apply_drift" to apply changes from drift, or "revert_back" to discard drift and apply original .tf file.
-
-#     Returns:
-#         str: Success or failure message.
-#     """
-#     user_id = config['configurable'].get('user_id', 'unknown')
-#     if user_id == 'unknown':
-#         return "❌ user_id not found in config['configurable']"
-
-#     print(f"✅ User ID extracted: {user_id} for project: {project_name}")
-
-#     local_path = None  # Define early for finally block to work
-
-#     try:
-#         local_path = download_terraform_project_from_minio(user_id, project_name)
-#         if not os.path.isdir(local_path):
-#             return local_path  # error string
-
-#         aws_access_key, aws_secret_key = get_aws_credentials_from_db(user_id)
-
-#         terraform_env = os.environ.copy()
-#         terraform_env["AWS_ACCESS_KEY_ID"] = aws_access_key
-#         terraform_env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
-
-#         print("🔧 Running terraform init...")
-#         init_success, init_stdout, init_stderr = run_terraform_command(
-#             ["terraform", "init", "-no-color"],
-#             working_dir=local_path,
-#             env=terraform_env
-#         )
-#         if not init_success:
-#             return f"❌ Terraform init failed for `{project_name}`.\n\nSTDERR:\n{init_stderr}"
-
-#         if action == "revert_back":
-#             print("⏪ Reverting cloud infra to match current .tf file...")
-#             success, stdout, stderr = run_terraform_command(
-#                 ["terraform", "apply", "-auto-approve"],
-#                 working_dir=local_path,
-#                 env=terraform_env
-#             )
-#             print("📄 Terraform Apply STDOUT:\n", stdout)
-#             print("📄 Terraform Apply STDERR:\n", stderr)
-#             if success:
-#                 return f"✅ Drift reverted successfully for project `{project_name}`.\n\nSTDOUT:\n{stdout}"
-#             else:
-#                 return f"❌ Terraform apply failed for project `{project_name}`.\n\nSTDERR:\n{stderr}"
-
-#         elif action == "apply_drift":
-#             with get_db_session() as db:
-#                 drift_reason = fetch_drift_reason(db, user_id, project_name)
-#                 if not drift_reason:
-#                     return f"❌ No drift_reason found in DB for `{project_name}` (user {user_id})"
-
-#             main_tf_path = os.path.join(local_path, "main.tf")
-#             updated = update_tf_file_with_llm(main_tf_path, drift_reason)
-
-#             if not updated:
-#                 return f"❌ Failed to update main.tf for `{project_name}` using GPT."
-
-#             print("📦 Applying updated main.tf with Terraform...")
-#             success, stdout, stderr = run_terraform_command(
-#                 ["terraform", "apply", "-auto-approve"],
-#                 working_dir=local_path,
-#                 env=terraform_env
-#             )
-#             print("📄 Terraform Apply STDOUT:\n", stdout)
-#             print("📄 Terraform Apply STDERR:\n", stderr)
-#             if success:
-#                 upload_msg = upload_project_to_minio(local_path, user_id, project_name)
-#                 return f"✅ Drift applied successfully for `{project_name}`.\n\n{upload_msg}\n\nSTDOUT:\n{stdout}"
-#             else:
-#                 return f"❌ Terraform apply failed after updating main.tf.\n\nSTDERR:\n{stderr}"
-
-#         else:
-#             return f"❌ Invalid action: `{action}`. Use either 'apply_drift' or 'revert_back'."
-
-#     finally:
-#         if local_path and os.path.isdir(local_path):
-#             try:
-#                 shutil.rmtree(local_path, ignore_errors=True)
-#                 print(f"🧹 Cleaned up temp directory")
-#             except Exception as cleanup_err:
-#                 print(f"⚠️ Failed to clean temp folder: {cleanup_err}")
-
-
 @tool
 def drift_detection_tool(project_name: str, config: RunnableConfig, action: str):
     """
-    This tool solves Terraform drift based on selected action:
+    This tool solves Terraform drift based on selected action.
 
     Args:
         project_name (str): Name of the Terraform project.
         config (RunnableConfig): Contains `user_id` inside config["configurable"].
-        action (str): "apply_drift" to apply changes from drift, or "revert_back" to discard drift and apply original .tf file.
-
-    Returns:
-        str: Success or failure message.
+        action (str): "apply_drift" or "revert_back"
     """
     user_id = config['configurable'].get('user_id', 'unknown')
     if user_id == 'unknown':
@@ -466,27 +369,55 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
 
     print(f"✅ User ID extracted: {user_id} for project: {project_name}")
 
-    # Create a unique temporary directory using uuid
-    temp_dir_base = "/tmp"  # or os.environ.get("TEMP_DIR_ROOT", "/tmp")
+    temp_dir_base = "/tmp"
     unique_folder_name = f"{project_name}_terraform_{uuid.uuid4().hex}"
     local_path = os.path.join(temp_dir_base, unique_folder_name)
     os.makedirs(local_path, exist_ok=True)
 
     try:
-        # Download project files
         download_result = download_terraform_project_from_minio(user_id, project_name)
         if not os.path.isdir(download_result):
-            return download_result  # Contains error message
-
+            return download_result
         local_path = download_result
 
-        # Load AWS credentials
         aws_access_key, aws_secret_key = get_aws_credentials_from_db(user_id)
-
         terraform_env = os.environ.copy()
         terraform_env["AWS_ACCESS_KEY_ID"] = aws_access_key
         terraform_env["AWS_SECRET_ACCESS_KEY"] = aws_secret_key
 
+        # 🔐 Inject AWS credentials into provider.tf
+        provider_tf_path = None
+        original_provider_content = None
+        for root, _, files in os.walk(local_path):
+            for file in files:
+                if file == "provider.tf":
+                    provider_tf_path = os.path.join(root, file)
+                    break
+
+        if provider_tf_path and os.path.exists(provider_tf_path):
+            with open(provider_tf_path, "r") as f:
+                original_provider_content = f.read()
+
+            injected_content = []
+            inside_provider = False
+            for line in original_provider_content.splitlines():
+                stripped = line.strip()
+                if stripped.startswith('provider "aws"'):
+                    inside_provider = True
+                elif inside_provider and stripped.startswith("}"):
+                    injected_content.append(f'  access_key = "{aws_access_key}"')
+                    injected_content.append(f'  secret_key = "{aws_secret_key}"')
+                    inside_provider = False
+                injected_content.append(line)
+
+            with open(provider_tf_path, "w") as f:
+                f.write("\n".join(injected_content))
+
+            print("🔐 Injected AWS credentials into provider.tf")
+        else:
+            return "❌ provider.tf not found in downloaded project."
+
+        # ⏬ Terraform init
         print("🔧 Running terraform init...")
         init_success, init_stdout, init_stderr = run_terraform_command(
             ["terraform", "init", "-no-color"],
@@ -494,79 +425,78 @@ def drift_detection_tool(project_name: str, config: RunnableConfig, action: str)
             env=terraform_env
         )
         if not init_success:
-            return f"❌ Terraform init failed for `{project_name}`.\n\nSTDERR:\n{init_stderr}"
+            return f"❌ Terraform init failed.\n\nSTDERR:\n{init_stderr}"
 
+        # ACTION: revert or apply drift
         if action == "revert_back":
-            print("⏪ Reverting cloud infra to match current .tf file...")
+            print("⏪ Reverting cloud infra to match .tf...")
             success, stdout, stderr = run_terraform_command(
                 ["terraform", "apply", "-auto-approve"],
                 working_dir=local_path,
                 env=terraform_env
             )
-            print("📄 Terraform Apply STDOUT:\n", stdout)
-            print("📄 Terraform Apply STDERR:\n", stderr)
 
             with get_db_session() as db:
                 status_data = WorkspaceStatusCreate(
                     userid=user_id,
                     project_name=project_name,
-                    status=stdout or "Terraform apply (revert_back) completed with no output."
+                    status=stdout or "Terraform apply (revert_back) completed."
                 )
                 create_or_update_workspace_status(db, status_data)
-
                 if success:
-                    print(f"🧹 Clearing resolved drift record for '{project_name}'...")
                     delete_drift_result(db, user_id, project_name)
 
-            if success:
-                return f"✅ Drift reverted successfully for project `{project_name}`.\n\nSTDOUT:\n{stdout}"
-            else:
-                return f"❌ Terraform apply failed for project `{project_name}`.\n\nSTDERR:\n{stderr}"
+            return f"{'✅' if success else '❌'} Terraform apply {'succeeded' if success else 'failed'} for revert.\n\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
 
         elif action == "apply_drift":
             with get_db_session() as db:
                 drift_reason = fetch_drift_reason(db, user_id, project_name)
                 if not drift_reason:
-                    return f"❌ No drift_reason found in DB for `{project_name}` (user {user_id})"
+                    return f"❌ No drift_reason found in DB for {project_name} (user {user_id})"
 
             main_tf_path = os.path.join(local_path, "main.tf")
             updated = update_tf_file_with_llm(main_tf_path, drift_reason)
-
             if not updated:
-                return f"❌ Failed to update main.tf for `{project_name}` using GPT."
+                return f"❌ Failed to update main.tf using GPT."
 
-            print("📦 Applying updated main.tf with Terraform...")
+            print("📦 Applying updated .tf with Terraform...")
             success, stdout, stderr = run_terraform_command(
                 ["terraform", "apply", "-auto-approve"],
                 working_dir=local_path,
                 env=terraform_env
             )
-            print("📄 Terraform Apply STDOUT:\n", stdout)
-            print("📄 Terraform Apply STDERR:\n", stderr)
 
             with get_db_session() as db:
                 status_data = WorkspaceStatusCreate(
                     userid=user_id,
                     project_name=project_name,
-                    status=stdout or "Terraform apply (apply_drift) completed with no output."
+                    status=stdout or "Terraform apply (apply_drift) completed."
                 )
                 create_or_update_workspace_status(db, status_data)
 
                 if success:
                     upload_msg = upload_project_to_minio(local_path, user_id, project_name)
-                    print(f"🧹 Clearing resolved drift record for '{project_name}'...")
                     delete_drift_result(db, user_id, project_name)
-                    return f"✅ Drift applied successfully for `{project_name}`. Workspace is now synced and the drift record has been cleared.\n\n{upload_msg}\n\nSTDOUT:\n{stdout}"
+                    return f"✅ Drift applied for `{project_name}`.\n\n{upload_msg}\n\nSTDOUT:\n{stdout}"
                 else:
-                    return f"❌ Terraform apply failed after updating main.tf.\n\nSTDERR:\n{stderr}"
+                    return f"❌ Terraform apply failed after updating .tf\n\nSTDERR:\n{stderr}"
 
         else:
-            return f"❌ Invalid action: `{action}`. Use either 'apply_drift' or 'revert_back'."
+            return f"❌ Invalid action: {action}. Must be 'apply_drift' or 'revert_back'."
 
     finally:
+        # ♻️ Restore provider.tf and clean temp dir
+        if provider_tf_path and original_provider_content:
+            try:
+                with open(provider_tf_path, "w") as f:
+                    f.write(original_provider_content)
+                print("♻️ Restored original provider.tf")
+            except Exception as e:
+                print(f"⚠️ Failed to restore provider.tf: {e}")
+
         if local_path and os.path.isdir(local_path):
             try:
                 shutil.rmtree(local_path)
                 print(f"🧹 Cleaned up temp directory: {local_path}")
             except Exception as cleanup_err:
-                print(f"⚠️ Failed to clean temp folder {local_path}: {cleanup_err}")
+                print(f"⚠️ Cleanup failed: {cleanup_err}")
