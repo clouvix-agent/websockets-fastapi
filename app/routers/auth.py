@@ -26,13 +26,13 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
-    
+
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     hashed_password = get_password_hash(user.password)
     db_user = User(
         username=user.username,
@@ -40,17 +40,17 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         name=user.name,
         organization=user.organization,
         password=hashed_password,
-        otp=generate_otp(),
-        otp_valid_until=(datetime.utcnow() + timedelta(minutes=10)).isoformat()
+        verified=True,  # ✅ Auto-verify the user
+        otp=None,
+        otp_valid_until=None
     )
-    
+
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
-    send_verification_email(db_user.email, db_user.otp)
-    
+
     return db_user
+
 
 @router.post("/verify-email", response_model=UserSchema)
 async def verify_email(verify_data: OTPVerify, db: Session = Depends(get_db)):
