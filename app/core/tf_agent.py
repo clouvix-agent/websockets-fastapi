@@ -1018,22 +1018,199 @@ def fetch_doc(collection, index, query):
     except Exception as e:
         return f"Error retrieving {index} documentation: {str(e)}"
 
+@tool
+def generate_terraform_code(query: str, project_name: str, config: RunnableConfig) -> Dict:
+    """
+    Terraform code generator with DB lookup, architecture parsing, and returns all .tf files.
+    """
+    user_id = config.get('configurable', {}).get('user_id', 'unknown')
+    if user_id == "unknown":
+        return {"success": False, "error": "User ID missing from configuration"}
+
+    if not project_name:
+        extracted_project_name = _extract_project_name_from_query(query)
+        print(f"Extracted project name from query: {extracted_project_name}")
+        if extracted_project_name:
+            project_name = extracted_project_name
+        else:
+            return {
+                "success": False,
+                "error": "Project name not provided",
+                "needs_project_name": True,
+                "message": "Please provide a project name for your Terraform infrastructure. For example: 'my-webapp' or 'data-pipeline-project'"
+            }
+
+    print(f"\n🔍 Starting Terraform generation for project: {project_name}")
+    services_json = {}
+
+    try:
+        with get_db_session() as db:
+            result = db.execute(
+                text("SELECT architecture_json FROM architecture WHERE userid = :userid AND project_name = :project_name"),
+                {"userid": user_id, "project_name": project_name}
+            ).fetchone()
+
+            if result:
+                services_json = json.loads(result[0]) if isinstance(result[0], str) else result[0]
+            else:
+                services_json = _parse_services_and_connections(query)
+                services_json["project_name"] = project_name
+
+                result_check = db.execute(
+                    text("SELECT COUNT(*) FROM architecture WHERE userid = :userid AND project_name = :project_name"),
+                    {"userid": user_id, "project_name": project_name}
+                ).fetchone()
+
+                if result_check and result_check[0] > 0:
+                    return {
+                        "success": False,
+                        "error": f"Project name '{project_name}' already exists for this user."
+                    }
+
+                db.execute(
+                    text("INSERT INTO architecture (userid, architecture_json, project_name) VALUES (:userid, :architecture_json, :project_name)"),
+                    {
+                        "userid": user_id,
+                        "architecture_json": json.dumps(services_json),
+                        "project_name": project_name
+                    }
+                )
+                db.commit()
+
+        docs = fetch_documentation_via_llm(query, services_json)
+
+        ec2_docs = docs.get("ec2", "")
+        s3_docs = docs.get("s3", "")
+        rds_docs = docs.get("rds", "")
+        dynamodb_cloudwatch_docs = "\n".join([docs.get("dynamodb", ""), docs.get("cloudwatch", "")])
+        apprunner_eks_ecs_docs = "\n".join([docs.get("apprunner", ""), docs.get("eks", ""), docs.get("ecs", "")])
+        iam_docs = docs.get("iam", "")
+        lambda_docs = docs.get("lambda", "")
+        sagemaker_bedrock_docs = "\n".join([docs.get("sagemaker", ""), docs.get("bedrock", "")])
+        sns_sqs_docs = "\n".join([docs.get("sns", ""), docs.get("sqs", "")])
+        vpc_route53_api_gateway_docs = "\n".join([docs.get("vpc", ""), docs.get("route53", ""), docs.get("apigateway", "")])
+
+        terraform_dir = get_terraform_folder(project_name)
+        global TERRAFORM_DIR
+        TERRAFORM_DIR = terraform_dir
+        os.makedirs(TERRAFORM_DIR, exist_ok=True)
+
+        terraform_code = _generate_terraform_hcl(
+            query=query,
+            ec2_docs=ec2_docs,
+            s3_docs=s3_docs,
+            rds_docs=rds_docs,
+            dynamodb_cloudwatch_docs=dynamodb_cloudwatch_docs,
+            apprunner_eks_ecs_docs=apprunner_eks_ecs_docs,
+            iam_docs=iam_docs,
+            lambda_docs=lambda_docs,
+            sagemaker_bedrock_docs=sagemaker_bedrock_docs,
+            sns_sqs_docs=sns_sqs_docs,
+            vpc_route53_api_gateway_docs=vpc_route53_api_gateway_docs,
+            services_json=services_json
+        )
+
+        extract_and_save_terraform(
+            terraform_output=terraform_code,
+            services=services_json.get("services", []),
+            connections=services_json.get("connections", []),
+            user_id=user_id,
+            project_name=project_name,
+            services_json=services_json
+        )
+
+        # === Read all Terraform files ===
+        tf_files = ["main.tf", "variables.tf", "outputs.tf", "provider.tf"]
+        tf_contents = {}
+        try:
+            for tf_file in tf_files:
+                file_path = os.path.join(TERRAFORM_DIR, tf_file)
+                if os.path.exists(file_path):
+                    with open(file_path, "r") as f:
+                        tf_contents[tf_file] = f.read()
+                else:
+                    tf_contents[tf_file] = ""
+        except Exception as e:
+            return {"success": False, "error": f"Error reading .tf files: {str(e)}"}
+
+        # === Upload to MinIO ===
+        try:
+            minio_client = Minio(
+                MINIO_ENDPOINT,
+                access_key=MINIO_ACCESS_KEY,
+                secret_key=MINIO_SECRET_KEY,
+                secure=True
+            )
+            bucket_name = f"terraform-workspaces-user-{user_id}"
+            if not minio_client.bucket_exists(bucket_name):
+                minio_client.make_bucket(bucket_name)
+
+            folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
+            for root, _, files in os.walk(TERRAFORM_DIR):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+                    object_key = f"{folder_name}/{relative_path}"
+                    minio_client.fput_object(bucket_name, object_key, file_path)
+
+        except Exception as e:
+            print(f"❌ Error uploading to MinIO: {e}")
+
+        # === Upload to AWS S3 ===
+        try:
+            s3_config = get_s3_connection_info_with_credentials(user_id)
+            s3_bucket = s3_config.get("bucket")
+            s3_region = s3_config.get("region")
+            s3_prefix = s3_config.get("prefix", "")
+            aws_access_key_id = s3_config.get("aws_access_key_id")
+            aws_secret_access_key = s3_config.get("aws_secret_access_key")
+
+            if s3_bucket and aws_access_key_id and aws_secret_access_key:
+                s3 = boto3.client(
+                    's3',
+                    region_name=s3_region,
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key
+                )
+                folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
+                s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+                for root, _, files in os.walk(TERRAFORM_DIR):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+                        object_key = f"{s3_object_prefix}{relative_path}"
+                        s3.upload_file(file_path, s3_bucket, object_key)
+
+        except Exception as e:
+            print(f"❌ Error uploading to AWS S3: {e}")
+
+        # === Cleanup Local Directory ===
+        try:
+            shutil.rmtree(TERRAFORM_DIR)
+        except Exception as e:
+            print(f"⚠️ Failed to delete local Terraform directory: {e}")
+
+        # return {
+        #     "success": True,
+        #     "files": tf_contents,
+        #     "message": "Terraform files generated and uploaded successfully."
+        # }
+        return tf_contents
+
+    except Exception as e:
+        return {"success": False, "error": f"Error in generate_terraform_code: {str(e)}"}
+
+
 # @tool
 # def generate_terraform_code(query: str, project_name: str, config: RunnableConfig) -> Dict:
 #     """
 #     Terraform code generator with DB lookup and storage for architecture diagrams.
-    
-#     Args:
-#         query: The user query describing the infrastructure to create
-#         project_name: Project name provided by the user. If not provided, will attempt to extract from query
-#         config: Configuration containing user_id
 #     """
-#     # Extract user_id from config
 #     user_id = config.get('configurable', {}).get('user_id', 'unknown')
 #     if user_id == "unknown":
 #         return {"success": False, "error": "User ID missing from configuration"}
-    
-#     # If project_name is not provided, try to extract it from the query using LLM
+
 #     if not project_name:
 #         extracted_project_name = _extract_project_name_from_query(query)
 #         print(f"Extracted project name from query: {extracted_project_name}")
@@ -1042,12 +1219,12 @@ def fetch_doc(collection, index, query):
 #             print(f"✅ Extracted project name from query: {project_name}")
 #         else:
 #             return {
-#                 "success": False, 
+#                 "success": False,
 #                 "error": "Project name not provided",
 #                 "needs_project_name": True,
 #                 "message": "Please provide a project name for your Terraform infrastructure. For example: 'my-webapp' or 'data-pipeline-project'"
 #             }
-    
+
 #     print(f"\n🔍 Starting Terraform generation for project: {project_name}")
 #     services_json = {}
 
@@ -1060,12 +1237,7 @@ def fetch_doc(collection, index, query):
 
 #             if result:
 #                 print(f"✅ Found existing architecture in DB for user {user_id}, project {project_name}")
-#                 # Make sure we're dealing with a dictionary, not a string
-#                 if isinstance(result[0], str):
-#                     services_json = json.loads(result[0])
-#                 else:
-#                     # If it's already a dict or other object, use it directly
-#                     services_json = result[0]
+#                 services_json = json.loads(result[0]) if isinstance(result[0], str) else result[0]
 #             else:
 #                 print(f"⚙️ No architecture found. Parsing query...")
 #                 services_json = _parse_services_and_connections(query)
@@ -1093,33 +1265,44 @@ def fetch_doc(collection, index, query):
 #                 db.commit()
 #                 print(f"📝 Saved new architecture to DB for user {user_id}, project {project_name}")
 
-#         # Collect documentation
+#         # === Collect documentation for all relevant services ===
 #         docs = fetch_documentation_via_llm(query, services_json)
+
+#         # Extract all supported docs
 #         ec2_docs = docs.get("ec2", "")
 #         s3_docs = docs.get("s3", "")
 #         rds_docs = docs.get("rds", "")
+#         dynamodb_cloudwatch_docs = "\n".join([
+#             docs.get("dynamodb", ""),
+#             docs.get("cloudwatch", "")
+#         ])
+#         apprunner_eks_ecs_docs = "\n".join([
+#             docs.get("apprunner", ""),
+#             docs.get("eks", ""),
+#             docs.get("ecs", "")
+#         ])
+#         iam_docs = docs.get("iam", "")
+#         lambda_docs = docs.get("lambda", "")
+#         sagemaker_bedrock_docs = "\n".join([
+#             docs.get("sagemaker", ""),
+#             docs.get("bedrock", "")
+#         ])
+#         sns_sqs_docs = "\n".join([
+#             docs.get("sns", ""),
+#             docs.get("sqs", "")
+#         ])
+#         vpc_route53_api_gateway_docs = "\n".join([
+#             docs.get("vpc", ""),
+#             docs.get("route53", ""),
+#             docs.get("apigateway", "")
+#         ])
 
-
-#         # ec2_docs = s3_docs = rds_docs = ""
-#         # service_types = [s.get("type", "").lower() for s in services_json.get("services", [])]
-
-#         # if any("ec2" in s for s in service_types):
-#         #     ec2_docs = get_ec2_documentation(query)
-#         #     print(f"EC2 Documentation: {ec2_docs}")
-#         # if any("s3" in s for s in service_types):
-#         #     s3_docs = get_s3_documentation(query)
-#         #     print(f"S3 Documentation: {s3_docs}")
-#         # if any("rds" in s for s in service_types):
-#         #     rds_docs = get_rds_documentation(query)
-#         #     print(f"RDS Documentation: {rds_docs}")
-
-#         # Create numbered terraform folder
+#         # === Create Terraform directory ===
 #         terraform_dir = get_terraform_folder(project_name)
 #         global TERRAFORM_DIR
 #         TERRAFORM_DIR = terraform_dir
-        
 #         os.makedirs(TERRAFORM_DIR, exist_ok=True)
-#         print(f"Created Terraform directory: {TERRAFORM_DIR}")
+#         print(f"📁 Created Terraform directory: {TERRAFORM_DIR}")
 
 #         print("\n🔨 Generating Terraform code...")
 #         terraform_code = _generate_terraform_hcl(
@@ -1127,10 +1310,16 @@ def fetch_doc(collection, index, query):
 #             ec2_docs=ec2_docs,
 #             s3_docs=s3_docs,
 #             rds_docs=rds_docs,
+#             dynamodb_cloudwatch_docs=dynamodb_cloudwatch_docs,
+#             apprunner_eks_ecs_docs=apprunner_eks_ecs_docs,
+#             iam_docs=iam_docs,
+#             lambda_docs=lambda_docs,
+#             sagemaker_bedrock_docs=sagemaker_bedrock_docs,
+#             sns_sqs_docs=sns_sqs_docs,
+#             vpc_route53_api_gateway_docs=vpc_route53_api_gateway_docs,
 #             services_json=services_json
 #         )
 
-#         # Extract and Save Terraform File
 #         try:
 #             extract_and_save_terraform(
 #                 terraform_output=terraform_code,
@@ -1140,24 +1329,17 @@ def fetch_doc(collection, index, query):
 #                 project_name=project_name,
 #                 services_json=services_json
 #             )
-#             print(f"Successfully saved Terraform file to {TERRAFORM_DIR}/main.tf")
+#             print(f"✅ Saved Terraform file to {TERRAFORM_DIR}/main.tf")
 #         except Exception as e:
-#             error_msg = f"Error saving Terraform file: {str(e)}"
-#             print(error_msg)
-#             return {"success": False, "error": error_msg}
+#             return {"success": False, "error": f"Error saving Terraform file: {str(e)}"}
 
-#         # Read the generated Terraform file
 #         try:
 #             with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
 #                 terraform_content = f.read()
 #         except Exception as e:
-#             error_msg = f"Error reading generated Terraform file: {str(e)}"
-#             print(error_msg)
-#             return {"success": False, "error": error_msg}
+#             return {"success": False, "error": f"Error reading generated Terraform file: {str(e)}"}
 
-#         print("📤 Uploading Terraform directory to MinIO...")
-
-#         # Upload to MinIO
+#         # === Upload to MinIO ===
 #         try:
 #             minio_client = Minio(
 #                 MINIO_ENDPOINT,
@@ -1167,18 +1349,13 @@ def fetch_doc(collection, index, query):
 #             )
 
 #             bucket_name = f"terraform-workspaces-user-{user_id}"
-
-#             # Create bucket if it doesn't exist
 #             if not minio_client.bucket_exists(bucket_name):
-#                 print("Inside Make bucket")
 #                 minio_client.make_bucket(bucket_name)
 #                 print(f"🪣 Created bucket: {bucket_name}")
 #             else:
 #                 print(f"📦 Bucket exists: {bucket_name}")
 
 #             folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
-
-#             # Upload each file with folder_name prefix
 #             for root, _, files in os.walk(TERRAFORM_DIR):
 #                 for file in files:
 #                     file_path = os.path.join(root, file)
@@ -1186,249 +1363,62 @@ def fetch_doc(collection, index, query):
 #                     object_key = f"{folder_name}/{relative_path}"
 #                     print(f"⬆️ Uploading: {file_path} -> {object_key}")
 #                     minio_client.fput_object(bucket_name, object_key, file_path)
-
 #             print("✅ Terraform directory uploaded to MinIO!")
 
 #         except Exception as e:
 #             print(f"❌ Error uploading to MinIO: {e}")
-#             # Continue execution even if MinIO upload fails
+#         # === Upload to S3 (alongside MinIO) ===
+#         try:
+#             s3_config = get_s3_connection_info_with_credentials(user_id)
+#             s3_bucket = s3_config.get("bucket")
+#             s3_region = s3_config.get("region")
+#             s3_prefix = s3_config.get("prefix", "")
+#             aws_access_key_id = s3_config.get("aws_access_key_id")
+#             aws_secret_access_key = s3_config.get("aws_secret_access_key")
 
-#         # Clean up local directory
+#             print("S3 Bucket Name:", s3_bucket)
+
+#             if s3_bucket and s3_region and aws_access_key_id and aws_secret_access_key:
+#                 s3 = boto3.client(
+#                     's3',
+#                     region_name=s3_region,
+#                     aws_access_key_id=aws_access_key_id,
+#                     aws_secret_access_key=aws_secret_access_key
+#                 )
+
+#                 folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
+#                 s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
+
+#                 for root, _, files in os.walk(TERRAFORM_DIR):
+#                     for file in files:
+#                         file_path = os.path.join(root, file)
+#                         relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
+#                         object_key = f"{s3_object_prefix}{relative_path}"
+#                         print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
+#                         s3.upload_file(file_path, s3_bucket, object_key)
+
+#                 print("✅ Terraform directory uploaded to S3!")
+
+#             else:
+#                 print("⚠️ Skipping S3 upload - missing S3 configuration or AWS credentials")
+
+#         except Exception as e:
+#             print(f"❌ Error uploading to S3: {e}")
+
+
+#         # === Cleanup local directory ===
 #         try:
 #             shutil.rmtree(TERRAFORM_DIR)
 #             print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
 #         except Exception as e:
 #             print(f"⚠️ Failed to delete local Terraform directory: {e}")
 
-#         # return {
-#         #     "success": True,
-#         #     "terraform_code": terraform_content,
-#         #     "message": "Terraform configuration generated successfully. You can now proceed with adding user inputs required for this Terraform configuration and then proceed with applying."
-#         # }
 #         return {terraform_content}
 
 #     except Exception as e:
 #         error_msg = f"Error in generate_terraform_code: {str(e)}"
 #         print(error_msg)
 #         return {"success": False, "error": error_msg}
-
-@tool
-def generate_terraform_code(query: str, project_name: str, config: RunnableConfig) -> Dict:
-    """
-    Terraform code generator with DB lookup and storage for architecture diagrams.
-    """
-    user_id = config.get('configurable', {}).get('user_id', 'unknown')
-    if user_id == "unknown":
-        return {"success": False, "error": "User ID missing from configuration"}
-
-    if not project_name:
-        extracted_project_name = _extract_project_name_from_query(query)
-        print(f"Extracted project name from query: {extracted_project_name}")
-        if extracted_project_name:
-            project_name = extracted_project_name
-            print(f"✅ Extracted project name from query: {project_name}")
-        else:
-            return {
-                "success": False,
-                "error": "Project name not provided",
-                "needs_project_name": True,
-                "message": "Please provide a project name for your Terraform infrastructure. For example: 'my-webapp' or 'data-pipeline-project'"
-            }
-
-    print(f"\n🔍 Starting Terraform generation for project: {project_name}")
-    services_json = {}
-
-    try:
-        with get_db_session() as db:
-            result = db.execute(
-                text("SELECT architecture_json FROM architecture WHERE userid = :userid AND project_name = :project_name"),
-                {"userid": user_id, "project_name": project_name}
-            ).fetchone()
-
-            if result:
-                print(f"✅ Found existing architecture in DB for user {user_id}, project {project_name}")
-                services_json = json.loads(result[0]) if isinstance(result[0], str) else result[0]
-            else:
-                print(f"⚙️ No architecture found. Parsing query...")
-                services_json = _parse_services_and_connections(query)
-                services_json["project_name"] = project_name
-
-                result_check = db.execute(
-                    text("SELECT COUNT(*) FROM architecture WHERE userid = :userid AND project_name = :project_name"),
-                    {"userid": user_id, "project_name": project_name}
-                ).fetchone()
-
-                if result_check and result_check[0] > 0:
-                    return {
-                        "success": False,
-                        "error": f"Project name '{project_name}' already exists for this user. Please use a different project name."
-                    }
-
-                db.execute(
-                    text("INSERT INTO architecture (userid, architecture_json, project_name) VALUES (:userid, :architecture_json, :project_name)"),
-                    {
-                        "userid": user_id,
-                        "architecture_json": json.dumps(services_json),
-                        "project_name": project_name
-                    }
-                )
-                db.commit()
-                print(f"📝 Saved new architecture to DB for user {user_id}, project {project_name}")
-
-        # === Collect documentation for all relevant services ===
-        docs = fetch_documentation_via_llm(query, services_json)
-
-        # Extract all supported docs
-        ec2_docs = docs.get("ec2", "")
-        s3_docs = docs.get("s3", "")
-        rds_docs = docs.get("rds", "")
-        dynamodb_cloudwatch_docs = "\n".join([
-            docs.get("dynamodb", ""),
-            docs.get("cloudwatch", "")
-        ])
-        apprunner_eks_ecs_docs = "\n".join([
-            docs.get("apprunner", ""),
-            docs.get("eks", ""),
-            docs.get("ecs", "")
-        ])
-        iam_docs = docs.get("iam", "")
-        lambda_docs = docs.get("lambda", "")
-        sagemaker_bedrock_docs = "\n".join([
-            docs.get("sagemaker", ""),
-            docs.get("bedrock", "")
-        ])
-        sns_sqs_docs = "\n".join([
-            docs.get("sns", ""),
-            docs.get("sqs", "")
-        ])
-        vpc_route53_api_gateway_docs = "\n".join([
-            docs.get("vpc", ""),
-            docs.get("route53", ""),
-            docs.get("apigateway", "")
-        ])
-
-        # === Create Terraform directory ===
-        terraform_dir = get_terraform_folder(project_name)
-        global TERRAFORM_DIR
-        TERRAFORM_DIR = terraform_dir
-        os.makedirs(TERRAFORM_DIR, exist_ok=True)
-        print(f"📁 Created Terraform directory: {TERRAFORM_DIR}")
-
-        print("\n🔨 Generating Terraform code...")
-        terraform_code = _generate_terraform_hcl(
-            query=query,
-            ec2_docs=ec2_docs,
-            s3_docs=s3_docs,
-            rds_docs=rds_docs,
-            dynamodb_cloudwatch_docs=dynamodb_cloudwatch_docs,
-            apprunner_eks_ecs_docs=apprunner_eks_ecs_docs,
-            iam_docs=iam_docs,
-            lambda_docs=lambda_docs,
-            sagemaker_bedrock_docs=sagemaker_bedrock_docs,
-            sns_sqs_docs=sns_sqs_docs,
-            vpc_route53_api_gateway_docs=vpc_route53_api_gateway_docs,
-            services_json=services_json
-        )
-
-        try:
-            extract_and_save_terraform(
-                terraform_output=terraform_code,
-                services=services_json.get("services", []),
-                connections=services_json.get("connections", []),
-                user_id=user_id,
-                project_name=project_name,
-                services_json=services_json
-            )
-            print(f"✅ Saved Terraform file to {TERRAFORM_DIR}/main.tf")
-        except Exception as e:
-            return {"success": False, "error": f"Error saving Terraform file: {str(e)}"}
-
-        try:
-            with open(os.path.join(TERRAFORM_DIR, "main.tf"), "r") as f:
-                terraform_content = f.read()
-        except Exception as e:
-            return {"success": False, "error": f"Error reading generated Terraform file: {str(e)}"}
-
-        # === Upload to MinIO ===
-        try:
-            minio_client = Minio(
-                MINIO_ENDPOINT,
-                access_key=MINIO_ACCESS_KEY,
-                secret_key=MINIO_SECRET_KEY,
-                secure=True
-            )
-
-            bucket_name = f"terraform-workspaces-user-{user_id}"
-            if not minio_client.bucket_exists(bucket_name):
-                minio_client.make_bucket(bucket_name)
-                print(f"🪣 Created bucket: {bucket_name}")
-            else:
-                print(f"📦 Bucket exists: {bucket_name}")
-
-            folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
-            for root, _, files in os.walk(TERRAFORM_DIR):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
-                    object_key = f"{folder_name}/{relative_path}"
-                    print(f"⬆️ Uploading: {file_path} -> {object_key}")
-                    minio_client.fput_object(bucket_name, object_key, file_path)
-            print("✅ Terraform directory uploaded to MinIO!")
-
-        except Exception as e:
-            print(f"❌ Error uploading to MinIO: {e}")
-        # === Upload to S3 (alongside MinIO) ===
-        try:
-            s3_config = get_s3_connection_info_with_credentials(user_id)
-            s3_bucket = s3_config.get("bucket")
-            s3_region = s3_config.get("region")
-            s3_prefix = s3_config.get("prefix", "")
-            aws_access_key_id = s3_config.get("aws_access_key_id")
-            aws_secret_access_key = s3_config.get("aws_secret_access_key")
-
-            print("S3 Bucket Name:", s3_bucket)
-
-            if s3_bucket and s3_region and aws_access_key_id and aws_secret_access_key:
-                s3 = boto3.client(
-                    's3',
-                    region_name=s3_region,
-                    aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key
-                )
-
-                folder_name = os.path.basename(TERRAFORM_DIR.rstrip("/"))
-                s3_object_prefix = f"{s3_prefix}{folder_name}/" if s3_prefix else f"{folder_name}/"
-
-                for root, _, files in os.walk(TERRAFORM_DIR):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        relative_path = os.path.relpath(file_path, TERRAFORM_DIR)
-                        object_key = f"{s3_object_prefix}{relative_path}"
-                        print(f"⬆️ Uploading to S3: {file_path} -> {object_key}")
-                        s3.upload_file(file_path, s3_bucket, object_key)
-
-                print("✅ Terraform directory uploaded to S3!")
-
-            else:
-                print("⚠️ Skipping S3 upload - missing S3 configuration or AWS credentials")
-
-        except Exception as e:
-            print(f"❌ Error uploading to S3: {e}")
-
-
-        # === Cleanup local directory ===
-        try:
-            shutil.rmtree(TERRAFORM_DIR)
-            print(f"🧹 Deleted local Terraform directory: {TERRAFORM_DIR}")
-        except Exception as e:
-            print(f"⚠️ Failed to delete local Terraform directory: {e}")
-
-        return {terraform_content}
-
-    except Exception as e:
-        error_msg = f"Error in generate_terraform_code: {str(e)}"
-        print(error_msg)
-        return {"success": False, "error": error_msg}
 
 
 
@@ -1962,141 +1952,149 @@ def _generate_terraform_hcl(
 
 
 
-
 # def validate_terraform_with_openai(terraform_code, architecture_json):
 #     """
 #     Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
-#     The function will loop 3 times to progressively refine the code.
+#     The function will loop up to 5 times and exit early if the code stabilizes.
 #     """
 #     try:
-#         # --- Data Preparation (Restored from your original code) ---
+#         # --- Parse architecture JSON ---
 #         if isinstance(architecture_json, str):
 #             try:
 #                 architecture_json = json.loads(architecture_json)
 #             except json.JSONDecodeError:
-#                 print("Error parsing architecture_json as JSON string")
+#                 print("❌ Failed to parse architecture_json.")
 #                 return terraform_code
-        
+
 #         services = architecture_json.get("services", [])
 #         connections = architecture_json.get("connections", [])
 
-#         # Convert services to a dictionary list
-#         services_dict = []
-#         for service in services:
-#             if hasattr(service, 'dict'):
-#                 services_dict.append(service.dict())
-#             elif isinstance(service, dict):
-#                 services_dict.append(service)
-#             else:
-#                 services_dict.append(str(service))
-
-#         # Convert connections to a dictionary list
-#         connections_dict = []
-#         for conn in connections:
-#             if hasattr(conn, 'dict'):
-#                 connections_dict.append(conn.dict())
-#             elif isinstance(conn, dict):
-#                 connections_dict.append(conn)
-#             else:
-#                 connections_dict.append(str(conn))
+#         services_dict = [s.dict() if hasattr(s, 'dict') else s for s in services]
+#         connections_dict = [c.dict() if hasattr(c, 'dict') else c for c in connections]
 
 #         llm = ChatOpenAI(model="gpt-4o", temperature=0.0, api_key=OPENAI_API_KEY)
-        
-#         # --- New Iterative Validation Loop ---
-#         max_validations = 3
+
+#         # --- Iterative validation loop ---
+#         max_validations = 5
 #         current_code = terraform_code
-        
+#         last_code = None
+
 #         for i in range(max_validations):
-#             print(f"🔎 Starting Validation Loop: Iteration {i + 1}/{max_validations}")
+#             print(f"\n🔁 Validation Loop {i + 1}/{max_validations}")
 
-#             # === STAGE 1: Deep Validation and Correction Prompt ===
+#             # === STAGE 1: Structural Validation & Fixes ===
 #             system_prompt_1 = """
-# You are an automated Terraform validation and correction engine. Your single purpose is to meticulously analyze, correct, and finalize a given Terraform configuration to guarantee it passes `terraform apply` on the first attempt without any errors.
+# You are an automated Terraform validation engine. Fix syntax errors, deprecated fields, missing dependencies, and incomplete resources.
 
-# **YOUR CORRECTION CHECKLIST (NON-NEGOTIABLE):**
-# 1.  **Fix All Syntax Errors:** Correct any and all HCL syntax violations, including missing brackets, incorrect operators, or invalid expressions.
-# 2.  **Replace Deprecated Arguments:** Identify and replace any deprecated resource arguments or attributes with their modern equivalents. For example, if you see `security_groups` used with a `subnet_id` on an `aws_instance`, you MUST replace it with `vpc_security_group_ids`.
-# 3.  **Resolve Logical Errors & Dependencies:** Add missing `depends_on` attributes where implicit dependency is not enough. Correct invalid resource references. Ensure the order of resources is logical for creation.
-# 4.  **Ensure Completeness:** Add any missing mandatory resources required for the configuration to be functional (e.g., an `aws_internet_gateway` and `aws_route_table` for a public EC2 instance).
-# 5.  **Adhere to Best Practices:** Ensure the code follows modern security and AWS best practices, including the principle of least privilege for IAM policies.
-# 6.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
+# **Rules:**
+# 1. Fix all HCL syntax errors.
+# 2. Replace deprecated arguments (e.g., use vpc_security_group_ids instead of security_groups if subnet_id is used).
+# 3. Add missing AWS dependencies (like subnets, gateways, route tables).
+# 4. Always split Terraform into:
+#    - provider.tf: provider and terraform blocks
+#    - main.tf: resources, modules, data
+#    - variables.tf: variable definitions
+#    - outputs.tf: output blocks
+# 5. Code should pass `terraform plan` without any manual edits.
+# 6. Always output each file in a separate fenced markdown block:
+#    ```main.tf
+#    ...
+#    ```
+#    ```variables.tf
+#    ...
+#    ```
+#    etc.
 
-# **RESPONSE FORMAT:**
-# - If the code is already perfect, return it unchanged.
-# - If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code.
-# - If you make corrections, return the ENTIRE, complete, corrected Terraform HCL code in three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions).
-# - DO NOT include explanations, apologies, or any text outside of the HCL code.
+# Return the full set of .tf files using fenced code blocks. No explanations.
 # """
-            
-#             human_message_1 = f"""
-#             **Architecture to Achieve:**
-#             ```json
-#             {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
-#             ```
 
-#             **Terraform Code to Validate and Fix:**
-#             ```hcl
-#             {current_code}
-#             ```
-#             Please perform a strict validation and correction on the code above based on all your rules. The final output must be perfect and ready for an immediate `terraform apply`.
-#             """
-            
-#             messages_1 = [
+#             human_message_1 = f"""
+# Architecture to Achieve:
+
+# ```json
+# {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
+# ```
+
+# Terraform Code:
+
+# ```hcl
+# {current_code}
+# ```
+# """
+#             response_1 = llm.invoke([
 #                 SystemMessage(content=system_prompt_1),
 #                 HumanMessage(content=human_message_1)
-#             ]
+#             ])
 
-#             response_1 = llm.invoke(messages_1)
-#             validated_code = re.sub(r"```hcl|```", "", response_1.content.strip()).strip()
-#             print(f"  [Iteration {i + 1}] Stage 1 (Correction) Complete.")
+#             validated_code = response_1.content.strip()
 
-#             # === STAGE 2: Connection Integrity Check ===
+#             if validated_code == last_code:
+#                 print("✅ Code is stable and unchanged. Exiting early.")
+#                 break
+#             else:
+#                 last_code = validated_code
+#                 print(f"🛠️ Code updated in iteration {i + 1}.")
+
+#             # === STAGE 2: Connection Validation ===
 #             system_prompt_2 = """
-# You are an expert Terraform connection validator. Your task is to ensure a Terraform file correctly implements all required service-to-service connections as defined in a JSON object.
+# You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured.
 
-# **VALIDATION RULES:**
-# 1.  **Check Connections:** Review the `connections` JSON and verify that each link is correctly implemented in the Terraform code (e.g., via security group rules, IAM policies, subnet associations, etc.).
-# 2.  **Add Missing Connections Only:** If a connection is missing, add the necessary, syntactically correct resource or attribute to fix it.
-# 3.  **Do Not Modify Other Code:** Do not remove or change any other part of the configuration that is not directly related to fixing a missing connection.
-# 4.  If all connections are present, return the file as is.
-# 5.  **Splitting of terraform code into main.tf , var.tf and outputs.tf:** Split this Terraform configuration into three files: main.tf (resources, providers, data, modules), variables.tf (all variable definitions including extracted hard-coded values), and outputs.tf (output definitions). Follow Terraform best practices and maintain full functionality.
-# 6.  When writing Terraform code for AWS resources, always use lowercase letters, numbers, hyphens, underscores, and periods only for resource names and identifiers, as AWS services have strict naming restrictions that don't allow uppercase letters.
+# Instructions:
 
-# **RESPONSE FORMAT:**
-# - Return ONLY the complete, valid Terraform HCL file. No explanations.
+# 1. Use the connections JSON to verify and enforce all links between services.
+# 2. DO NOT modify unrelated parts of the configuration.
+# 3. Always return split .tf files in fenced blocks like:
+#    ```main.tf
+#    ...
+#    ```
+#    ```variables.tf
+#    ...
+#    ```
+#    ```outputs.tf
+#    ...
+#    ```
+#    ```provider.tf
+#    ...
+#    ```
+
+# Return only valid HCL blocks. No explanations.
 # """
-#             human_message_2 = f"""
-#             **Required Connections:**
-#             ```json
-#             {json.dumps(connections_dict, indent=2)}
-#             ```
 
-#             **Current Terraform Configuration:**
-#             ```hcl
-#             {validated_code}
-#             ```
-#             Please validate that all required service connections are implemented. Add any missing connection logic and return the complete file.
-#             """
-            
-#             messages_2 = [
+#             human_message_2 = f"""
+# Connections to Enforce:
+
+# ```json
+# {json.dumps(connections_dict, indent=2)}
+# ```
+
+# Terraform Code:
+
+# ```hcl
+# {validated_code}
+# ```
+# """
+#             response_2 = llm.invoke([
 #                 SystemMessage(content=system_prompt_2),
 #                 HumanMessage(content=human_message_2)
-#             ]
+#             ])
 
-#             response_2 = llm.invoke(messages_2)
-#             final_code_for_iteration = re.sub(r"```hcl|```", "", response_2.content.strip()).strip()
-            
-#             # Prepare for the next loop by updating the code to be validated.
-#             current_code = final_code_for_iteration
-#             print(f"  [Iteration {i + 1}] Stage 2 (Connections) Complete.")
+#             final_code = response_2.content.strip()
 
-#         # After the loop, `current_code` holds the final, thrice-validated code.
-#         print("✅ Validation process complete.")
-#         return current_code
+#             if final_code == last_code:
+#                 print("✅ No changes in connection validation. Finalized.")
+#                 break
+#             else:
+#                 current_code = final_code
+#                 last_code = final_code
+#                 print(f"🔗 Connection validation completed in iteration {i + 1}.")
+
+#         print("\n✅ Validation loop complete. Returning final code.")
+#         return last_code
 
 #     except Exception as e:
-#         print(f"❌ Error during the validation loop: {e}")
-#         return terraform_code  # Return original code if validation fails
+#         print(f"❌ Error in validation loop: {str(e)}")
+#         return terraform_code
+
 
 def validate_terraform_with_openai(terraform_code, architecture_json):
     """
@@ -2123,10 +2121,12 @@ def validate_terraform_with_openai(terraform_code, architecture_json):
         # --- Iterative validation loop ---
         max_validations = 5
         current_code = terraform_code
-        last_code = None
 
         for i in range(max_validations):
             print(f"\n🔁 Validation Loop {i + 1}/{max_validations}")
+
+            # **CORRECTION 1: Capture the code state at the START of the iteration.**
+            code_at_start_of_iteration = current_code
 
             # === STAGE 1: Structural Validation & Fixes ===
             system_prompt_1 = """
@@ -2144,138 +2144,96 @@ You are an automated Terraform validation engine. Fix syntax errors, deprecated 
 5. Code should pass `terraform plan` without any manual edits.
 6. Always output each file in a separate fenced markdown block:
    ```main.tf
+7. **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+
    ...
-   ```
-   ```variables.tf
-   ...
-   ```
-   etc.
+Code snippet
+
+...
+etc.
 
 Return the full set of .tf files using fenced code blocks. No explanations.
 """
-
             human_message_1 = f"""
 Architecture to Achieve:
 
-```json
+JSON
+
 {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
-```
+Terraform Code to Fix:
 
-Terraform Code:
+Terraform
 
-```hcl
 {current_code}
-```
 """
+            print("   [Stage 1] Running structural validation...")
             response_1 = llm.invoke([
                 SystemMessage(content=system_prompt_1),
                 HumanMessage(content=human_message_1)
             ])
-
-            validated_code = response_1.content.strip()
-
-            if validated_code == last_code:
-                print("✅ Code is stable and unchanged. Exiting early.")
-                break
-            else:
-                last_code = validated_code
-                print(f"🛠️ Code updated in iteration {i + 1}.")
+            code_after_stage1 = response_1.content.strip()
 
             # === STAGE 2: Connection Validation ===
             system_prompt_2 = """
-You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured.
+You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured based on the required connections.
 
 Instructions:
 
-1. Use the connections JSON to verify and enforce all links between services.
-2. DO NOT modify unrelated parts of the configuration.
-3. Always return split .tf files in fenced blocks like:
-   ```main.tf
-   ...
-   ```
-   ```variables.tf
-   ...
-   ```
-   ```outputs.tf
-   ...
-   ```
-   ```provider.tf
-   ...
-   ```
+Use the connections JSON to verify and enforce all links between services.
+
+DO NOT modify unrelated parts of the configuration.
+
+Always return split .tf files in fenced blocks like:
+
+Code snippet
+
+...
+Code snippet
+
+...
+etc.
 
 Return only valid HCL blocks. No explanations.
 """
-
             human_message_2 = f"""
 Connections to Enforce:
 
-```json
+JSON
+
 {json.dumps(connections_dict, indent=2)}
-```
+Terraform Code to Check:
 
-Terraform Code:
+Terraform
 
-```hcl
-{validated_code}
-```
+{code_after_stage1}
 """
+            print("   [Stage 2] Running connection validation...")
             response_2 = llm.invoke([
                 SystemMessage(content=system_prompt_2),
                 HumanMessage(content=human_message_2)
             ])
 
-            final_code = response_2.content.strip()
+            # This is the final, fully processed code for this iteration
+            current_code = response_2.content.strip()
 
-            if final_code == last_code:
-                print("✅ No changes in connection validation. Finalized.")
+            # **CORRECTION 2: Perform a single stability check at the END of the iteration.**
+            if current_code == code_at_start_of_iteration:
+                print(f"✅ Code has stabilized in iteration {i + 1}. Exiting validation loop.")
                 break
             else:
-                current_code = final_code
-                last_code = final_code
-                print(f"🔗 Connection validation completed in iteration {i + 1}.")
+                print(f"🛠️ Code was refined in iteration {i + 1}. Continuing to next validation cycle.")
 
-        print("\n✅ Validation loop complete. Returning final code.")
-        return last_code
+            # If it's the last loop, warn the user.
+            if i == max_validations - 1:
+                print("⚠️ Validation loop reached maximum iterations. Using the last generated code.")
+
+        print("\n✅ Validation process complete.")
+        return current_code
 
     except Exception as e:
-        print(f"❌ Error in validation loop: {str(e)}")
+        print(f"❌ An error occurred in the validation loop: {str(e)}")
+        # Return the last known good code before the error
         return terraform_code
-
-# def _create_services_summary(services_json: dict) -> str:
-#     """Create a human-readable summary of the services and connections."""
-#     try:
-#         summary = []
-        
-#         # Project name
-#         project_name = services_json.get("project_name", "Unnamed Project")
-#         summary.append(f"🔶 Project: {project_name}")
-        
-#         # Services
-#         services = services_json.get("services", [])
-#         if services:
-#             summary.append("\n🔷 Services:")
-#             for service in services:
-#                 label = service.get('label', 'Unknown')
-#                 service_type = service.get('type', 'unknown')
-#                 summary.append(f"  • {label} ({service_type})")
-#         else:
-#             summary.append("\n🔷 Services: None identified")
-        
-#         # Connections
-#         connections = services_json.get("connections", [])
-#         summary.append("\n🔗 Connections:")
-#         if connections:
-#             for conn in connections:
-#                 from_service = conn.get('from_', 'unknown')
-#                 to_service = conn.get('to', 'unknown')
-#                 summary.append(f"  • {from_service} → {to_service}")
-#         else:
-#             summary.append("  • No connections defined")
-        
-#         return "\n".join(summary)
-        
-#     except Exception as e:
-#         return f"Error creating summary: {str(e)}"
 
 
 def _extract_project_name_from_query(query: str) -> str:

@@ -149,7 +149,7 @@
           "stat": "Average",
           "condition": ">=80",
           "duration": "5m",
-          "recommendation": "Upgrade"
+          "recommendation": "Upsize"
         },
         {
           "stat": "Average",
