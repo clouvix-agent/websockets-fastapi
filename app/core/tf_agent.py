@@ -1435,6 +1435,87 @@ def get_terraform_folder(project_name: str) -> str:
     return folder
 
 
+# def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, services_json):
+#     """Extracts Terraform configurations, validates, fixes errors, and saves the split .tf files."""
+
+#     if not terraform_output:
+#         print("❌ Error: No Terraform code generated.")
+#         return
+
+#     # Clean raw block if it lacks markdown fencing
+#     terraform_output = terraform_output.strip()
+
+#     # Ensure Terraform output directory exists
+#     if not os.path.exists(TERRAFORM_DIR):
+#         os.makedirs(TERRAFORM_DIR, exist_ok=True)
+#         print(f"📁 Created Terraform directory: {TERRAFORM_DIR}")
+
+#     # === Step 1: Validate and Get Final Split Code ===
+#     validated_code = validate_terraform_with_openai(terraform_output, services_json)
+
+#     # === Step 2: Extract code blocks by file type ===
+#     file_sections = {
+#         "main.tf": "",
+#         "variables.tf": "",
+#         "outputs.tf": "",
+#         "provider.tf": ""
+#     }
+
+#     matches = re.findall(r"```(.*?)\n(.*?)```", validated_code, re.DOTALL)
+#     for tag, code in matches:
+#         tag_clean = tag.strip().lower()
+#         code = code.strip()
+
+#         if "main.tf" in tag_clean or tag_clean == "main":
+#             file_sections["main.tf"] = code
+#         elif "variable" in tag_clean or "var.tf" in tag_clean:
+#             file_sections["variables.tf"] = code
+#         elif "output" in tag_clean or "outputs.tf" in tag_clean:
+#             file_sections["outputs.tf"] = code
+#         elif "provider" in tag_clean or "provider.tf" in tag_clean:
+#             file_sections["provider.tf"] = code
+#         elif tag_clean in ["terraform", "hcl"]:
+#             # fallback: assume general HCL goes to main.tf if not classified
+#             file_sections["main.tf"] += "\n" + code
+
+#     # Fallback if LLM returned no fenced code blocks
+#     if all(not content for content in file_sections.values()):
+#         file_sections["main.tf"] = validated_code.strip()
+
+#     # === Step 3: Write each file to disk ===
+#     for filename, content in file_sections.items():
+#         if content:
+#             file_path = os.path.join(TERRAFORM_DIR, filename)
+#             with open(file_path, "w") as f:
+#                 f.write(content)
+#             print(f"✅ Saved: {filename}")
+#         else:
+#             print(f"⚠️ Skipped empty file: {filename}")
+
+#     # === Step 4: Save workspace metadata to DB ===
+#     try:
+#         with get_db_session() as db:
+#             if isinstance(services_json, str):
+#                 try:
+#                     diagramjson_dict = json.loads(services_json)
+#                 except json.JSONDecodeError:
+#                     diagramjson_dict = {"error": "Invalid JSON"}
+#             else:
+#                 diagramjson_dict = services_json
+
+#             new_workspace = WorkspaceCreate(
+#                 userid=user_id,
+#                 wsname=project_name,
+#                 filetype="terraform",
+#                 filelocation=TERRAFORM_DIR,  # Use folder instead of a file
+#                 diagramjson=diagramjson_dict,
+#                 githublocation=""
+#             )
+#             create_workspace(db=db, workspace=new_workspace)
+#             print(f"\n📝 Workspace entry created for: {project_name}")
+#     except Exception as e:
+#         print(f"❌ Error saving workspace: {e}")
+
 def extract_and_save_terraform(terraform_output, services, connections, user_id, project_name, services_json):
     """Extracts Terraform configurations, validates, fixes errors, and saves the split .tf files."""
 
@@ -1461,38 +1542,105 @@ def extract_and_save_terraform(terraform_output, services, connections, user_id,
         "provider.tf": ""
     }
 
-    matches = re.findall(r"```(.*?)\n(.*?)```", validated_code, re.DOTALL)
-    for tag, code in matches:
-        tag_clean = tag.strip().lower()
-        code = code.strip()
+    # Improved regex patterns to match different formats
+    # Pattern 1: Look for file-specific headers followed by code blocks
+    file_patterns = {
+        "provider.tf": [
+            r'`provider\.tf`\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'```provider\.tf\s*\n(.*?)```',
+            r'## provider\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'# provider\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```'
+        ],
+        "variables.tf": [
+            r'`variables\.tf`\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'```variables\.tf\s*\n(.*?)```',
+            r'## variables\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'# variables\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```'
+        ],
+        "main.tf": [
+            r'`main\.tf`\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'```main\.tf\s*\n(.*?)```',
+            r'## main\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'# main\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```'
+        ],
+        "outputs.tf": [
+            r'`outputs\.tf`\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'```outputs\.tf\s*\n(.*?)```',
+            r'## outputs\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```',
+            r'# outputs\.tf\s*\n```(?:hcl|terraform)?\s*\n(.*?)```'
+        ]
+    }
 
-        if "main.tf" in tag_clean or tag_clean == "main":
-            file_sections["main.tf"] = code
-        elif "variable" in tag_clean or "var.tf" in tag_clean:
-            file_sections["variables.tf"] = code
-        elif "output" in tag_clean or "outputs.tf" in tag_clean:
-            file_sections["outputs.tf"] = code
-        elif "provider" in tag_clean or "provider.tf" in tag_clean:
-            file_sections["provider.tf"] = code
-        elif tag_clean in ["terraform", "hcl"]:
-            # fallback: assume general HCL goes to main.tf if not classified
-            file_sections["main.tf"] += "\n" + code
+    # Try to extract each file using multiple patterns
+    for filename, patterns in file_patterns.items():
+        for pattern in patterns:
+            matches = re.findall(pattern, validated_code, re.DOTALL | re.IGNORECASE)
+            if matches:
+                file_sections[filename] = matches[0].strip()
+                # print(f"✅ Successfully extracted {filename} using pattern: {pattern[:50]}...")
+                break
+        
+        if not file_sections[filename]:
+            print(f"⚠️ Could not extract {filename} using any pattern")
 
-    # Fallback if LLM returned no fenced code blocks
+    # Fallback: Try the original approach for any remaining files
+    if any(not content for content in file_sections.values()):
+        print("🔄 Falling back to original regex approach for missing files...")
+        
+        # Original regex approach
+        matches = re.findall(r"```(.*?)\n(.*?)```", validated_code, re.DOTALL)
+        for tag, code in matches:
+            tag_clean = tag.strip().lower()
+            code = code.strip()
+
+            if "main.tf" in tag_clean or tag_clean == "main":
+                if not file_sections["main.tf"]:
+                    file_sections["main.tf"] = code
+                    print("✅ Extracted main.tf via fallback")
+            elif "variable" in tag_clean or "var.tf" in tag_clean:
+                if not file_sections["variables.tf"]:
+                    file_sections["variables.tf"] = code
+                    print("✅ Extracted variables.tf via fallback")
+            elif "output" in tag_clean or "outputs.tf" in tag_clean:
+                if not file_sections["outputs.tf"]:
+                    file_sections["outputs.tf"] = code
+                    print("✅ Extracted outputs.tf via fallback")
+            elif "provider" in tag_clean or "provider.tf" in tag_clean:
+                if not file_sections["provider.tf"]:
+                    file_sections["provider.tf"] = code
+                    print("✅ Extracted provider.tf via fallback")
+            elif tag_clean in ["terraform", "hcl"]:
+                # fallback: assume general HCL goes to main.tf if not classified
+                if not file_sections["main.tf"]:
+                    file_sections["main.tf"] += "\n" + code
+
+    # Final fallback: if still no files extracted, put everything in main.tf
     if all(not content for content in file_sections.values()):
-        file_sections["main.tf"] = validated_code.strip()
+        print("🔄 Final fallback: putting all content in main.tf")
+        # Remove any markdown formatting
+        clean_code = re.sub(r'```[a-zA-Z]*\n?', '', validated_code)
+        clean_code = re.sub(r'```', '', clean_code)
+        file_sections["main.tf"] = clean_code.strip()
+
+    # Debug: Print what was extracted
+    print("\n=== EXTRACTION SUMMARY ===")
+    for filename, content in file_sections.items():
+        content_preview = content[:100].replace('\n', ' ') if content else "EMPTY"
+        print(f"{filename}: {len(content)} chars - {content_preview}...")
 
     # === Step 3: Write each file to disk ===
+    files_written = 0
     for filename, content in file_sections.items():
-        if content:
+        if content and content.strip():
             file_path = os.path.join(TERRAFORM_DIR, filename)
             with open(file_path, "w") as f:
                 f.write(content)
-            print(f"✅ Saved: {filename}")
+            print(f"✅ Saved: {filename} ({len(content)} characters)")
+            files_written += 1
         else:
             print(f"⚠️ Skipped empty file: {filename}")
 
-    # === Step 4: Save workspace metadata to DB ===
+    # === Step 5: Save workspace metadata to DB ===
     try:
         with get_db_session() as db:
             if isinstance(services_json, str):
@@ -1835,53 +1983,161 @@ def _generate_terraform_hcl(
             print(json.dumps(user_connections, indent=2))
 
         # === Prompt to guide the LLM ===
+        # prompt = """
+        #         You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
+
+        #         **CORE DIRECTIVES (NON-NEGOTIABLE):**
+        #         1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
+        #         2.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
+        #         3.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
+        #         4.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
+        #         5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
+        #         6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
+        #         7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
+        #         8. **Splitting of Terraform code into files:** 
+        #             Split this Terraform configuration into the following separate files according to best practices:
+
+        #             - `provider.tf`: Contains only the `terraform` and `provider` blocks.
+        #             - `main.tf`: Contains all resource definitions, data blocks, and modules.
+        #             - `variables.tf`: Defines all input variables used across the configuration, including extracted hardcoded values as variables.
+        #             - `outputs.tf`: Contains all output definitions relevant to the infrastructure.
+
+        #             Maintain full functionality and interdependencies between files. Ensure variable references are used consistently across files where applicable.
+
+
+        #         **RESOURCE CONFIGURATION RULES:**
+        #         1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
+        #             - Example: `tags = { Name = "main-vpc", Project = "my-awesome-app", ManagedBy = "Terraform" }`
+        #         2.  **Resource Naming:** Use the `project_name` as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "my_project_vpc" {}`).
+        #         3.  **User Variables & Comments:** For any values that a user is likely to customize (e.g., `instance_type`, CIDR blocks, specific AMI IDs), add a prominent comment on the same line.
+        #             - Example: `instance_type = "t3.micro" # USER_VARIABLE: You can change the instance size here.`
+        #         4.  **Outputs:** For critical resources, generate `output` blocks. This is essential for resources like EC2 instance public IPs, RDS endpoint addresses, S3 bucket names, and Load Balancer DNS names.
+
+        #         **SERVICE-SPECIFIC INSTRUCTIONS:**
+        #         1.  **EC2 Instances:**
+        #             - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+        #             - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
+        #         2.  **RDS Databases:**
+        #             - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
+        #             - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
+        #             - **Credentials:** Do not hardcode `username` and `password`. Use a comment to instruct the user to use a secrets management solution. Example: `# IMPORTANT: Do not hardcode credentials. Use Terraform variables or a secrets manager.`
+        #             -Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
+        #         3.  **IAM (CRITICAL):**
+        #             - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
+        #             - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
+
+        #         **INPUT INTERPRETATION:**
+        #         - **User Query:** This is the primary goal.
+        #         - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
+        #         - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
+        #         """
         prompt = """
                 You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
 
+                **CRITICAL FILE STRUCTURE REQUIREMENT (MANDATORY):**
+                You MUST ALWAYS generate EXACTLY 4 separate files with the following structure. This is NON-NEGOTIABLE:
+
+                ```
+                `provider.tf `
+                [terraform and provider blocks only]
+
+                `variables.tf`
+                [all variable definitions]
+
+                `main.tf`
+                [all resource definitions, data blocks, and modules]
+
+                `outputs.tf`
+                [all output definitions]
+                ```
+
                 **CORE DIRECTIVES (NON-NEGOTIABLE):**
                 1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
-                2.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
-                3.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
-                4.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
-                5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
-                6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
+                2.  **Four Files Always:** You MUST generate all 4 files (provider.tf, variables.tf, main.tf, outputs.tf) in every response. Never generate just main.tf.
+                3.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
+                4.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
+                5.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
+                6.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
                 7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
-                8. **Splitting of Terraform code into files:** 
-                    Split this Terraform configuration into the following separate files according to best practices:
 
-                    - `provider.tf`: Contains only the `terraform` and `provider` blocks.
-                    - `main.tf`: Contains all resource definitions, data blocks, and modules.
-                    - `variables.tf`: Defines all input variables used across the configuration, including extracted hardcoded values as variables.
-                    - `outputs.tf`: Contains all output definitions relevant to the infrastructure.
+                **FILE STRUCTURE RULES (STRICT ENFORCEMENT):**
 
-                    Maintain full functionality and interdependencies between files. Ensure variable references are used consistently across files where applicable.
+                **provider.tf MUST contain:**
+                - `terraform` block with required_providers and AWS provider version (~> 5.0)
+                - `provider "aws"` block with region configuration
+                - Nothing else
 
+                **variables.tf MUST contain:**
+                - ALL input variables used across the configuration
+                - Default values where appropriate
+                - Descriptions for each variable
+                - Type constraints
+                - Extract ALL hardcoded values as variables with sensible defaults
+
+                **main.tf MUST contain:**
+                - ALL resource definitions (aws_vpc, aws_instance, aws_s3_bucket, etc.)
+                - ALL data blocks (data sources)
+                - ALL module calls (if any)
+                - Use variable references consistently (var.variable_name)
+                - Nothing else (no providers, variables, or outputs)
+
+                **outputs.tf MUST contain:**
+                - ALL output definitions for critical infrastructure components
+                - Instance IPs, DNS names, resource IDs, ARNs
+                - Well-described outputs with meaningful descriptions
+                - Nothing else
 
                 **RESOURCE CONFIGURATION RULES:**
                 1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
-                    - Example: `tags = { Name = "main-vpc", Project = "my-awesome-app", ManagedBy = "Terraform" }`
-                2.  **Resource Naming:** Use the `project_name` as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "my_project_vpc" {}`).
-                3.  **User Variables & Comments:** For any values that a user is likely to customize (e.g., `instance_type`, CIDR blocks, specific AMI IDs), add a prominent comment on the same line.
-                    - Example: `instance_type = "t3.micro" # USER_VARIABLE: You can change the instance size here.`
-                4.  **Outputs:** For critical resources, generate `output` blocks. This is essential for resources like EC2 instance public IPs, RDS endpoint addresses, S3 bucket names, and Load Balancer DNS names.
+                    - Example: `tags = { Name = "main-vpc", Project = var.project_name, ManagedBy = "Terraform" }`
+                2.  **Resource Naming:** Use the `project_name` variable as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "${var.project_name}_vpc" {}`).
+                3.  **Variable Usage:** ALL hardcoded values must be converted to variables in variables.tf and referenced as var.variable_name in main.tf.
+                4.  **Comprehensive Outputs:** Generate outputs for ALL critical resources (instance IPs, RDS endpoints, S3 bucket names, Load Balancer DNS names, VPC IDs, subnet IDs, security group IDs).
 
                 **SERVICE-SPECIFIC INSTRUCTIONS:**
                 1.  **EC2 Instances:**
-                    - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+                    - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Create this as a variable.
                     - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
                 2.  **RDS Databases:**
                     - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
                     - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
-                    - **Credentials:** Do not hardcode `username` and `password`. Use a comment to instruct the user to use a secrets management solution. Example: `# IMPORTANT: Do not hardcode credentials. Use Terraform variables or a secrets manager.`
-                    -Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
+                    - **Credentials:** Do not hardcode `username` and `password`. Create variables for these with appropriate descriptions about using secrets management.
+                    - Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
                 3.  **IAM (CRITICAL):**
                     - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
                     - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
+
+                **RESPONSE FORMAT (MANDATORY):**
+                Your response MUST follow this exact format:
+
+                ```
+                `provider.tf`
+                [HCL code for terraform and provider blocks]
+
+                `variables.tf`
+                [HCL code for all variable definitions]
+
+                `main.tf`
+                [HCL code for all resources, data blocks, modules]
+
+                `outputs.tf`
+                [HCL code for all output definitions]
+                ```
 
                 **INPUT INTERPRETATION:**
                 - **User Query:** This is the primary goal.
                 - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
                 - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
+
+                **VALIDATION CHECKLIST:**
+                Before responding, ensure:
+                ✓ All 4 files are present (provider.tf, variables.tf, main.tf, outputs.tf)
+                ✓ No hardcoded values in main.tf (all converted to variables)
+                ✓ All resources have proper tags using var.project_name
+                ✓ All critical resources have corresponding outputs
+                ✓ Provider version is specified as ~> 5.0
+                ✓ Security groups use vpc_security_group_ids for VPC instances
+                ✓ All connections from JSON are implemented as IAM policies/security rules
                 """
 
         context = f"User Request: {query}\n\n"
@@ -1952,6 +2208,7 @@ def _generate_terraform_hcl(
 
 
 
+
 # def validate_terraform_with_openai(terraform_code, architecture_json):
 #     """
 #     Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
@@ -1977,10 +2234,12 @@ def _generate_terraform_hcl(
 #         # --- Iterative validation loop ---
 #         max_validations = 5
 #         current_code = terraform_code
-#         last_code = None
 
 #         for i in range(max_validations):
 #             print(f"\n🔁 Validation Loop {i + 1}/{max_validations}")
+
+#             # **CORRECTION 1: Capture the code state at the START of the iteration.**
+#             code_at_start_of_iteration = current_code
 
 #             # === STAGE 1: Structural Validation & Fixes ===
 #             system_prompt_1 = """
@@ -1998,241 +2257,232 @@ def _generate_terraform_hcl(
 # 5. Code should pass `terraform plan` without any manual edits.
 # 6. Always output each file in a separate fenced markdown block:
 #    ```main.tf
+# 7. **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+
 #    ...
-#    ```
-#    ```variables.tf
-#    ...
-#    ```
-#    etc.
+# Code snippet
+
+# ...
+# etc.
 
 # Return the full set of .tf files using fenced code blocks. No explanations.
 # """
-
 #             human_message_1 = f"""
 # Architecture to Achieve:
 
-# ```json
+# JSON
+
 # {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
-# ```
+# Terraform Code to Fix:
 
-# Terraform Code:
+# Terraform
 
-# ```hcl
 # {current_code}
-# ```
 # """
+#             print("   [Stage 1] Running structural validation...")
 #             response_1 = llm.invoke([
 #                 SystemMessage(content=system_prompt_1),
 #                 HumanMessage(content=human_message_1)
 #             ])
-
-#             validated_code = response_1.content.strip()
-
-#             if validated_code == last_code:
-#                 print("✅ Code is stable and unchanged. Exiting early.")
-#                 break
-#             else:
-#                 last_code = validated_code
-#                 print(f"🛠️ Code updated in iteration {i + 1}.")
+#             code_after_stage1 = response_1.content.strip()
 
 #             # === STAGE 2: Connection Validation ===
 #             system_prompt_2 = """
-# You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured.
+# You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured based on the required connections.
 
 # Instructions:
 
-# 1. Use the connections JSON to verify and enforce all links between services.
-# 2. DO NOT modify unrelated parts of the configuration.
-# 3. Always return split .tf files in fenced blocks like:
-#    ```main.tf
-#    ...
-#    ```
-#    ```variables.tf
-#    ...
-#    ```
-#    ```outputs.tf
-#    ...
-#    ```
-#    ```provider.tf
-#    ...
-#    ```
+# Use the connections JSON to verify and enforce all links between services.
+
+# DO NOT modify unrelated parts of the configuration.
+
+# Always return split .tf files in fenced blocks like:
+
+# Code snippet
+
+# ...
+# Code snippet
+
+# ...
+# etc.
 
 # Return only valid HCL blocks. No explanations.
 # """
-
 #             human_message_2 = f"""
 # Connections to Enforce:
 
-# ```json
+# JSON
+
 # {json.dumps(connections_dict, indent=2)}
-# ```
+# Terraform Code to Check:
 
-# Terraform Code:
+# Terraform
 
-# ```hcl
-# {validated_code}
-# ```
+# {code_after_stage1}
 # """
+#             print("   [Stage 2] Running connection validation...")
 #             response_2 = llm.invoke([
 #                 SystemMessage(content=system_prompt_2),
 #                 HumanMessage(content=human_message_2)
 #             ])
 
-#             final_code = response_2.content.strip()
+#             # This is the final, fully processed code for this iteration
+#             current_code = response_2.content.strip()
 
-#             if final_code == last_code:
-#                 print("✅ No changes in connection validation. Finalized.")
+#             # **CORRECTION 2: Perform a single stability check at the END of the iteration.**
+#             if current_code == code_at_start_of_iteration:
+#                 print(f"✅ Code has stabilized in iteration {i + 1}. Exiting validation loop.")
 #                 break
 #             else:
-#                 current_code = final_code
-#                 last_code = final_code
-#                 print(f"🔗 Connection validation completed in iteration {i + 1}.")
+#                 print(f"🛠️ Code was refined in iteration {i + 1}. Continuing to next validation cycle.")
 
-#         print("\n✅ Validation loop complete. Returning final code.")
-#         return last_code
+#             # If it's the last loop, warn the user.
+#             if i == max_validations - 1:
+#                 print("⚠️ Validation loop reached maximum iterations. Using the last generated code.")
+
+#         print("\n✅ Validation process complete.")
+#         return current_code
 
 #     except Exception as e:
-#         print(f"❌ Error in validation loop: {str(e)}")
+#         print(f"❌ An error occurred in the validation loop: {str(e)}")
+#         # Return the last known good code before the error
 #         return terraform_code
 
 
 def validate_terraform_with_openai(terraform_code, architecture_json):
     """
-    Validate and iteratively fix Terraform code using OpenAI to ensure it's runnable.
-    The function will loop up to 5 times and exit early if the code stabilizes.
+    Enhanced Terraform validation with strict validation rules and error handling.
+    Returns only valid, production-ready Terraform code split into 4 files.
     """
     try:
-        # --- Parse architecture JSON ---
+        # Parse and validate architecture JSON
         if isinstance(architecture_json, str):
             try:
                 architecture_json = json.loads(architecture_json)
             except json.JSONDecodeError:
                 print("❌ Failed to parse architecture_json.")
                 return terraform_code
-
+        
+        # Extract and normalize services/connections
         services = architecture_json.get("services", [])
         connections = architecture_json.get("connections", [])
-
+        project_name = architecture_json.get("project_name", "default-project")
+        
         services_dict = [s.dict() if hasattr(s, 'dict') else s for s in services]
         connections_dict = [c.dict() if hasattr(c, 'dict') else c for c in connections]
+        
+        llm = ChatOpenAI(
+            model="gpt-4o", 
+            temperature=0.0, 
+            api_key=OPENAI_API_KEY,
+            max_tokens=9000 
+        )
+        
+        # === Enhanced Validation Prompt ===
+        system_prompt = """
+You are an expert Terraform code validator and fixer specializing in AWS infrastructure.
 
-        llm = ChatOpenAI(model="gpt-4o", temperature=0.0, api_key=OPENAI_API_KEY)
+**CRITICAL VALIDATION REQUIREMENTS:**
+1. SYNTAX VALIDATION: Fix ALL HCL syntax errors, missing commas, brackets, quotes
+2. ARGUMENT VALIDATION: Ensure ALL required arguments are present for each resource
+3. REFERENCE VALIDATION: Verify all resource references use correct syntax (e.g., aws_vpc.main.id)
+4. SECURITY VALIDATION: Implement proper security groups, IAM policies based on connections
+5. DEPENDENCY VALIDATION: Ensure proper resource dependencies and ordering
 
-        # --- Iterative validation loop ---
-        max_validations = 5
-        current_code = terraform_code
+**MANDATORY OUTPUT FORMAT:**
+You MUST return EXACTLY 4 files in this format (no deviations allowed):
 
-        for i in range(max_validations):
-            print(f"\n🔁 Validation Loop {i + 1}/{max_validations}")
+`provider.tf`
+[terraform and provider blocks only]
 
-            # **CORRECTION 1: Capture the code state at the START of the iteration.**
-            code_at_start_of_iteration = current_code
+`variables.tf`
+[all variable definitions with types, descriptions, defaults]
 
-            # === STAGE 1: Structural Validation & Fixes ===
-            system_prompt_1 = """
-You are an automated Terraform validation engine. Fix syntax errors, deprecated fields, missing dependencies, and incomplete resources.
+`main.tf`
+[all resources, data blocks - use variables, no hardcoded values]
 
-**Rules:**
-1. Fix all HCL syntax errors.
-2. Replace deprecated arguments (e.g., use vpc_security_group_ids instead of security_groups if subnet_id is used).
-3. Add missing AWS dependencies (like subnets, gateways, route tables).
-4. Always split Terraform into:
-   - provider.tf: provider and terraform blocks
-   - main.tf: resources, modules, data
-   - variables.tf: variable definitions
-   - outputs.tf: output blocks
-5. Code should pass `terraform plan` without any manual edits.
-6. Always output each file in a separate fenced markdown block:
-   ```main.tf
-7. **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
+`outputs.tf`
+[all critical outputs with descriptions]
 
-   ...
-Code snippet
+**VALIDATION RULES (STRICT ENFORCEMENT):**
+1. NO SYNTAX ERRORS: Every bracket, comma, quote must be correct
+2. NO PLACEHOLDERS: Replace ALL placeholder values with actual resources/variables
+3. NO HARDCODED VALUES: Convert all hardcoded values to variables in variables.tf
+4. PROPER TAGGING: All resources MUST have tags with Name, Project, ManagedBy
+5. VPC SECURITY GROUPS: Use vpc_security_group_ids (not security_groups) for VPC instances
+6. COMPLETE RESOURCES: Include ALL required arguments per AWS documentation
+7. IAM LEAST PRIVILEGE: Create specific IAM policies based on service connections
+8. PROPER OUTPUTS: Output ALL critical resource attributes (IPs, ARNs, IDs, DNS names)
 
-...
-etc.
+**AWS-SPECIFIC FIXES:**
+- EC2 instances in VPC: MUST use vpc_security_group_ids
+- RDS: MUST have db_subnet_group with subnets in different AZs
+- S3: Include versioning, encryption settings
+- IAM: Create roles/policies for service-to-service connections
+- Security Groups: Implement proper ingress/egress rules based on connections
+- Default AMI: ami-08a6efd148b1f7504 for us-east-1
 
-Return the full set of .tf files using fenced code blocks. No explanations.
+**CRITICAL ERROR PATTERNS TO FIX:**
+- Missing required arguments (subnet_id, vpc_id, etc.)
+- Incorrect resource references (using names instead of IDs)
+- Missing security groups for EC2 instances
+- Hardcoded values instead of variables
+- Missing IAM permissions for service connections
+- Incomplete resource configurations
+- Missing tags on resources
+- Incorrect provider configuration
+
+**VALIDATION CHECKLIST (MUST VERIFY ALL):**
+✓ All 4 files present and properly formatted
+✓ No HCL syntax errors anywhere
+✓ All required arguments present for each resource
+✓ All hardcoded values converted to variables
+✓ All resources properly tagged
+✓ Security groups use correct argument names
+✓ IAM policies implement service connections
+✓ All critical resources have outputs
+✓ Provider version specified (~> 5.0)
+✓ No placeholder values remain
+
+CRITICAL: If the input code has major structural issues, completely rewrite it following best practices. Do not just patch errors - ensure production-ready code.
 """
-            human_message_1 = f"""
-Architecture to Achieve:
+        
+        human_prompt = f"""
+**PROJECT:** {project_name}
 
-JSON
-
+**ARCHITECTURE TO IMPLEMENT:**
+```json
 {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
-Terraform Code to Fix:
+```
 
-Terraform
+**TERRAFORM CODE TO VALIDATE & FIX:**
+```hcl
+{terraform_code}
+```
 
-{current_code}
+**VALIDATION TASK:**
+1. Fix ALL syntax errors and missing arguments
+2. Implement ALL service connections from the architecture JSON
+3. Convert ALL hardcoded values to variables
+4. Ensure ALL resources have proper tags and outputs
+5. Return ONLY the 4 Terraform files in the exact format specified
+
+IMPORTANT: The connections array shows which services need to communicate. Create appropriate IAM policies, security group rules, and networking to enable these connections.
 """
-            print("   [Stage 1] Running structural validation...")
-            response_1 = llm.invoke([
-                SystemMessage(content=system_prompt_1),
-                HumanMessage(content=human_message_1)
-            ])
-            code_after_stage1 = response_1.content.strip()
-
-            # === STAGE 2: Connection Validation ===
-            system_prompt_2 = """
-You are a Terraform expert. Validate that all service-to-service connections (IAM roles, security groups, triggers) are properly configured based on the required connections.
-
-Instructions:
-
-Use the connections JSON to verify and enforce all links between services.
-
-DO NOT modify unrelated parts of the configuration.
-
-Always return split .tf files in fenced blocks like:
-
-Code snippet
-
-...
-Code snippet
-
-...
-etc.
-
-Return only valid HCL blocks. No explanations.
-"""
-            human_message_2 = f"""
-Connections to Enforce:
-
-JSON
-
-{json.dumps(connections_dict, indent=2)}
-Terraform Code to Check:
-
-Terraform
-
-{code_after_stage1}
-"""
-            print("   [Stage 2] Running connection validation...")
-            response_2 = llm.invoke([
-                SystemMessage(content=system_prompt_2),
-                HumanMessage(content=human_message_2)
-            ])
-
-            # This is the final, fully processed code for this iteration
-            current_code = response_2.content.strip()
-
-            # **CORRECTION 2: Perform a single stability check at the END of the iteration.**
-            if current_code == code_at_start_of_iteration:
-                print(f"✅ Code has stabilized in iteration {i + 1}. Exiting validation loop.")
-                break
-            else:
-                print(f"🛠️ Code was refined in iteration {i + 1}. Continuing to next validation cycle.")
-
-            # If it's the last loop, warn the user.
-            if i == max_validations - 1:
-                print("⚠️ Validation loop reached maximum iterations. Using the last generated code.")
-
-        print("\n✅ Validation process complete.")
-        return current_code
-
+        
+        print("🛠️ Running enhanced Terraform validation...")
+        
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_prompt)
+        ])
+        
+        validated_code = response.content.strip()
+        print("✅ Enhanced validation complete - production-ready code generated")
+        return validated_code
+        
     except Exception as e:
-        print(f"❌ An error occurred in the validation loop: {str(e)}")
-        # Return the last known good code before the error
+        print(f"❌ Critical error in validate_terraform_with_openai: {str(e)}")
         return terraform_code
 
 

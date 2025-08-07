@@ -1,14 +1,14 @@
 {
     "S3": [
         {
-            "Name": "amnic-cur-010909987020",
-            "CreationDate": "2025-07-30 06:57:29",
+            "Name": "shreyas-cur-bucket-182de96fc7",
+            "CreationDate": "2025-05-25 12:48:28",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "DisplayName": "02fe21bcs081",
+                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -16,13 +16,14 @@
             ]
         },
         {
-            "Name": "july30test7-bucket",
-            "CreationDate": "2025-07-30 16:46:56",
+            "Name": "shreyas-cur-bucket-9a73dddbd8",
+            "CreationDate": "2025-05-25 11:56:31",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "DisplayName": "02fe21bcs081",
+                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -30,13 +31,14 @@
             ]
         },
         {
-            "Name": "migrations3testing",
-            "CreationDate": "2025-07-31 12:15:06",
+            "Name": "shreyas-cur-bucket-b80b4466dd",
+            "CreationDate": "2025-05-25 12:07:41",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "DisplayName": "02fe21bcs081",
+                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -44,14 +46,14 @@
             ]
         },
         {
-            "Name": "shreyastest31",
-            "CreationDate": "2025-07-31 12:51:02",
+            "Name": "shreyas-cur-bucket-ba7e808294",
+            "CreationDate": "2025-05-25 14:22:31",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "DisplayName": "02fe21bcs081",
+                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -59,132 +61,14 @@
             ]
         },
         {
-            "Name": "smile-test-bucket",
-            "CreationDate": "2025-07-29 17:19:37",
+            "Name": "shreyas-cur-bucket-da988e11a5",
+            "CreationDate": "2025-05-25 12:02:50",
             "Location": null,
             "ACL": [
                 {
                     "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-20250731125755684300000001",
-            "CreationDate": "2025-07-31 12:57:58",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-20250731130747459600000001",
-            "CreationDate": "2025-07-31 13:07:50",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-20250731132709635100000001",
-            "CreationDate": "2025-07-31 13:27:12",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-20250731133123231900000001",
-            "CreationDate": "2025-07-31 13:31:25",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-20250731135558485100000001",
-            "CreationDate": "2025-07-31 13:56:01",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "terraform-state-bucket-smile-demo",
-            "CreationDate": "2025-07-30 07:20:40",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "test-migration-bucket-clouvix",
-            "CreationDate": "2025-07-26 06:31:36",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
-                        "Type": "CanonicalUser"
-                    },
-                    "Permission": "FULL_CONTROL"
-                }
-            ]
-        },
-        {
-            "Name": "testshreyastest",
-            "CreationDate": "2025-07-30 14:41:05",
-            "Location": null,
-            "ACL": [
-                {
-                    "Grantee": {
-                        "DisplayName": "clouvixdevops",
-                        "ID": "324f782d897905335dd12e804446ba5a1505fb075e0588a2298b2ab6a115a898",
+                        "DisplayName": "02fe21bcs081",
+                        "ID": "82a806e4e892e865947ef43761470335426bb7e3618e7895f271aaa5a7530141",
                         "Type": "CanonicalUser"
                     },
                     "Permission": "FULL_CONTROL"
@@ -192,158 +76,11 @@
             ]
         }
     ],
-    "EC2": [
-        {
-            "InstanceId": "i-02a02c539e76e0090",
-            "State": "running",
-            "PublicIP": null,
-            "PrivateIP": "10.0.1.154",
-            "InstanceType": "t2.micro",
-            "LaunchTime": "2025-07-29 17:31:07",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "smile_test_ec2"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-022ed30561b34cf05",
-                    "GroupName": "terraform-20250729171938849600000001"
-                }
-            ],
-            "CPUUtilization": 0.066666666666663
-        },
-        {
-            "InstanceId": "i-07f517338fe5d7bff",
-            "State": "running",
-            "PublicIP": "54.92.233.58",
-            "PrivateIP": "172.31.85.133",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-30 15:20:00",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "testinstance"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-0ea36b1243ff51604",
-                    "GroupName": "default"
-                }
-            ],
-            "CPUUtilization": 0.16557377049180316
-        },
-        {
-            "InstanceId": "i-080df76d8b01c37de",
-            "State": "stopped",
-            "PublicIP": null,
-            "PrivateIP": "172.31.23.16",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-26 09:16:22",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "migration-shreyas_test"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-07e6286dd3151e645",
-                    "GroupName": "launch-wizard-4"
-                }
-            ],
-            "CPUUtilization": null
-        },
-        {
-            "InstanceId": "i-011e637448126ed1e",
-            "State": "running",
-            "PublicIP": "3.81.34.27",
-            "PrivateIP": "172.31.46.145",
-            "InstanceType": "t2.nano",
-            "LaunchTime": "2025-07-30 18:10:55",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "july30test8-ec2-instance"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-023d3fe84ea4b690b",
-                    "GroupName": "july30test8-sg"
-                }
-            ],
-            "CPUUtilization": 0.0672316384180752
-        },
-        {
-            "InstanceId": "i-07337d5a05e7c050f",
-            "State": "running",
-            "PublicIP": "54.225.40.150",
-            "PrivateIP": "172.31.35.198",
-            "InstanceType": "t3.micro",
-            "LaunchTime": "2025-07-31 13:00:54",
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "test1234test"
-                }
-            ],
-            "SecurityGroups": [
-                {
-                    "GroupId": "sg-07e5d47566dee5a5b",
-                    "GroupName": "launch-wizard-10"
-                }
-            ],
-            "CPUUtilization": 0.1617323886157728
-        }
-    ],
+    "EC2": [],
     "DynamoDB": [],
     "ECS": [],
-    "RDS": [
-        {
-            "DBInstanceIdentifier": "vedshreyas-rds",
-            "DBInstanceClass": "db.t3.micro",
-            "Engine": "mysql",
-            "EngineVersion": "8.0.41",
-            "Status": "available",
-            "Endpoint": "vedshreyas-rds.c29ywsyo6yth.us-east-1.rds.amazonaws.com",
-            "AllocatedStorage": 20,
-            "AvailabilityZone": "us-east-1b",
-            "MultiAZ": false,
-            "CPUUtilization": 2.9900304455713203
-        }
-    ],
+    "RDS": [],
     "ECR": [],
     "EKS": [],
-    "Lambda": [
-        {
-            "FunctionName": "shreyastest31",
-            "Runtime": "nodejs22.x",
-            "Handler": "index.handler",
-            "MemorySize": 128,
-            "Timeout": 3,
-            "LastModified": "2025-07-31T12:52:02.823+0000",
-            "Environment": null
-        },
-        {
-            "FunctionName": "migration_test",
-            "Runtime": "python3.13",
-            "Handler": "lambda_function.lambda_handler",
-            "MemorySize": 128,
-            "Timeout": 3,
-            "LastModified": "2025-07-31T12:16:16.921+0000",
-            "Environment": null
-        },
-        {
-            "FunctionName": "myfuncshreyastest",
-            "Runtime": "nodejs22.x",
-            "Handler": "index.handler",
-            "MemorySize": 128,
-            "Timeout": 3,
-            "LastModified": "2025-07-31T14:08:06.729+0000",
-            "Environment": null
-        }
-    ]
+    "Lambda": []
 }
