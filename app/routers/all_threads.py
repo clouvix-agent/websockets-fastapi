@@ -13,9 +13,9 @@ def start_background_threads():
     logger.info("Starting background threads")
 
     # Start AWS metrics collection thread
-    metrics_thread = threading.Thread(target=fetch_and_save_metrics, daemon=True)
-    metrics_thread.start()
-    logger.info("Started AWS metrics collection thread")
+    # metrics_thread = threading.Thread(target=fetch_and_save_metrics, daemon=True)
+    # metrics_thread.start()
+    # logger.info("Started AWS metrics collection thread")
 
     # Start AWS inventory collection thread
     inventory_thread = threading.Thread(target=fetch_and_save_aws_inventory, daemon=True)
