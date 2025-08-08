@@ -1,6 +1,6 @@
 import threading
 import logging
-from app.routers.metrics_collector import fetch_and_save_metrics
+# from app.routers.metrics_collector import fetch_and_save_metrics
 from app.routers.general import fetch_and_save_aws_inventory
 from app.routers.cost_schedular_code import run_cost_scheduler
 
