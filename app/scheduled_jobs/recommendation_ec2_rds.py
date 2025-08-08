@@ -1,22 +1,22 @@
-def run_ec2_rds_recommendation_scheduler():
-    """
-    Scheduler function that fetches resources for each user, authenticates using their
-    specific credentials, and generates cost-saving recommendations.
-    """
-    # Import necessary functions and modules
-    from app.core.rds_ec2_recommendation import (
+from app.core.rds_ec2_recommendation import (
         fetch_arns_grouped_by_user_id, extract_instance_info_from_arn,
         describe_ec2_instance, describe_rds_instance, get_pricing_info,
         get_configured_cloudwatch_metrics, generate_recommendations,
         create_or_update_metrics, generate_llm_recommendation, insert_or_update,
         display_results
     )
-    from app.database import SessionLocal
-    from botocore.exceptions import ClientError, NoCredentialsError
-    from app.core.existing_to_tf import get_aws_credentials_from_db
-    import re
-    import boto3 # Make sure boto3 is imported
+from app.database import SessionLocal
+from botocore.exceptions import ClientError, NoCredentialsError
+from app.core.existing_to_tf import get_aws_credentials_from_db
+import re
+import boto3
 
+def run_ec2_rds_recommendation_scheduler():
+    """
+    Scheduler function that fetches resources for each user, authenticates using their
+    specific credentials, and generates cost-saving recommendations.
+    """
+    
     try:
         # Fetch all ARNs grouped by their user_id from the database
         arns_by_user = fetch_arns_grouped_by_user_id()

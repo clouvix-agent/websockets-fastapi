@@ -552,8 +552,10 @@ def fetch_aws_credentials():
         logger.error(f"Error fetching AWS credentials from connections table: {e}")
         return []
 
+
 # def fetch_and_save_metrics():
 #     output_file = 'aws_metrics.json'
+    
 #     while True:
 #         try:
 #             print("Starting AWS metrics collection cycle")
@@ -565,116 +567,49 @@ def fetch_aws_credentials():
 #                 logger.error("No valid AWS credentials found in connections table")
 #                 time.sleep(30)
 #                 continue
-
+            
 #             for creds in credentials_list:
 #                 userid = creds['userid']
 #                 access_key = creds['access_key']
 #                 secret_key = creds['secret_key']
 #                 region = creds['region']
-
-#                 print(f"Collecting metrics for userid {userid} in region {region}")
-#                 try:
-#                     # Initialize AWSMetricsCollector and collect metrics
-#                     collector = AWSMetricsCollector(
-#                         aws_access_key_id=access_key,
-#                         aws_secret_access_key=secret_key,
-#                         region_name=region
-#                     )
-                    
-#                     logger.info(f"Running metrics collection for userid {userid}")
-#                     metrics_data = collector.run_collection()
-                    
-#                     # Save metrics to JSON file (optional, can be removed if only DB storage is needed)
-#                     print(f"Saving metrics to {output_file} for userid {userid}")
-#                     with open(f"{userid}_{output_file}", 'w') as f:
-#                         json.dump({
-#                             'generatedAt': datetime.datetime.now().isoformat(),
-#                             'metrics': metrics_data,
-#                             'userid': userid
-#                         }, f, indent=2)
-                    
-#                     # Insert metrics into database
-#                     logger.info(f"Inserting metrics into database for userid {userid}")
-#                     insert_metrics_to_db(metrics_data, userid)
-                    
-#                     print(f"Metrics collection completed for userid {userid}")
                 
-#                 except ClientError as e:
-#                     if e.response['Error']['Code'] == 'InvalidClientTokenId':
-#                         logger.error(f"Invalid AWS credentials for userid {userid}: {str(e)}")
-#                         print(f"Skipping userid {userid} due to invalid credentials")
-#                         continue
-#                     else:
-#                         logger.error(f"AWS error for userid {userid}: {str(e)}")
-#                         raise  # Re-raise other AWS errors
+#                 try:
+#                     # Use ThreadPoolExecutor to run metrics collection and recommendation generation concurrently
+#                     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+#                         # First submit the metrics collection task
+#                         metrics_future = executor.submit(
+#                             collect_metrics_for_user, 
+#                             userid, 
+#                             access_key, 
+#                             secret_key, 
+#                             region, 
+#                             output_file
+#                         )
+                        
+#                         # Get the metrics results (this will wait until metrics collection is done)
+#                         metrics_success = metrics_future.result()
+                        
+#                         if metrics_success:
+#                             # If metrics collection was successful, generate and save recommendations
+#                             recommendations_future = executor.submit(
+#                                 process_recommendations_for_user,
+#                                 userid
+#                             )
+                            
+#                             # Wait for recommendations to complete
+#                             recommendations_future.result()
+                    
 #                 except Exception as e:
-#                     logger.error(f"Error collecting metrics for userid {userid}: {str(e)}", exc_info=True)
-#                     print(f"Skipping userid {userid} due to error: {str(e)}")
+#                     logger.error(f"Error processing user {userid}: {str(e)}", exc_info=True)
 #                     continue
             
-#             print("Metrics collection cycle completed for all AWS accounts. Sleeping for 120 seconds")
-        
+#             print("Metrics and recommendations cycle completed for all AWS accounts. Sleeping for 120 seconds")
+            
 #         except Exception as e:
 #             logger.error(f"Error in metrics collection cycle: {str(e)}", exc_info=True)
         
-#         time.sleep(120)
-def fetch_and_save_metrics():
-    output_file = 'aws_metrics.json'
-    
-    while True:
-        try:
-            print("Starting AWS metrics collection cycle")
-            
-            # Fetch AWS credentials from connections table
-            credentials_list = fetch_aws_credentials()
-            
-            if not credentials_list:
-                logger.error("No valid AWS credentials found in connections table")
-                time.sleep(30)
-                continue
-            
-            for creds in credentials_list:
-                userid = creds['userid']
-                access_key = creds['access_key']
-                secret_key = creds['secret_key']
-                region = creds['region']
-                
-                try:
-                    # Use ThreadPoolExecutor to run metrics collection and recommendation generation concurrently
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                        # First submit the metrics collection task
-                        metrics_future = executor.submit(
-                            collect_metrics_for_user, 
-                            userid, 
-                            access_key, 
-                            secret_key, 
-                            region, 
-                            output_file
-                        )
-                        
-                        # Get the metrics results (this will wait until metrics collection is done)
-                        metrics_success = metrics_future.result()
-                        
-                        if metrics_success:
-                            # If metrics collection was successful, generate and save recommendations
-                            recommendations_future = executor.submit(
-                                process_recommendations_for_user,
-                                userid
-                            )
-                            
-                            # Wait for recommendations to complete
-                            recommendations_future.result()
-                    
-                except Exception as e:
-                    logger.error(f"Error processing user {userid}: {str(e)}", exc_info=True)
-                    continue
-            
-            print("Metrics and recommendations cycle completed for all AWS accounts. Sleeping for 120 seconds")
-            
-        except Exception as e:
-            logger.error(f"Error in metrics collection cycle: {str(e)}", exc_info=True)
-        
-        time.sleep(86400)
+#         time.sleep(86400)
 
 def insert_metrics_to_db(metrics_data, userid):
     """Insert metrics into the metrics table with userid."""
