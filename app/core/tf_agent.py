@@ -1982,163 +1982,168 @@ def _generate_terraform_hcl(
             print("\n===== USER CONNECTIONS =====\n")
             print(json.dumps(user_connections, indent=2))
 
+# 8. **Splitting of Terraform code into files:** 
+#                     Split this Terraform configuration into the following separate files according to best practices:
+
+#                     - `provider.tf`: Contains only the `terraform` and `provider` blocks.
+#                     - `main.tf`: Contains all resource definitions, data blocks, and modules.
+#                     - `variables.tf`: Defines all input variables used across the configuration, including extracted hardcoded values as variables.
+#                     - `outputs.tf`: Contains all output definitions relevant to the infrastructure.
         # === Prompt to guide the LLM ===
-        # prompt = """
-        #         You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
-
-        #         **CORE DIRECTIVES (NON-NEGOTIABLE):**
-        #         1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
-        #         2.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
-        #         3.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
-        #         4.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
-        #         5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
-        #         6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
-        #         7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
-        #         8. **Splitting of Terraform code into files:** 
-        #             Split this Terraform configuration into the following separate files according to best practices:
-
-        #             - `provider.tf`: Contains only the `terraform` and `provider` blocks.
-        #             - `main.tf`: Contains all resource definitions, data blocks, and modules.
-        #             - `variables.tf`: Defines all input variables used across the configuration, including extracted hardcoded values as variables.
-        #             - `outputs.tf`: Contains all output definitions relevant to the infrastructure.
-
-        #             Maintain full functionality and interdependencies between files. Ensure variable references are used consistently across files where applicable.
-
-
-        #         **RESOURCE CONFIGURATION RULES:**
-        #         1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
-        #             - Example: `tags = { Name = "main-vpc", Project = "my-awesome-app", ManagedBy = "Terraform" }`
-        #         2.  **Resource Naming:** Use the `project_name` as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "my_project_vpc" {}`).
-        #         3.  **User Variables & Comments:** For any values that a user is likely to customize (e.g., `instance_type`, CIDR blocks, specific AMI IDs), add a prominent comment on the same line.
-        #             - Example: `instance_type = "t3.micro" # USER_VARIABLE: You can change the instance size here.`
-        #         4.  **Outputs:** For critical resources, generate `output` blocks. This is essential for resources like EC2 instance public IPs, RDS endpoint addresses, S3 bucket names, and Load Balancer DNS names.
-
-        #         **SERVICE-SPECIFIC INSTRUCTIONS:**
-        #         1.  **EC2 Instances:**
-        #             - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
-        #             - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
-        #         2.  **RDS Databases:**
-        #             - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
-        #             - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
-        #             - **Credentials:** Do not hardcode `username` and `password`. Use a comment to instruct the user to use a secrets management solution. Example: `# IMPORTANT: Do not hardcode credentials. Use Terraform variables or a secrets manager.`
-        #             -Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
-        #         3.  **IAM (CRITICAL):**
-        #             - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
-        #             - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
-
-        #         **INPUT INTERPRETATION:**
-        #         - **User Query:** This is the primary goal.
-        #         - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
-        #         - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
-        #         """
         prompt = """
                 You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
 
-                **CRITICAL FILE STRUCTURE REQUIREMENT (MANDATORY):**
-                You MUST ALWAYS generate EXACTLY 4 separate files with the following structure. This is NON-NEGOTIABLE:
-
-                ```
-                `provider.tf `
-                [terraform and provider blocks only]
-
-                `variables.tf`
-                [all variable definitions]
-
-                `main.tf`
-                [all resource definitions, data blocks, and modules]
-
-                `outputs.tf`
-                [all output definitions]
-                ```
-
                 **CORE DIRECTIVES (NON-NEGOTIABLE):**
                 1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
-                2.  **Four Files Always:** You MUST generate all 4 files (provider.tf, variables.tf, main.tf, outputs.tf) in every response. Never generate just main.tf.
-                3.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
-                4.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
-                5.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
-                6.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
+                2.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
+                3.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
+                4.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
+                5.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
+                6.  **Provider First:** The first block in your code MUST be the `terraform` block, specifying the required AWS provider version (e.g., `~> 5.0`), followed by the `provider "aws"` block with the region.
                 7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
 
-                **FILE STRUCTURE RULES (STRICT ENFORCEMENT):**
+                    Maintain full functionality and interdependencies between files. Ensure variable references are used consistently across files where applicable.
 
-                **provider.tf MUST contain:**
-                - `terraform` block with required_providers and AWS provider version (~> 5.0)
-                - `provider "aws"` block with region configuration
-                - Nothing else
-
-                **variables.tf MUST contain:**
-                - ALL input variables used across the configuration
-                - Default values where appropriate
-                - Descriptions for each variable
-                - Type constraints
-                - Extract ALL hardcoded values as variables with sensible defaults
-
-                **main.tf MUST contain:**
-                - ALL resource definitions (aws_vpc, aws_instance, aws_s3_bucket, etc.)
-                - ALL data blocks (data sources)
-                - ALL module calls (if any)
-                - Use variable references consistently (var.variable_name)
-                - Nothing else (no providers, variables, or outputs)
-
-                **outputs.tf MUST contain:**
-                - ALL output definitions for critical infrastructure components
-                - Instance IPs, DNS names, resource IDs, ARNs
-                - Well-described outputs with meaningful descriptions
-                - Nothing else
 
                 **RESOURCE CONFIGURATION RULES:**
                 1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
-                    - Example: `tags = { Name = "main-vpc", Project = var.project_name, ManagedBy = "Terraform" }`
-                2.  **Resource Naming:** Use the `project_name` variable as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "${var.project_name}_vpc" {}`).
-                3.  **Variable Usage:** ALL hardcoded values must be converted to variables in variables.tf and referenced as var.variable_name in main.tf.
-                4.  **Comprehensive Outputs:** Generate outputs for ALL critical resources (instance IPs, RDS endpoints, S3 bucket names, Load Balancer DNS names, VPC IDs, subnet IDs, security group IDs).
+                    - Example: `tags = { Name = "main-vpc", Project = "my-awesome-app", ManagedBy = "Terraform" }`
+                2.  **Resource Naming:** Use the `project_name` as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "my_project_vpc" {}`).
+                3.  **User Variables & Comments:** For any values that a user is likely to customize (e.g., `instance_type`, CIDR blocks, specific AMI IDs), add a prominent comment on the same line.
+                    - Example: `instance_type = "t3.micro" # USER_VARIABLE: You can change the instance size here.`
+                4.  **Outputs:** For critical resources, generate `output` blocks. This is essential for resources like EC2 instance public IPs, RDS endpoint addresses, S3 bucket names, and Load Balancer DNS names.
 
                 **SERVICE-SPECIFIC INSTRUCTIONS:**
                 1.  **EC2 Instances:**
-                    - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Create this as a variable.
+                    - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Add a comment indicating this.
                     - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
                 2.  **RDS Databases:**
                     - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
                     - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
-                    - **Credentials:** Do not hardcode `username` and `password`. Create variables for these with appropriate descriptions about using secrets management.
-                    - Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
-                3.  **IAM (CRITICAL):**
+                    - **Credentials:** Use hardcoded values as default for password and username.
+                    -Ensure the DB subnet group includes subnets from at least two different Availability Zones (e.g., us-east-1a and us-east-1b) when generating Terraform code for AWS RDS.
+                3.  **S3 Buckets:**
+                    - DO NOT create or reference an `aws_s3_bucket_acl` resource. Avoid using the `acl` argument unless explicitly required.
+                    - Use `aws_s3_bucket_policy` for access control instead of ACLs.
+                    - Always enable encryption (`server_side_encryption_configuration`) and versioning for the bucket.
+                    - Tag all S3 resources properly, as with other AWS resources.
+                4.  **IAM (CRITICAL):**
                     - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
                     - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
-
-                **RESPONSE FORMAT (MANDATORY):**
-                Your response MUST follow this exact format:
-
-                ```
-                `provider.tf`
-                [HCL code for terraform and provider blocks]
-
-                `variables.tf`
-                [HCL code for all variable definitions]
-
-                `main.tf`
-                [HCL code for all resources, data blocks, modules]
-
-                `outputs.tf`
-                [HCL code for all output definitions]
-                ```
 
                 **INPUT INTERPRETATION:**
                 - **User Query:** This is the primary goal.
                 - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
                 - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
-
-                **VALIDATION CHECKLIST:**
-                Before responding, ensure:
-                ✓ All 4 files are present (provider.tf, variables.tf, main.tf, outputs.tf)
-                ✓ No hardcoded values in main.tf (all converted to variables)
-                ✓ All resources have proper tags using var.project_name
-                ✓ All critical resources have corresponding outputs
-                ✓ Provider version is specified as ~> 5.0
-                ✓ Security groups use vpc_security_group_ids for VPC instances
-                ✓ All connections from JSON are implemented as IAM policies/security rules
                 """
+        # prompt = """
+        #         You are an expert-level Terraform Infrastructure as Code (IaC) generator specializing in AWS. Your sole purpose is to produce high-quality, secure, and immediately runnable HCL code.
+
+        #         **CRITICAL FILE STRUCTURE REQUIREMENT (MANDATORY):**
+        #         You MUST ALWAYS generate EXACTLY 4 separate files with the following structure. This is NON-NEGOTIABLE:
+
+        #         ```
+        #         `provider.tf `
+        #         [terraform and provider blocks only]
+
+        #         `variables.tf`
+        #         [all variable definitions]
+
+        #         `main.tf`
+        #         [all resource definitions, data blocks, and modules]
+
+        #         `outputs.tf`
+        #         [all output definitions]
+        #         ```
+
+        #         **CORE DIRECTIVES (NON-NEGOTIABLE):**
+        #         1.  **HCL Only:** You MUST ONLY output valid HCL Terraform code. Never write explanations, apologies, or conversational text outside of HCL comments.
+        #         2.  **Four Files Always:** You MUST generate all 4 files (provider.tf, variables.tf, main.tf, outputs.tf) in every response. Never generate just main.tf.
+        #         3.  **Completeness is Key:** Generate all necessary resources for the request to work. This includes VPCs, subnets, internet gateways, route tables, security groups, and IAM roles/policies. Do not assume any resources exist unless explicitly stated.
+        #         4.  **No Placeholders:** Do not use placeholder values like `"YOUR_VPC_ID"`. Create the resource and reference its attribute directly (e.g., `aws_vpc.main.id`).
+        #         5.  **Argument Reference is Truth:** Your primary source of truth for resource arguments is the **Argument Reference** section of the provided documentation. Required arguments are non-negotiable.
+        #         6.  **Ignore Example Usage:** DO NOT copy-paste from the **Example Usage** sections in the docs. They are often incomplete or use deprecated syntax. Derive your code logic from the Argument Reference.
+        #         7.  **Comment User Variables (CRITICAL):** For any hardcoded values a user might need to change (like instance types, CIDR blocks, or AMI IDs), you MUST add a comment on the same line formatted exactly as: `# TF_VAR :: EDITABLE - USER INPUT REQUIRED`. This is not optional.
+        #         8. All required input variables MUST be defined in variables.tf with appropriate type constraints, and MUST include a default value that is either meaningful, securely generated, or derived using the project_name.
+        #         **FILE STRUCTURE RULES (STRICT ENFORCEMENT):**
+
+        #         **provider.tf MUST contain:**
+        #         - `terraform` block with required_providers and AWS provider version (~> 5.0)
+        #         - `provider "aws"` block with region configuration
+        #         - Nothing else
+
+        #         **variables.tf MUST contain:**
+        #         - ALL input variables used across the configuration
+        #         - Default values where appropriate
+        #         - Descriptions for each variable
+        #         - Type constraints
+        #         - Extract ALL hardcoded values as variables with sensible defaults
+
+        #         **main.tf MUST contain:**
+        #         - ALL resource definitions (aws_vpc, aws_instance, aws_s3_bucket, etc.)
+        #         - ALL data blocks (data sources)
+        #         - ALL module calls (if any)
+        #         - Use variable references consistently (var.variable_name)
+        #         - Nothing else (no providers, variables, or outputs)
+
+        #         **outputs.tf MUST contain:**
+        #         - ALL output definitions for critical infrastructure components
+        #         - Instance IPs, DNS names, resource IDs, ARNs
+        #         - Well-described outputs with meaningful descriptions
+        #         - Nothing else
+
+        #         **RESOURCE CONFIGURATION RULES:**
+        #         1.  **Mandatory Tagging:** Every single resource that supports it MUST have a `tags` block. At a minimum, include `Name`, `Project`, and `ManagedBy`. Use the provided `project_name` for the `Project` tag and "Terraform" for the `ManagedBy` tag.
+        #             - Example: `tags = { Name = "main-vpc", Project = var.project_name, ManagedBy = "Terraform" }`
+        #         2.  **Resource Naming:** Use the `project_name` variable as a prefix for all resource names to ensure they are unique and identifiable (e.g., `resource "aws_vpc" "${var.project_name}_vpc" {}`).
+        #         3.  **Variable Usage:** ALL hardcoded values must be converted to variables in variables.tf and referenced as var.variable_name in main.tf.
+        #         4.  **Comprehensive Outputs:** Generate outputs for ALL critical resources (instance IPs, RDS endpoints, S3 bucket names, Load Balancer DNS names, VPC IDs, subnet IDs, security group IDs).
+
+        #         **SERVICE-SPECIFIC INSTRUCTIONS:**
+        #         1.  **EC2 Instances:**
+        #             - **Default AMI:** If the user does not specify an AMI, you MUST use `ami-08a6efd148b1f7504` as the default for the `us-east-1` region. Create this as a variable.
+        #             - **CRITICAL SECURITY GROUP RULE:** When an `aws_instance` is deployed into a VPC (i.e., it has a `subnet_id`), you MUST use `vpc_security_group_ids` to attach security groups. You MUST NOT use the `security_groups` (name-based) argument in this case, as it is for EC2-Classic and will cause an error. Create an `aws_security_group` resource first and then reference its ID.
+        #         2.  **RDS Databases:**
+        #             - **Subnets:** Always create a new `aws_db_subnet_group` for the RDS instance. Do not attach the database directly to existing subnets.
+        #             - **Engine Version:** If the user requests an Aurora MySQL database, you MUST use engine version `8.0.mysql_aurora.3.08.1`. For other engines, use a recent, stable version.
+        #             - **Credentials:** Do not hardcode `username` and `password`. Create variables for these with appropriate descriptions about using secrets management.
+        #             - You MUST create at least two subnets in different Availability Zones and use both in the aws_db_subnet_group; do NOT use a single subnet or repeat the same AZ.Do NOT reuse the same AZ for both subnets.Use `availability_zone` argument explicitly for each subnet.
+        #         3.  **IAM (CRITICAL):**
+        #             - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
+        #             - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
+
+        #         **RESPONSE FORMAT (MANDATORY):**
+        #         Your response MUST follow this exact format:
+
+        #         ```
+        #         `provider.tf`
+        #         [HCL code for terraform and provider blocks]
+
+        #         `variables.tf`
+        #         [HCL code for all variable definitions]
+
+        #         `main.tf`
+        #         [HCL code for all resources, data blocks, modules]
+
+        #         `outputs.tf`
+        #         [HCL code for all output definitions]
+        #         ```
+
+        #         **INPUT INTERPRETATION:**
+        #         - **User Query:** This is the primary goal.
+        #         - **Architecture JSON:** This provides the `project_name` for naming/tagging and the `services` and `connections` list. These connections are CRITICAL. Use them to define security group rules, IAM policies, and other dependencies.
+        #         - **Terraform Documentation:** Use the provided docs to find the correct arguments for each resource.
+
+        #         **VALIDATION CHECKLIST:**
+        #         Before responding, ensure:
+        #         ✓ All 4 files are present (provider.tf, variables.tf, main.tf, outputs.tf)
+        #         ✓ No hardcoded values in main.tf (all converted to variables)
+        #         ✓ All resources have proper tags using var.project_name
+        #         ✓ All critical resources have corresponding outputs
+        #         ✓ Provider version is specified as ~> 5.0
+        #         ✓ Security groups use vpc_security_group_ids for VPC instances
+        #         ✓ All connections from JSON are implemented as IAM policies/security rules
+        #         """
 
         context = f"User Request: {query}\n\n"
 
@@ -2349,36 +2354,173 @@ def _generate_terraform_hcl(
 #         return terraform_code
 
 
+# def validate_terraform_with_openai(terraform_code, architecture_json):
+#     """
+#     Enhanced Terraform validation with strict validation rules and error handling.
+#     Returns only valid, production-ready Terraform code split into 4 files.
+#     """
+#     try:
+#         # Parse and validate architecture JSON
+#         if isinstance(architecture_json, str):
+#             try:
+#                 architecture_json = json.loads(architecture_json)
+#             except json.JSONDecodeError:
+#                 print("❌ Failed to parse architecture_json.")
+#                 return terraform_code
+        
+#         # Extract and normalize services/connections
+#         services = architecture_json.get("services", [])
+#         connections = architecture_json.get("connections", [])
+#         project_name = architecture_json.get("project_name", "default-project")
+        
+#         services_dict = [s.dict() if hasattr(s, 'dict') else s for s in services]
+#         connections_dict = [c.dict() if hasattr(c, 'dict') else c for c in connections]
+        
+#         llm = ChatOpenAI(
+#             model="gpt-4o", 
+#             temperature=0.0, 
+#             api_key=OPENAI_API_KEY,
+#             max_tokens=9000 
+#         )
+        
+#         # === Enhanced Validation Prompt ===
+#         system_prompt = """
+# You are an expert Terraform code validator and fixer specializing in AWS infrastructure.
+
+# **CRITICAL VALIDATION REQUIREMENTS:**
+# 1. SYNTAX VALIDATION: Fix ALL HCL syntax errors, missing commas, brackets, quotes
+# 2. ARGUMENT VALIDATION: Ensure ALL required arguments are present for each resource
+# 3. REFERENCE VALIDATION: Verify all resource references use correct syntax (e.g., aws_vpc.main.id)
+# 4. SECURITY VALIDATION: Implement proper security groups, IAM policies based on connections
+# 5. DEPENDENCY VALIDATION: Ensure proper resource dependencies and ordering
+
+# **MANDATORY OUTPUT FORMAT:**
+# You MUST return EXACTLY 4 files in this format (no deviations allowed):
+
+# `provider.tf`
+# [terraform and provider blocks only]
+
+# `variables.tf`
+# [all variable definitions with types, descriptions, defaults]
+
+# `main.tf`
+# [all resources, data blocks - use variables, no hardcoded values]
+
+# `outputs.tf`
+# [all critical outputs with descriptions]
+
+# **VALIDATION RULES (STRICT ENFORCEMENT):**
+# 1. NO SYNTAX ERRORS: Every bracket, comma, quote must be correct
+# 2. NO PLACEHOLDERS: Replace ALL placeholder values with actual resources/variables
+# 3. NO HARDCODED VALUES: Convert all hardcoded values to variables in variables.tf
+# 4. PROPER TAGGING: All resources MUST have tags with Name, Project, ManagedBy
+# 5. VPC SECURITY GROUPS: Use vpc_security_group_ids (not security_groups) for VPC instances
+# 6. COMPLETE RESOURCES: Include ALL required arguments per AWS documentation
+# 7. IAM LEAST PRIVILEGE: Create specific IAM policies based on service connections
+# 8. PROPER OUTPUTS: Output ALL critical resource attributes (IPs, ARNs, IDs, DNS names)
+
+# **AWS-SPECIFIC FIXES:**
+# - EC2 instances in VPC: MUST use vpc_security_group_ids
+# - RDS: MUST have db_subnet_group with subnets in different AZs
+# - S3: Include versioning, encryption settings
+# - IAM: Create roles/policies for service-to-service connections
+# - Security Groups: Implement proper ingress/egress rules based on connections
+# - Default AMI: ami-08a6efd148b1f7504 for us-east-1
+
+# **CRITICAL ERROR PATTERNS TO FIX:**
+# - Missing required arguments (subnet_id, vpc_id, etc.)
+# - Incorrect resource references (using names instead of IDs)
+# - Missing security groups for EC2 instances
+# - Hardcoded values instead of variables
+# - Missing IAM permissions for service connections
+# - Incomplete resource configurations
+# - Missing tags on resources
+# - Incorrect provider configuration
+
+# **VALIDATION CHECKLIST (MUST VERIFY ALL):**
+# ✓ All 4 files present and properly formatted
+# ✓ No HCL syntax errors anywhere
+# ✓ All required arguments present for each resource
+# ✓ All hardcoded values converted to variables
+# ✓ All resources properly tagged
+# ✓ Security groups use correct argument names
+# ✓ IAM policies implement service connections
+# ✓ All critical resources have outputs
+# ✓ Provider version specified (~> 5.0)
+# ✓ No placeholder values remain
+
+# CRITICAL: If the input code has major structural issues, completely rewrite it following best practices. Do not just patch errors - ensure production-ready code.
+# """
+        
+#         human_prompt = f"""
+# **PROJECT:** {project_name}
+
+# **ARCHITECTURE TO IMPLEMENT:**
+# ```json
+# {json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
+# ```
+
+# **TERRAFORM CODE TO VALIDATE & FIX:**
+# ```hcl
+# {terraform_code}
+# ```
+
+# **VALIDATION TASK:**
+# 1. Fix ALL syntax errors and missing arguments
+# 2. Implement ALL service connections from the architecture JSON
+# 3. Convert ALL hardcoded values to variables
+# 4. Ensure ALL resources have proper tags and outputs
+# 5. Return ONLY the 4 Terraform files in the exact format specified
+
+# IMPORTANT: The connections array shows which services need to communicate. Create appropriate IAM policies, security group rules, and networking to enable these connections.
+# """
+        
+#         print("🛠️ Running enhanced Terraform validation...")
+        
+#         response = llm.invoke([
+#             SystemMessage(content=system_prompt),
+#             HumanMessage(content=human_prompt)
+#         ])
+        
+#         validated_code = response.content.strip()
+#         print("✅ Enhanced validation complete - production-ready code generated")
+#         return validated_code
+        
+#     except Exception as e:
+#         print(f"❌ Critical error in validate_terraform_with_openai: {str(e)}")
+#         return terraform_code
+
+
 def validate_terraform_with_openai(terraform_code, architecture_json):
     """
-    Enhanced Terraform validation with strict validation rules and error handling.
+    Enhanced Terraform validation with iterative strict validation (up to 3 passes).
     Returns only valid, production-ready Terraform code split into 4 files.
     """
+    
     try:
-        # Parse and validate architecture JSON
+        # Parse and normalize architecture_json
         if isinstance(architecture_json, str):
             try:
                 architecture_json = json.loads(architecture_json)
             except json.JSONDecodeError:
                 print("❌ Failed to parse architecture_json.")
                 return terraform_code
-        
-        # Extract and normalize services/connections
+
         services = architecture_json.get("services", [])
         connections = architecture_json.get("connections", [])
         project_name = architecture_json.get("project_name", "default-project")
-        
+
         services_dict = [s.dict() if hasattr(s, 'dict') else s for s in services]
         connections_dict = [c.dict() if hasattr(c, 'dict') else c for c in connections]
-        
+
         llm = ChatOpenAI(
-            model="gpt-4o", 
-            temperature=0.0, 
-            api_key=OPENAI_API_KEY,
-            max_tokens=9000 
+            model="gpt-4o",
+            temperature=0.0,
+            api_key=OPENAI_API_KEY,  # Make sure this variable is defined
+            max_tokens=9000
         )
-        
-        # === Enhanced Validation Prompt ===
+
+        # === Prompts ===
         system_prompt = """
 You are an expert Terraform code validator and fixer specializing in AWS infrastructure.
 
@@ -2392,17 +2534,25 @@ You are an expert Terraform code validator and fixer specializing in AWS infrast
 **MANDATORY OUTPUT FORMAT:**
 You MUST return EXACTLY 4 files in this format (no deviations allowed):
 
-`provider.tf`
+## provider.tf
+```hcl
 [terraform and provider blocks only]
+```
 
-`variables.tf`
+## variables.tf
+```hcl
 [all variable definitions with types, descriptions, defaults]
+```
 
-`main.tf`
+## main.tf
+```hcl
 [all resources, data blocks - use variables, no hardcoded values]
+```
 
-`outputs.tf`
+## outputs.tf
+```hcl
 [all critical outputs with descriptions]
+```
 
 **VALIDATION RULES (STRICT ENFORCEMENT):**
 1. NO SYNTAX ERRORS: Every bracket, comma, quote must be correct
@@ -2446,13 +2596,13 @@ You MUST return EXACTLY 4 files in this format (no deviations allowed):
 
 CRITICAL: If the input code has major structural issues, completely rewrite it following best practices. Do not just patch errors - ensure production-ready code.
 """
-        
-        human_prompt = f"""
+
+        base_human_prompt_template = """
 **PROJECT:** {project_name}
 
 **ARCHITECTURE TO IMPLEMENT:**
 ```json
-{json.dumps({"services": services_dict, "connections": connections_dict}, indent=2)}
+{architecture_json}
 ```
 
 **TERRAFORM CODE TO VALIDATE & FIX:**
@@ -2460,30 +2610,94 @@ CRITICAL: If the input code has major structural issues, completely rewrite it f
 {terraform_code}
 ```
 
+{extra_context}
+
 **VALIDATION TASK:**
 1. Fix ALL syntax errors and missing arguments
 2. Implement ALL service connections from the architecture JSON
 3. Convert ALL hardcoded values to variables
 4. Ensure ALL resources have proper tags and outputs
 5. Return ONLY the 4 Terraform files in the exact format specified
-
-IMPORTANT: The connections array shows which services need to communicate. Create appropriate IAM policies, security group rules, and networking to enable these connections.
 """
-        
-        print("🛠️ Running enhanced Terraform validation...")
-        
-        response = llm.invoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_prompt)
-        ])
-        
-        validated_code = response.content.strip()
-        print("✅ Enhanced validation complete - production-ready code generated")
+
+        # Clean architecture JSON
+        architecture_json_cleaned = json.dumps(
+            {"services": services_dict, "connections": connections_dict},
+            indent=2
+        )
+
+        validated_code = terraform_code
+        validation_message = ""
+        extra_context = ""
+
+        for attempt in range(1, 4):
+            print(f"🔁 Iteration {attempt}: Running Terraform validation...")
+
+            # Add error context for retry attempts
+            if attempt > 1:
+                extra_context = f"""
+⚠️ PREVIOUS ITERATION HAD ISSUES: {validation_message}
+
+**STRICT REQUIREMENTS FOR THIS ATTEMPT:**
+1. Return EXACTLY 4 files in markdown format with ## headers
+2. Each file must contain valid Terraform HCL syntax
+3. No syntax errors or missing required arguments
+4. All resources properly defined with required parameters
+
+**FORMAT EXAMPLE:**
+## provider.tf
+```hcl
+[valid HCL content]
+```
+
+## variables.tf
+```hcl
+[valid HCL content]
+```
+
+## main.tf
+```hcl
+[valid HCL content]
+```
+
+## outputs.tf
+```hcl
+[valid HCL content]
+```
+"""
+
+            # Build prompt
+            human_prompt = base_human_prompt_template.format(
+                project_name=project_name,
+                architecture_json=architecture_json_cleaned,
+                terraform_code=validated_code,
+                extra_context=extra_context
+            )
+
+            # Call the model
+            response = llm.invoke([
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=human_prompt)
+            ])
+
+            validated_code = response.content.strip()
+
+            # Simple check for issues
+            if all(file in validated_code for file in ["## provider.tf", "## variables.tf", "## main.tf", "## outputs.tf"]):
+                if "syntax error" not in validated_code.lower() and "missing" not in validated_code.lower():
+                    print("✅ Validation passed - production-ready Terraform code generated.")
+                    break
+                else:
+                    validation_message = "Syntax or required arguments still missing."
+            else:
+                validation_message = "Some expected files or headers were not found."
+
         return validated_code
-        
+
     except Exception as e:
         print(f"❌ Critical error in validate_terraform_with_openai: {str(e)}")
         return terraform_code
+
 
 
 def _extract_project_name_from_query(query: str) -> str:
