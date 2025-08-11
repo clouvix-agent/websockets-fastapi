@@ -2027,7 +2027,13 @@ def _generate_terraform_hcl(
                     - Use `aws_s3_bucket_policy` for access control instead of ACLs.
                     - Always enable encryption (`server_side_encryption_configuration`) and versioning for the bucket.
                     - Tag all S3 resources properly, as with other AWS resources.
-                4.  **IAM (CRITICAL):**
+                4. **Lambda Functions:**
+                    - **Inline Packaging Only:** Use `archive_file` with inline `source { filename, content }`, output to `"${path.module}/dummy_lambda.zip"`. No `source_dir` or folders.
+                    - **Defaults:** Inline Python handler returning HTTP 200; handler `"lambda_function.lambda_handler"` and runtime `"python3.9"` # TF_VAR :: EDITABLE - USER INPUT REQUIRED.
+                    - **Wiring:** Set `filename`, `source_code_hash`, and `lifecycle { ignore_changes = [...] }`.
+                    - **IAM Role:** Create least-privilege role with `lambda.amazonaws.com` trust.
+                    - **Tagging:** Apply standard tags to Lambda and IAM resources.
+                5.  **IAM (CRITICAL):**
                     - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
                     - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
 
