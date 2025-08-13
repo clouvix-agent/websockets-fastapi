@@ -2033,9 +2033,16 @@ def _generate_terraform_hcl(
                     - **Wiring:** Set `filename`, `source_code_hash`, and `lifecycle { ignore_changes = [...] }`.
                     - **IAM Role:** Create least-privilege role with `lambda.amazonaws.com` trust.
                     - **Tagging:** Apply standard tags to Lambda and IAM resources.
-                5.  **IAM (CRITICAL):**
-                    - **Least Privilege:** Proactively create all necessary IAM roles (`aws_iam_role`), policies (`aws_iam_policy`), and attachments (`aws_iam_role_policy_attachment`).
-                    - **Specific Policies:** If Service A needs to access Service B (based on the `connections` JSON), create a specific, fine-grained policy for that interaction. Avoid using overly permissive policies like `AdministratorAccess`.
+                5. **ECS (Elastic Container Service):**
+                    - **Default Setup:** Fargate launch type, 256 CPU, 512 memory, nginx:latest image # TF_VAR :: EDITABLE - USER INPUT REQUIRED
+                    - **Required Resources:** Create `aws_ecs_cluster`, `aws_ecs_task_definition`, `aws_ecs_service`, execution IAM role with `AmazonECSTaskExecutionRolePolicy`, CloudWatch log group (7-day retention)
+                    - **Networking:** Security group for container port, public subnets with `assign_public_ip = true`, network mode `"awsvpc"`
+                    - **Container Config:** Essential container with awslogs driver, port 80 for web services
+                6. **ECS + ECR (Elastic Container Service + Container Registry):**
+                    - **Setup:** Create `aws_ecr_repository` with lifecycle policy for future custom images
+                    - **Image Strategy:** Use public `nginx:alpine` directly in ECS task definition for reliable deployment # TF_VAR :: EDITABLE - USER INPUT REQUIRED
+                    - **Required Resources:** ECR repo (optional for future use), ECS cluster/task/service, IAM role with `AmazonECSTaskExecutionRolePolicy`, CloudWatch logs (7-day)
+                    - **Networking:** Security group, public subnets, `assign_public_ip = true`, awsvpc mode, awslogs driver
 
                 **INPUT INTERPRETATION:**
                 - **User Query:** This is the primary goal.
